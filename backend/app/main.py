@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
 
@@ -20,6 +20,7 @@ from .routers import (
     interview,
     jobs,
     kinds,
+    maintenance,
     papers,
     profiles,
     projects,
@@ -34,6 +35,17 @@ from .routers import (
 from .security import hash_password
 
 log = logging.getLogger("paper-writer")
+
+# Largest single upload the API accepts (exemplar PDFs are capped at 40 MB by their route).
+MAX_REQUEST_BYTES = 45 * 1024 * 1024
+
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+    "Cross-Origin-Opener-Policy": "same-origin",
+}
 
 
 def seed_admin() -> None:
@@ -79,12 +91,31 @@ async def lifespan(_: FastAPI):
     from .export.service import seed_templates
 
     seed_templates()
+    with SessionLocal() as db:
+        site.seed_pages(db)
+    purged = maintenance.purge_expired_sessions()
+    if purged:
+        log.info("Purged %d expired sessions", purged)
     yield
 
 
 app = FastAPI(
     title="Paper Writer", version="0.1.0", lifespan=lifespan, docs_url="/api/docs", openapi_url="/api/openapi.json"
 )
+
+
+@app.middleware("http")
+async def hardening(request: Request, call_next):
+    length = request.headers.get("content-length")
+    if length and length.isdigit() and int(length) > MAX_REQUEST_BYTES:
+        return JSONResponse(status_code=413, content={"detail": "Request body too large"})
+    response = await call_next(request)
+    for k, v in SECURITY_HEADERS.items():
+        response.headers.setdefault(k, v)
+    if request.url.path.startswith("/api/"):
+        response.headers.setdefault("Cache-Control", "no-store")
+    return response
+
 
 for r in (
     auth,
@@ -103,6 +134,7 @@ for r in (
     figures,
     export,
     review,
+    maintenance,
 ):
     app.include_router(r.router)
 app.include_router(site.robots_router)
@@ -123,6 +155,7 @@ async def value_error_handler(_: Request, exc: ValueError):
 _dist = (Path(__file__).resolve().parent.parent / get_settings().frontend_dist).resolve()
 if _dist.is_dir() and (_dist / "index.html").exists():
     app.mount("/assets", StaticFiles(directory=_dist / "assets"), name="assets")
+    _index_html = (_dist / "index.html").read_text(encoding="utf-8")
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def spa(full_path: str):
@@ -131,4 +164,9 @@ if _dist.is_dir() and (_dist / "index.html").exists():
         candidate = (_dist / full_path).resolve()
         if full_path and candidate.is_file() and _dist in candidate.parents:
             return FileResponse(candidate)
-        return FileResponse(_dist / "index.html")
+        # Crawlers and link previews read the head before any script runs, so it is rendered here.
+        from .seo import head_for, inject
+
+        with SessionLocal() as db:
+            meta = head_for(full_path, site.load_site(db), db)
+        return HTMLResponse(inject(_index_html, meta), headers={"Cache-Control": "no-cache"})

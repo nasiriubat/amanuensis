@@ -15,7 +15,9 @@ from ..config import get_settings
 from ..db import get_db
 from ..deps import require_admin
 from ..models import Page, SiteSetting, User, iso, now
+from ..site_content import ABOUT_PAGE, CONTACT_PAGE, LANDING_DEFAULTS
 from ..storage import slugify
+from ..uploads import FILE_HEADERS, sanitize_svg, sniff
 
 router = APIRouter(prefix="/api", tags=["site"])
 
@@ -24,11 +26,43 @@ DEFAULTS = {
     "tagline": "An AI co-author for people who build things and want to publish them.",
     "footer": "",
     "seo": {"title": "", "description": "", "keywords": "", "og_image": "", "index": True},
-    "homepage": "login",  # "login" or a page slug
+    "homepage": "landing",  # "landing", "login" or a page slug
     "logo": None,  # filename under data/branding
+    "landing": LANDING_DEFAULTS,
 }
 
-_LOGO_TYPES = {"image/png": ".png", "image/jpeg": ".jpg", "image/svg+xml": ".svg", "image/webp": ".webp"}
+_LOGO_TYPES = {"image/png", "image/jpeg", "image/svg+xml", "image/webp"}
+
+
+def seed_pages(db: Session) -> None:
+    """Create About and Contact once so a fresh install has something on its public site."""
+    marker = db.get(SiteSetting, "pages_seeded")
+    if marker or db.scalar(select(Page).limit(1)):
+        return
+    settings = get_settings()
+    name = load_site(db)["name"]
+    db.add(
+        Page(
+            slug="about",
+            title="About",
+            content=ABOUT_PAGE.format(name=name),
+            published=True,
+            show_in_nav=True,
+            nav_order=1,
+        )
+    )
+    db.add(
+        Page(
+            slug="contact",
+            title="Contact",
+            content=CONTACT_PAGE.format(name=name, admin_email=settings.admin_email),
+            published=True,
+            show_in_nav=True,
+            nav_order=2,
+        )
+    )
+    db.add(SiteSetting(key="pages_seeded", value={"at": iso(now())}))
+    db.commit()
 
 
 def _branding_dir() -> Path:
@@ -43,6 +77,7 @@ def load_site(db: Session) -> dict:
     if row and row.value:
         data.update(row.value)
         data["seo"] = {**DEFAULTS["seo"], **(row.value.get("seo") or {})}
+        data["landing"] = {**LANDING_DEFAULTS, **(row.value.get("landing") or {})}
     return data
 
 
@@ -65,12 +100,30 @@ class SeoIn(BaseModel):
     index: bool = True
 
 
+class PrincipleIn(BaseModel):
+    title: str = Field(min_length=1, max_length=80)
+    text: str = Field(default="", max_length=400)
+
+
+class LandingIn(BaseModel):
+    eyebrow: str = Field(default="", max_length=120)
+    headline: str = Field(min_length=1, max_length=120)
+    subheadline: str = Field(default="", max_length=600)
+    cta_primary: str = Field(default="Sign in", min_length=1, max_length=40)
+    cta_secondary: str = Field(default="", max_length=40)
+    why_chat: list[str] = Field(default_factory=list, max_length=8)
+    why_us: list[str] = Field(default_factory=list, max_length=8)
+    principles: list[PrincipleIn] = Field(default_factory=list, max_length=8)
+    closing: str = Field(default="", max_length=300)
+
+
 class SiteIn(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     tagline: str = Field(default="", max_length=200)
     footer: str = Field(default="", max_length=500)
     seo: SeoIn = Field(default_factory=SeoIn)
-    homepage: str = Field(default="login", max_length=80)
+    homepage: str = Field(default="landing", max_length=80)
+    landing: LandingIn | None = None
 
 
 class PageIn(BaseModel):
@@ -119,6 +172,7 @@ def _public_site(db: Session) -> dict:
         "homepage": s["homepage"],
         "logo_url": f"/api/site/logo?v={re.sub(r'[^a-z0-9]', '', s['logo'] or '')}" if s.get("logo") else None,
         "nav_pages": [{"slug": p.slug, "title": p.title} for p in pages],
+        "landing": s["landing"],
     }
 
 
@@ -138,7 +192,7 @@ def logo(db: Session = Depends(get_db)):
     p = _branding_dir() / s["logo"]
     if not p.exists():
         raise HTTPException(404, "No logo")
-    return FileResponse(p, headers={"Cache-Control": "public, max-age=86400"})
+    return FileResponse(p, headers={**FILE_HEADERS, "Cache-Control": "public, max-age=86400"})
 
 
 @router.get("/pages/{slug}")
@@ -160,22 +214,27 @@ def admin_site(_: User = Depends(require_admin), db: Session = Depends(get_db)):
 @router.put("/admin/site")
 def put_site(body: SiteIn, _: User = Depends(require_admin), db: Session = Depends(get_db)):
     current = load_site(db)
-    if body.homepage != "login":
+    if body.homepage not in ("login", "landing"):
         page = db.scalar(select(Page).where(Page.slug == body.homepage))
         if not page:
-            raise HTTPException(400, "Homepage must be 'login' or the slug of an existing page")
-    data = {**current, **body.model_dump()}
+            raise HTTPException(400, "Homepage must be 'landing', 'login' or the slug of an existing page")
+    incoming = body.model_dump(exclude_none=True)
+    landing = {**current["landing"], **incoming.pop("landing", {})}
+    data = {**current, **incoming, "landing": landing}
     return save_site(db, data)
 
 
 @router.post("/admin/site/logo")
 async def upload_logo(file: UploadFile = File(...), _: User = Depends(require_admin), db: Session = Depends(get_db)):
-    ext = _LOGO_TYPES.get(file.content_type or "")
-    if not ext:
-        raise HTTPException(400, "Use a PNG, JPEG, SVG or WebP image")
     data = await file.read()
     if len(data) > 2 * 1024 * 1024:
         raise HTTPException(413, "Logo larger than 2 MB")
+    kind = sniff(data, _LOGO_TYPES)
+    if not kind:
+        raise HTTPException(400, "Use a PNG, JPEG, SVG or WebP image")
+    ctype, ext = kind
+    if ctype == "image/svg+xml":
+        data = sanitize_svg(data)
     name = f"logo-{int(now().timestamp())}{ext}"
     d = _branding_dir()
     for old in d.glob("logo-*"):
@@ -270,7 +329,7 @@ def delete_page(page_id: str, _: User = Depends(require_admin), db: Session = De
         raise HTTPException(404, "Page not found")
     site = load_site(db)
     if site.get("homepage") == p.slug:
-        site["homepage"] = "login"
+        site["homepage"] = "landing"
         save_site(db, site)
     db.delete(p)
     db.commit()
@@ -285,6 +344,20 @@ robots_router = APIRouter(include_in_schema=False)
 @robots_router.get("/robots.txt", response_class=PlainTextResponse)
 def robots(db: Session = Depends(get_db)):
     s = load_site(db)
+    base = get_settings().app_url.rstrip("/")
     if s["seo"].get("index", True):
-        return "User-agent: *\nDisallow: /api/\nDisallow: /admin\nDisallow: /projects/\nDisallow: /profiles/\n"
+        return (
+            "User-agent: *\nDisallow: /api/\nDisallow: /admin\nDisallow: /projects/\nDisallow: /profiles/\n"
+            f"Disallow: /library\nDisallow: /account\nDisallow: /login\nAllow: /\n\nSitemap: {base}/sitemap.xml\n"
+        )
     return "User-agent: *\nDisallow: /\n"
+
+
+@robots_router.get("/sitemap.xml", include_in_schema=False)
+def sitemap_xml(db: Session = Depends(get_db)):
+    from ..seo import sitemap
+
+    s = load_site(db)
+    if not s["seo"].get("index", True):
+        raise HTTPException(404, "Not indexed")
+    return PlainTextResponse(sitemap(s, db), media_type="application/xml")

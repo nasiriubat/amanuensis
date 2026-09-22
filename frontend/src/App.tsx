@@ -25,7 +25,9 @@ import { HouseStylePage } from "@/pages/admin/house-style";
 import { UsersPage } from "@/pages/admin/users";
 import { UsagePage } from "@/pages/admin/usage";
 import { PagesPage, SitePage } from "@/pages/admin/site";
+import { StoragePage } from "@/pages/admin/storage";
 import { PublicPageView } from "@/pages/public-page";
+import { LandingPage } from "@/pages/landing";
 import { useSite } from "@/lib/site";
 
 function Splash() {
@@ -63,12 +65,14 @@ function Root() {
   const site = useSite();
   if (loading) return <Splash />;
   if (user) return <Navigate to={user.must_change_password ? "/account" : "/library"} replace />;
-  if (site.homepage && site.homepage !== "login") return <PublicPageView slug={site.homepage} />;
-  return <Navigate to="/login" replace />;
+  if (site.homepage === "login") return <Navigate to="/login" replace />;
+  if (site.homepage && site.homepage !== "landing") return <PublicPageView slug={site.homepage} />;
+  return <LandingPage />;
 }
 
 const router = createBrowserRouter([
   { path: "/", element: <Root /> },
+  { path: "/landing", element: <LandingPage /> },
   { path: "/p/:slug", element: <PublicPageView /> },
   {
     element: <PublicOnly />,
@@ -107,6 +111,7 @@ const router = createBrowserRouter([
               { path: "house-style", element: <HouseStylePage /> },
               { path: "users", element: <UsersPage /> },
               { path: "usage", element: <UsagePage /> },
+              { path: "storage", element: <StoragePage /> },
               { path: "site", element: <SitePage /> },
               { path: "pages", element: <PagesPage /> },
             ],

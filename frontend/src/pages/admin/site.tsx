@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ExternalLink, Eye, EyeOff, FileText, Plus, Trash2, Upload } from "lucide-react";
 import { api } from "@/lib/api";
-import { SiteLogo } from "@/lib/site";
+import { SiteLogo, type LandingContent } from "@/lib/site";
 import { cn, timeAgo } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +23,20 @@ interface SiteAdmin {
   seo: { title: string; description: string; keywords: string; og_image: string; index: boolean };
   homepage: string;
   logo: string | null;
+  landing: LandingContent;
 }
+
+const lines = (s: string) =>
+  s
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+const principlesFromText = (s: string) =>
+  lines(s).map((l) => {
+    const [title, ...rest] = l.split("|");
+    return { title: title.trim(), text: rest.join("|").trim() };
+  });
+const principlesToText = (p: LandingContent["principles"]) => p.map((x) => `${x.title} | ${x.text}`).join("\n");
 
 interface PageRow {
   id: string;
@@ -83,6 +96,7 @@ export function SitePage() {
   const dirty = JSON.stringify(form) !== JSON.stringify(site.data);
   const set = (patch: Partial<SiteAdmin>) => setForm({ ...form, ...patch });
   const setSeo = (patch: Partial<SiteAdmin["seo"]>) => setForm({ ...form, seo: { ...form.seo, ...patch } });
+  const setLanding = (patch: Partial<LandingContent>) => setForm({ ...form, landing: { ...form.landing, ...patch } });
 
   return (
     <form
@@ -142,6 +156,7 @@ export function SitePage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="landing">The landing page (below)</SelectItem>
                 <SelectItem value="login">The sign-in page</SelectItem>
                 {(pages.data ?? [])
                   .filter((p) => p.published)
@@ -158,8 +173,54 @@ export function SitePage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Landing page</CardTitle>
+          <CardDescription>
+            The public front page at <a href="/landing" target="_blank" rel="noreferrer" className="text-primary underline-offset-2 hover:underline">/landing</a>. The eleven steps and the five entry points come from the product itself and stay in sync; the words here are yours.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Eyebrow" hint="Small line above the headline.">
+              <Input value={form.landing.eyebrow} onChange={(e) => setLanding({ eyebrow: e.target.value })} maxLength={120} />
+            </Field>
+            <Field label="Headline">
+              <Input value={form.landing.headline} onChange={(e) => setLanding({ headline: e.target.value })} maxLength={120} required />
+            </Field>
+          </div>
+          <Field label="Subheadline">
+            <Textarea value={form.landing.subheadline} onChange={(e) => setLanding({ subheadline: e.target.value })} maxLength={600} className="min-h-[72px]" />
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Primary button" hint="Leads to sign-in.">
+              <Input value={form.landing.cta_primary} onChange={(e) => setLanding({ cta_primary: e.target.value })} maxLength={40} required />
+            </Field>
+            <Field label="Secondary button" hint="Scrolls to the steps. Leave empty to hide.">
+              <Input value={form.landing.cta_secondary} onChange={(e) => setLanding({ cta_secondary: e.target.value })} maxLength={40} />
+            </Field>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="What a chat window gets wrong" hint="One point per line, up to eight.">
+              <Textarea value={form.landing.why_chat.join("\n")} onChange={(e) => setLanding({ why_chat: lines(e.target.value).slice(0, 8) })} className="min-h-[140px]" />
+            </Field>
+            <Field label={`What ${form.name} does instead`} hint="One point per line, up to eight.">
+              <Textarea value={form.landing.why_us.join("\n")} onChange={(e) => setLanding({ why_us: lines(e.target.value).slice(0, 8) })} className="min-h-[140px]" />
+            </Field>
+          </div>
+          <Field label="Principles" hint="One per line as “Title | explanation”, up to eight.">
+            <Textarea value={principlesToText(form.landing.principles)} onChange={(e) => setLanding({ principles: principlesFromText(e.target.value).slice(0, 8) })} className="min-h-[150px] font-mono text-[12.5px]" />
+          </Field>
+          <Field label="Closing line" hint="Under the tagline at the bottom of the page.">
+            <Input value={form.landing.closing} onChange={(e) => setLanding({ closing: e.target.value })} maxLength={300} />
+          </Field>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Search engines</CardTitle>
-          <CardDescription>Applied to the document head and robots.txt. The workspace itself is never indexed.</CardDescription>
+          <CardDescription>
+            Rendered into the page head on the server, so link previews and crawlers see them without running scripts. A sitemap is served at /sitemap.xml. The workspace itself is never indexed.
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <label className="flex items-center justify-between gap-4 rounded-[var(--radius-sm)] border border-border px-3 py-2.5">

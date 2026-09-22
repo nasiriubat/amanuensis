@@ -316,15 +316,15 @@ export function FiguresPage() {
               ref={fileRef}
               type="file"
               accept="image/png,image/jpeg,image/svg+xml,image/webp,application/pdf"
+              multiple
               className="hidden"
               onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) upload.mutate(f);
+                Array.from(e.target.files ?? []).forEach((f) => upload.mutate(f));
                 e.target.value = "";
               }}
             />
-            <Button variant="secondary" onClick={() => fileRef.current?.click()} loading={upload.isPending}>
-              <Upload className="h-4 w-4" /> Upload image
+            <Button variant="secondary" onClick={() => fileRef.current?.click()} loading={upload.isPending} title="PNG, JPEG, SVG, WebP or PDF, up to 20 MB each">
+              <Upload className="h-4 w-4" /> Upload images
             </Button>
             <Button onClick={() => setNewDiagram(true)}>
               <Plus className="h-4 w-4" /> New diagram

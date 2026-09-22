@@ -2,6 +2,18 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "./api";
 
+export interface LandingContent {
+  eyebrow: string;
+  headline: string;
+  subheadline: string;
+  cta_primary: string;
+  cta_secondary: string;
+  why_chat: string[];
+  why_us: string[];
+  principles: Array<{ title: string; text: string }>;
+  closing: string;
+}
+
 export interface SiteInfo {
   name: string;
   tagline: string;
@@ -10,16 +22,30 @@ export interface SiteInfo {
   homepage: string;
   logo_url: string | null;
   nav_pages: Array<{ slug: string; title: string }>;
+  landing: LandingContent;
 }
+
+export const EMPTY_LANDING: LandingContent = {
+  eyebrow: "",
+  headline: "",
+  subheadline: "",
+  cta_primary: "Sign in",
+  cta_secondary: "",
+  why_chat: [],
+  why_us: [],
+  principles: [],
+  closing: "",
+};
 
 const FALLBACK: SiteInfo = {
   name: "Paper Writer",
   tagline: "",
   footer: "",
   seo: { title: "", description: "", keywords: "", og_image: "", index: true },
-  homepage: "login",
+  homepage: "landing",
   logo_url: null,
   nav_pages: [],
+  landing: EMPTY_LANDING,
 };
 
 export function useSite(): SiteInfo {

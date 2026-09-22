@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Activity, BookType, Cpu, FileText, Globe, Palette, Plug, Users } from "lucide-react";
+import { Activity, BookType, Cpu, FileText, Globe, HardDrive, Palette, Plug, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/misc";
 
@@ -12,6 +12,7 @@ const items = [
   { to: "site", label: "Site", icon: Globe, hint: "Name, logo, SEO" },
   { to: "pages", label: "Pages", icon: FileText, hint: "About, contact, homepage" },
   { to: "usage", label: "Usage", icon: Activity, hint: "Tokens and calls" },
+  { to: "storage", label: "Storage", icon: HardDrive, hint: "Disk use and cleanup" },
 ];
 
 export function AdminLayout() {

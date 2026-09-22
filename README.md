@@ -18,6 +18,14 @@ LaTeX zip; site settings, logo, SEO and public Markdown pages; a reviewer-style 
 whose major findings land on the checklist, and venue suggestions you can adopt as the target
 venue. All seven build phases from SPEC.md are done; what remains is feedback-driven polish.
 
+Around the pipeline: a public landing page whose copy the admin edits (steps and entry points
+come from the product itself), seeded About and Contact pages, server-rendered SEO tags and a
+sitemap, a top bar with breadcrumbs, live background-job indicator and account menu, and an
+admin Storage page that shows disk use per project and runs explicit cleanups (old exports,
+raw paper sources, git history compaction, finished jobs, old call logs, expired sessions,
+database vacuum). Uploads are checked by their bytes, SVGs are sanitised, and user files are
+served with a sandboxing content-security policy.
+
 ## Run with Docker
 
 ```bash

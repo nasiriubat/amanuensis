@@ -78,7 +78,8 @@ def test_user_crud_and_isolation(client):
 def test_site_settings_and_pages(client):
     client.cookies.clear()
     s = client.get("/api/site").json()
-    assert s["name"] == "Paper Writer" and s["nav_pages"] == [] and s["logo_url"] is None
+    assert s["name"] == "Paper Writer" and s["logo_url"] is None
+    assert [p["slug"] for p in s["nav_pages"]] == ["about", "contact"]  # seeded on first boot
     assert "Disallow: /api/" in client.get("/robots.txt").text
     h = login(client)
     r = client.put("/api/admin/site", headers=h, json={"name": "TUNI Papers", "tagline": "t", "seo": {"index": False}})
@@ -94,9 +95,9 @@ def test_site_settings_and_pages(client):
     assert client.get("/api/pages/about-us").status_code == 404  # unpublished
     client.patch(f"/api/admin/pages/{pid}", headers=h, json={"published": True})
     assert client.get("/api/pages/about-us").json()["content"].startswith("# About")
-    assert client.get("/api/site").json()["nav_pages"] == [{"slug": "about-us", "title": "About us"}]
+    assert {"slug": "about-us", "title": "About us"} in client.get("/api/site").json()["nav_pages"]
     assert client.put("/api/admin/site", headers=h, json={"name": "X", "homepage": "nope"}).status_code == 400
     assert client.put("/api/admin/site", headers=h, json={"name": "X", "homepage": "about-us"}).status_code == 200
     client.delete(f"/api/admin/pages/{pid}", headers=h)
-    assert client.get("/api/admin/site", headers=h).json()["homepage"] == "login"
+    assert client.get("/api/admin/site", headers=h).json()["homepage"] == "landing"
     client.put("/api/admin/site", headers=h, json={"name": "Paper Writer", "seo": {"index": True}})

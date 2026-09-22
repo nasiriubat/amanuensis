@@ -12,6 +12,7 @@ from ..figures import service as svc
 from ..llm.base import LLMError
 from ..models import User
 from ..security import llm_limiter
+from ..uploads import FILE_HEADERS, sanitize_svg, sniff
 from .projects import get_owned
 
 router = APIRouter(prefix="/api/projects/{slug}/figures", tags=["figures"])
@@ -75,8 +76,14 @@ async def upload(
     data = await file.read()
     if len(data) > 20 * 1024 * 1024:
         raise HTTPException(413, "Image larger than 20 MB")
+    kind = sniff(data, set(svc.IMAGE_TYPES))
+    if not kind:
+        raise HTTPException(400, "That file is not a PNG, JPEG, SVG, WebP or PDF")
+    ctype, _ext = kind
+    if ctype == "image/svg+xml":
+        data = sanitize_svg(data)
     try:
-        return svc.create_image(root, name, caption, data, file.content_type or "")
+        return svc.create_image(root, name, caption, data, ctype)
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
 
@@ -105,10 +112,14 @@ async def store_render(
     _, root = _root(db, user, slug)
     svg_bytes = await svg.read() if svg else None
     png_bytes = await png.read() if png else None
-    if svg_bytes and not svg_bytes.lstrip().startswith(b"<"):
+    if svg_bytes and not sniff(svg_bytes, {"image/svg+xml"}):
         raise HTTPException(400, "That is not an SVG")
-    if png_bytes and png_bytes[:4] != b"\x89PNG":
+    if png_bytes and not sniff(png_bytes, {"image/png"}):
         raise HTTPException(400, "That is not a PNG")
+    if svg_bytes:
+        svg_bytes = sanitize_svg(svg_bytes)
+    if (svg_bytes and len(svg_bytes) > 10 * 1024 * 1024) or (png_bytes and len(png_bytes) > 20 * 1024 * 1024):
+        raise HTTPException(413, "Rendered figure is too large")
     try:
         return svc.store_render(root, name, svg_bytes, png_bytes)
     except ValueError as e:
@@ -123,7 +134,7 @@ def figure_file(
     p = svc.file_path(root, name, "png_file" if kind == "png" else "file")
     if not p:
         raise HTTPException(404, "Not rendered yet")
-    return FileResponse(p, headers={"Cache-Control": "no-cache"})
+    return FileResponse(p, headers=FILE_HEADERS)
 
 
 @router.delete("/{name}", status_code=204)

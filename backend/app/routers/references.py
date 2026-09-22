@@ -89,10 +89,17 @@ async def import_bib(
     slug: str, file: UploadFile = File(...), user: User = Depends(current_user), db: Session = Depends(get_db)
 ):
     _, root = _root(db, user, slug)
+    if not (file.filename or "").lower().endswith((".bib", ".txt")):
+        raise HTTPException(400, "Upload a .bib file")
     data = await file.read()
     if len(data) > 5 * 1024 * 1024:
         raise HTTPException(413, "That .bib is larger than 5 MB")
-    return svc.import_bib(root, data.decode("utf-8", errors="ignore"))
+    if b"\x00" in data[:4096]:
+        raise HTTPException(400, "That file is not text")
+    text = data.decode("utf-8", errors="ignore")
+    if "@" not in text:
+        raise HTTPException(400, "No BibTeX entries found in that file")
+    return svc.import_bib(root, text)
 
 
 @router.delete("/{key}", status_code=204)

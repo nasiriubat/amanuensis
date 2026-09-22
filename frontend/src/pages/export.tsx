@@ -84,7 +84,7 @@ function AuthorsEditor({ slug }: { slug: string }) {
   );
 }
 
-function TemplateCard({ t, selected, onSelect, onUpload, isAdmin }: { t: TemplateInfo; selected: boolean; onSelect: () => void; onUpload: (f: File) => void; isAdmin: boolean }) {
+function TemplateCard({ t, selected, onSelect, onUpload, uploading, isAdmin }: { t: TemplateInfo; selected: boolean; onSelect: () => void; onUpload: (f: File) => void; uploading?: boolean; isAdmin: boolean }) {
   const fileRef = useRef<HTMLInputElement>(null);
   return (
     <button onClick={onSelect} className={cn("rounded-[var(--radius)] border p-4 text-left transition-colors hover:bg-muted/50", selected ? "border-primary bg-primary-soft/40" : "border-border")}>
@@ -121,7 +121,7 @@ function TemplateCard({ t, selected, onSelect, onUpload, isAdmin }: { t: Templat
                   e.target.value = "";
                 }}
               />
-              <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()}>
+              <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()} loading={uploading} title="LaTeX .cls, .sty, .bst and support files, up to 5 MB each">
                 <Upload className="h-3.5 w-3.5" /> Upload template files
               </Button>
             </div>
@@ -206,7 +206,7 @@ export function ExportPage() {
             <SectionTitle>Template</SectionTitle>
             <div className="grid gap-3">
               {tpls.map((t) => (
-                <TemplateCard key={t.slug} t={t} selected={template === t.slug} onSelect={() => setTemplate(t.slug)} onUpload={(file) => uploadTpl.mutate({ slug: t.slug, file })} isAdmin={user?.role === "admin"} />
+                <TemplateCard key={t.slug} t={t} selected={template === t.slug} onSelect={() => setTemplate(t.slug)} onUpload={(file) => uploadTpl.mutate({ slug: t.slug, file })} uploading={uploadTpl.isPending && uploadTpl.variables?.slug === t.slug} isAdmin={user?.role === "admin"} />
               ))}
             </div>
           </div>

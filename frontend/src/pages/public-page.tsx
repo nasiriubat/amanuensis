@@ -25,6 +25,11 @@ export function PublicFrame({ children, title }: { children: React.ReactNode; ti
             <span className="text-[15px] font-semibold tracking-tight">{site.name}</span>
           </Link>
           <nav className="ml-4 hidden items-center gap-1 sm:flex">
+            {site.homepage !== "landing" ? (
+              <Link to="/landing" className="rounded-md px-2.5 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+                How it works
+              </Link>
+            ) : null}
             {site.nav_pages.map((p) => (
               <Link key={p.slug} to={`/p/${p.slug}`} className="rounded-md px-2.5 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
                 {p.title}
