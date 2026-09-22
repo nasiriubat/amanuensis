@@ -1,0 +1,44 @@
+- generic [ref=e2]:
+  - generic [ref=e23]:
+    - complementary [ref=e24]:
+      - link "Paper Writer" [ref=e25] [cursor=pointer]:
+        - /url: /
+      - navigation [ref=e30]:
+        - link "Library" [ref=e31] [cursor=pointer]:
+          - /url: /
+        - link "Author profiles" [ref=e34] [cursor=pointer]:
+          - /url: /profiles
+        - generic [ref=e38]: Workspace
+        - link "Settings" [ref=e39] [cursor=pointer]:
+          - /url: /admin
+      - generic [ref=e43]:
+        - button "Change your temporary password." [ref=e44] [cursor=pointer]
+        - button "A Admin admin@paper.local" [ref=e49] [cursor=pointer]:
+          - generic [ref=e50]: A
+          - generic [ref=e51]:
+            - generic [ref=e52]: Admin
+            - generic [ref=e53]: admin@paper.local
+    - main [ref=e57]:
+      - generic [ref=e59]:
+        - generic [ref=e60]:
+          - generic [ref=e61]:
+            - heading "Good morning, Admin" [level=1] [ref=e62]
+            - paragraph [ref=e63]: Pick up a paper where you left it, or start a new one.
+          - generic [ref=e64]:
+            - button "New profile" [ref=e65] [cursor=pointer]
+            - button "New project" [ref=e69] [cursor=pointer]
+        - heading "Projects" [level=2] [ref=e72]
+        - generic [ref=e73]:
+          - heading "No projects yet" [level=3] [ref=e78]
+          - paragraph [ref=e79]: A project is one paper. Add the papers you want to learn from, describe what you built, and the interview takes it from there.
+          - button "Create your first project" [ref=e81] [cursor=pointer]
+        - generic [ref=e83]:
+          - generic [ref=e84]:
+            - heading "Author profiles" [level=2] [ref=e85]
+            - link "See all" [ref=e86] [cursor=pointer]:
+              - /url: /profiles
+          - generic [ref=e87]:
+            - heading "No author profiles" [level=3] [ref=e92]
+            - paragraph [ref=e93]: Upload someone's papers, yours or a colleague's, and the tool learns how they write. Projects then draft in that voice.
+            - button "New profile" [ref=e95] [cursor=pointer]
+  - region "Notifications alt+T"

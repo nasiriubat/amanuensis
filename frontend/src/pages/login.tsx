@@ -1,0 +1,58 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { BookOpen } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { ApiError } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Field, Input } from "@/components/ui/input";
+
+export function LoginPage() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const u = await login(email, password);
+      navigate(u.must_change_password ? "/account" : "/", { replace: true });
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not sign in");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen items-center justify-center px-4">
+      <div className="w-full max-w-[380px] animate-in">
+        <div className="mb-8 flex flex-col items-center text-center">
+          <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_8px_24px_-8px_var(--primary)]">
+            <BookOpen className="h-5 w-5" />
+          </span>
+          <h1 className="text-[22px] font-semibold tracking-tight">Paper Writer</h1>
+          <p className="mt-1 text-[13.5px] text-muted-foreground">Sign in to your workspace</p>
+        </div>
+        <form onSubmit={submit} className="card-surface p-6 shadow-[0_8px_32px_-12px_rgba(16,24,40,0.12)]">
+          <div className="flex flex-col gap-4">
+            <Field label="Email">
+              <Input type="email" autoComplete="username" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} required />
+            </Field>
+            <Field label="Password" error={error}>
+              <Input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            </Field>
+            <Button type="submit" size="lg" loading={busy} className="mt-1 w-full">
+              Sign in
+            </Button>
+          </div>
+        </form>
+        <p className="mt-6 text-center text-[12px] text-subtle">Accounts are created by an administrator.</p>
+      </div>
+    </div>
+  );
+}

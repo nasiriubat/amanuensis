@@ -1,0 +1,122 @@
+- generic:
+  - generic:
+    - generic [aria-hidden]:
+      - complementary:
+        - link:
+          - /url: /
+          - generic: Paper Writer
+        - navigation:
+          - link:
+            - /url: /
+            - text: Library
+          - link:
+            - /url: /profiles
+            - text: Author profiles
+          - generic: Workspace
+          - link:
+            - /url: /admin
+            - text: Settings
+        - generic:
+          - button:
+            - generic: Change your temporary password.
+          - button:
+            - generic: A
+            - generic:
+              - generic: Admin
+              - generic: admin@paper.local
+      - main:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - heading [level=1]: Settings
+                - paragraph: Workspace configuration. Only administrators see this.
+            - generic:
+              - navigation:
+                - link:
+                  - /url: /admin/providers
+                  - generic:
+                    - text: Providers
+                    - generic: API keys and endpoints
+                - link:
+                  - /url: /admin/models
+                  - generic:
+                    - text: Models
+                    - generic: Which model does what
+                - link:
+                  - /url: /admin/kinds
+                  - generic:
+                    - text: Paper kinds
+                    - generic: Genres and their rules
+                - link:
+                  - /url: /admin/house-style
+                  - generic:
+                    - text: House style
+                    - generic: Prose hygiene rules
+                - link:
+                  - /url: /admin/users
+                  - generic:
+                    - text: Users
+                    - generic: Members and roles
+                - link:
+                  - /url: /admin/usage
+                  - generic:
+                    - text: Usage
+                    - generic: Tokens and calls
+              - generic:
+                - generic:
+                  - generic:
+                    - heading [level=2]: LLM providers
+                    - button: Add provider
+                  - generic:
+                    - heading [level=3]: No providers yet
+                    - paragraph: Add OpenAI, OpenRouter, Anthropic or any OpenAI-compatible endpoint. Then assign models to purposes on the Models tab.
+                    - generic:
+                      - button: Add provider
+    - region "Notifications alt+T"
+  - dialog [aria-hidden]:
+    - generic:
+      - generic:
+        - heading [level=2]: Add provider
+        - paragraph: Keys are encrypted at rest and never sent to the browser. Models are fetched when you save.
+      - button:
+        - generic: Close
+    - generic:
+      - generic:
+        - generic: Preset
+        - combobox [expanded]:
+          - generic: Custom endpoint
+        - combobox [aria-hidden]
+      - generic:
+        - generic:
+          - generic: Name
+          - textbox
+        - generic:
+          - generic: Protocol
+          - combobox:
+            - generic: OpenAI-compatible
+          - combobox [aria-hidden]
+      - generic:
+        - generic: Base URL
+        - textbox:
+          - /placeholder: https://api.example.com/v1
+          - text: admin@paper.local
+        - paragraph: Leave empty for the provider's default.
+      - generic:
+        - generic: API key
+        - textbox:
+          - /placeholder: sk-...
+      - generic:
+        - button: Cancel
+        - button [disabled]: Add provider
+  - listbox [ref=f1e140]:
+    - option "Custom endpoint" [active] [selected] [ref=f1e141] [cursor=pointer]
+    - option "OpenAI" [ref=f1e147] [cursor=pointer]
+    - option "OpenRouter" [ref=f1e150] [cursor=pointer]
+    - option "Anthropic" [ref=f1e153] [cursor=pointer]
+    - option "Groq" [ref=f1e156] [cursor=pointer]
+    - option "Mistral" [ref=f1e159] [cursor=pointer]
+    - option "DeepSeek" [ref=f1e162] [cursor=pointer]
+    - option "Together" [ref=f1e165] [cursor=pointer]
+    - option "Gemini (OpenAI endpoint)" [ref=f1e168] [cursor=pointer]
+    - option "Ollama (local)" [ref=f1e171] [cursor=pointer]

@@ -1,0 +1,64 @@
+- generic [ref=f6e2]:
+  - generic [ref=f6e3]:
+    - complementary [ref=f6e4]:
+      - link "Paper Writer" [ref=f6e5] [cursor=pointer]:
+        - /url: /
+      - navigation [ref=f6e10]:
+        - link "Library" [ref=f6e11] [cursor=pointer]:
+          - /url: /
+        - link "Author profiles" [ref=f6e14] [cursor=pointer]:
+          - /url: /profiles
+        - generic [ref=f6e18]: Workspace
+        - link "Settings" [ref=f6e19] [cursor=pointer]:
+          - /url: /admin
+      - generic [ref=f6e23]:
+        - button "Change your temporary password." [ref=f6e24] [cursor=pointer]
+        - button "A Admin admin@paper.local" [ref=f6e29] [cursor=pointer]:
+          - generic [ref=f6e30]: A
+          - generic [ref=f6e31]:
+            - generic [ref=f6e32]: Admin
+            - generic [ref=f6e33]: admin@paper.local
+    - main [ref=f6e37]:
+      - generic [ref=f6e39]:
+        - generic [ref=f6e41]:
+          - heading "Account" [level=1] [ref=f6e42]
+          - paragraph [ref=f6e43]: Your name, password and appearance.
+        - generic [ref=f6e48]:
+          - generic [ref=f6e49]: Set a password of your own
+          - generic [ref=f6e50]: You are signed in with a temporary password. Change it below before doing anything else.
+        - generic [ref=f6e51]:
+          - generic [ref=f6e52]:
+            - generic [ref=f6e53]:
+              - heading "Profile" [level=3] [ref=f6e54]
+              - paragraph [ref=f6e55]: admin@paper.local
+            - generic [ref=f6e57]:
+              - generic [ref=f6e58]:
+                - generic [ref=f6e59]: Display name
+                - textbox [ref=f6e60]: Admin
+              - button "Save" [disabled]
+          - generic [ref=f6e61]:
+            - generic [ref=f6e62]:
+              - heading "Password" [level=3] [ref=f6e63]
+              - paragraph [ref=f6e64]: At least 8 characters. Sessions on other devices stay signed in.
+            - generic [ref=f6e66]:
+              - generic [ref=f6e67]:
+                - generic [ref=f6e68]: Current password
+                - textbox [ref=f6e69]
+              - generic [ref=f6e70]:
+                - generic [ref=f6e71]:
+                  - generic [ref=f6e72]: New password
+                  - textbox [ref=f6e73]
+                - generic [ref=f6e74]:
+                  - generic [ref=f6e75]: Repeat new password
+                  - textbox [ref=f6e76]
+              - generic [ref=f6e77]:
+                - button "Change password" [disabled]
+          - generic [ref=f6e78]:
+            - generic [ref=f6e79]:
+              - heading "Appearance" [level=3] [ref=f6e80]
+              - paragraph [ref=f6e81]: Stored in this browser only.
+            - generic [ref=f6e83]:
+              - button "Light" [ref=f6e84] [cursor=pointer]
+              - button "Dark" [ref=f6e91] [cursor=pointer]
+              - button "System" [ref=f6e94] [cursor=pointer]
+  - region "Notifications alt+T"

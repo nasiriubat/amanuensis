@@ -1,0 +1,19 @@
+services:
+  paper-writer:
+    build: .
+    image: paper-writer:local
+    container_name: paper-writer
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      - paper_data:/data
+    # Ollama on the host is reachable as http://host.docker.internal:11434/v1
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  paper_data:
