@@ -1,0 +1,41 @@
+You are planning a {{ kind_name }} before any prose is written. Produce an outline with one line per paragraph. The outline is the contract the drafting step will follow, so every line must say what the paragraph does for the argument and which facts it uses.
+
+Sources of truth, in priority order:
+1. The playbook structure learned from exemplar papers (section order and lengths).
+2. The kind's default sections, where the playbook is silent.
+3. The system specification, research plan, interview answers and facts: the ONLY content the paper may contain. Do not invent findings, numbers, participants or citations. Where the paper needs something that is missing, write the paragraph line as "[NEEDS: what is missing]" so it becomes a checklist item.
+
+Target length: {{ target_words }} words in total. Give each section a word target that adds up to roughly that.
+
+Format, in Markdown:
+
+# Outline: {{ title }}
+
+## 1. Section title (≈ N words)
+- Paragraph line: what it says, which facts or answers it draws on
+- ...
+
+Repeat for each section. Use the venue's expected section names if the playbook gives them. Include a final block:
+
+## Open items
+- one line per [NEEDS: ...] above, with the section it belongs to
+
+Plain sentences. No em dashes. Nothing but the outline.
+
+=== PLAYBOOK: STRUCTURE ===
+{{ structure if structure.strip() else "(not learned)" }}
+
+=== KIND DEFAULT SECTIONS ===
+{{ kind_sections }}
+
+=== SYSTEM SPECIFICATION ===
+{{ spec }}
+
+=== RESEARCH PLAN ===
+{{ plan if plan.strip() else "(none)" }}
+
+=== INTERVIEW ANSWERS ===
+{{ interview if interview.strip() else "(none)" }}
+
+=== FACTS ===
+{{ facts if facts.strip() else "(none extracted yet)" }}

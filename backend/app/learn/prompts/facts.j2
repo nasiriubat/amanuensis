@@ -1,0 +1,29 @@
+Extract the facts a paper about this system may state. Facts are: names of the system and its components, defined terms, numbers with their units and what they measure, dates, versions, participant or dataset counts, named tools it is compared with, and explicit limitations. Only what the sources say. No inference, no rounding, no filling gaps.
+
+Write Markdown:
+
+# Facts
+
+## Names and terms
+- Term: definition or role (source: spec | interview)
+
+## Numbers
+- What it measures: value unit (source)
+
+## Claims the author made
+- claim in one sentence (source)
+
+## Explicit limitations
+- ...
+
+## Missing
+- things the paper will need that neither source gives (one line each)
+
+=== SYSTEM SPECIFICATION ===
+{{ spec }}
+
+=== RESEARCH PLAN ===
+{{ plan if plan.strip() else "(none)" }}
+
+=== INTERVIEW ANSWERS ===
+{{ interview if interview.strip() else "(none)" }}

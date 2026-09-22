@@ -5,6 +5,15 @@ specific author writes, interviews the user until their work fits a publishable
 shape, then drafts the paper section by section with verified references and
 exports it in a venue template.
 
+## 0. Why not just a chat window
+
+A chat can do any single step here. It cannot hold a paper's state for weeks, learn a
+genre from exemplars once and reuse it, refuse to cite what it cannot verify, keep a
+checklist of evidence the paper still lacks, protect the user's edits, or export to a
+venue template. Every stage in this tool must do at least one of those; a stage that is
+"chat with a nicer box" should be cut. The value is process discipline for people who
+do not yet know the process, not better prose for people who do.
+
 ## 1. Goals and non-goals
 
 **Goals**
@@ -253,6 +262,30 @@ Quotes are included as evidence and the user can edit the file.
 question set, for example "Across these papers, how is the contribution stated in
 the introduction? Quote the sentences." Each file is Markdown, readable and editable.
 
+### 4.2.1 Research design (optional, before or alongside the interview)
+
+For someone with an idea but no research training, the gap is not prose, it is knowing
+what study would make the idea publishable. This stage turns an idea into a plan and
+works backwards from the evidence the paper kind demands.
+
+Input: `inputs/idea.md`, a free-text description of the idea, the tool, the data or the
+question, plus a mode:
+
+- **Refine my idea**: sharpen a seed idea into research questions.
+- **Find a direction**: given a topic or a tool, propose two or three concrete
+  directions with the evidence each would need, and let the user pick one.
+
+Output: `inputs/research-plan.md` with research questions, the claim the paper would
+make, method options with trade-offs, the minimum study that would satisfy the kind's
+checklist, what to measure and how, participants or data needed, threats to validity,
+a realistic effort estimate, and keywords to search for prior work. Every experiment
+proposed maps to a checklist item it would satisfy, so nothing is planned that the
+paper does not need. The plan never contains results. The interview reads the plan, and
+open plan items become checklist entries.
+
+Novelty is checked, not assumed: the plan's search keywords feed the reference search
+(4.4) and the user is told which close papers exist before committing to a direction.
+
 ### 4.3 Interview
 
 Structured rounds rendered as cards. The rounds come from the paper kind's
@@ -408,7 +441,8 @@ Each phase leaves a usable product.
    kinds, design system.
 2. **Ingest and learn**: arXiv and PDF ingest, exemplar cards, playbook and author
    profile generation, editable Markdown views.
-3. **Interview and outline**: question rounds, side chat, outline approval.
+3. **Research design, interview and outline**: idea to research plan, question rounds
+   with suggested answers, side chat, facts file, outline approval.
 4. **Studio**: section drafting, editor, preview, checklist, git versioning,
    mark-as-mine.
 5. **References**: academic search, verification, bib import, red-key blocking,

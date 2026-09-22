@@ -79,6 +79,9 @@ export interface ProjectCounts {
   figures: number;
   playbook_files: number;
   has_spec: boolean;
+  has_plan: boolean;
+  has_outline: boolean;
+  interview_rounds: { rounds: number; answered: number; open: number; done: boolean };
 }
 
 export interface Project {
@@ -183,4 +186,37 @@ export interface JobInfo {
   profile_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface InterviewQuestion {
+  id: string;
+  question: string;
+  why: string;
+  suggested: string;
+  confidence: "low" | "medium" | "high";
+  answer: string;
+  status: "open" | "answered" | "na";
+}
+
+export interface InterviewRound {
+  index: number;
+  title: string;
+  rationale: string;
+  questions: InterviewQuestion[];
+  created_at?: string;
+}
+
+export interface InterviewState {
+  rounds: InterviewRound[];
+  notes: Array<{ id: string; text: string; at: string }>;
+  done?: boolean;
+  updated_at: string | null;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  pin?: string | null;
+  at: string;
 }

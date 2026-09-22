@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -17,11 +20,31 @@ router = APIRouter(prefix="/api/projects", tags=["projects"])
 # endpoints in later phases.
 EDITABLE_FILES = {
     "system-spec": "inputs/system-spec.md",
+    "idea": "inputs/idea.md",
+    "research-plan": "inputs/research-plan.md",
     "interview": "inputs/interview.md",
     "facts": "inputs/facts.md",
     "outline": "outline.md",
     **{f"playbook/{name[:-3]}": f"playbook/{name}" for name in storage.PLAYBOOK_FILES},
 }
+
+
+def _interview_rounds(root: Path) -> dict:
+    p = root / "inputs" / "interview.json"
+    if not p.exists():
+        return {"rounds": 0, "answered": 0, "open": 0, "done": False}
+    try:
+        state = json.loads(p.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {"rounds": 0, "answered": 0, "open": 0, "done": False}
+    qs = [q for r in state.get("rounds", []) for q in r.get("questions", [])]
+    answered = sum(1 for q in qs if q.get("status") in ("answered", "na"))
+    return {
+        "rounds": len(state.get("rounds", [])),
+        "answered": answered,
+        "open": len(qs) - answered,
+        "done": bool(state.get("done")),
+    }
 
 
 def _counts(slug: str) -> dict:
@@ -42,6 +65,10 @@ def _counts(slug: str) -> dict:
         "references": max(count("references") - 1, 0),
         "figures": count("figures"),
         "playbook_files": playbook_filled,
+        "has_plan": (root / "inputs" / "research-plan.md").exists()
+        and (root / "inputs" / "research-plan.md").stat().st_size > 0,
+        "has_outline": (root / "outline.md").exists() and (root / "outline.md").stat().st_size > 0,
+        "interview_rounds": _interview_rounds(root),
         "has_spec": (root / "inputs" / "system-spec.md").exists()
         and (root / "inputs" / "system-spec.md").stat().st_size > 0,
     }

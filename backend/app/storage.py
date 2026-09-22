@@ -56,6 +56,8 @@ def create_project_tree(slug: str, meta: dict) -> Path:
     (root / "inputs" / "system-spec.md").write_text("", encoding="utf-8")
     (root / "inputs" / "interview.md").write_text("", encoding="utf-8")
     (root / "inputs" / "facts.md").write_text("", encoding="utf-8")
+    (root / "inputs" / "idea.md").write_text("", encoding="utf-8")
+    (root / "inputs" / "research-plan.md").write_text("", encoding="utf-8")
     (root / "references" / "refs.bib").write_text("", encoding="utf-8")
     (root / "outline.md").write_text("", encoding="utf-8")
     (root / "checklist.json").write_text("[]\n", encoding="utf-8")

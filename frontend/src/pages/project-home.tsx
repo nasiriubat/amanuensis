@@ -8,6 +8,7 @@ import {
   Download,
   FileText,
   Image,
+  Lightbulb,
   ListTree,
   Lock,
   MessageSquareText,
@@ -46,7 +47,7 @@ interface StageDef {
   icon: React.ComponentType<{ className?: string }>;
   phase: number;
   describe: (p: Project) => string;
-  status: (p: Project) => "done" | "ready" | "locked" | "soon";
+  status: (p: Project) => "done" | "ready" | "locked" | "soon" | "optional";
 }
 
 const STAGES: StageDef[] = [
@@ -69,20 +70,41 @@ const STAGES: StageDef[] = [
     status: (p) => (p.counts.playbook_files ? "done" : p.counts.exemplars ? "ready" : "locked"),
   },
   {
+    key: "design",
+    title: "Research design",
+    icon: Lightbulb,
+    phase: 3,
+    to: (slug) => `/projects/${slug}/design`,
+    describe: (p) => (p.counts.has_plan ? "Research plan written. Optional, but the interview and outline read it." : "Optional. Turn an idea into a study that reviewers of this kind would accept."),
+    status: (p) => (p.counts.has_plan ? "done" : "optional"),
+  },
+  {
     key: "interview",
     title: "Interview",
     icon: MessageSquareText,
     phase: 3,
-    describe: () => "Structured rounds that turn what you built into a framed contribution.",
-    status: () => "soon",
+    to: (slug) => `/projects/${slug}/interview`,
+    describe: (p) => {
+      const ir = p.counts.interview_rounds;
+      if (ir.done) return `Complete: ${ir.answered} questions answered over ${ir.rounds} rounds.`;
+      if (ir.rounds) return `${ir.answered} answered, ${ir.open} open, ${ir.rounds} round${ir.rounds === 1 ? "" : "s"} so far.`;
+      return "Structured rounds that turn what you built into a framed contribution.";
+    },
+    status: (p) => (p.counts.interview_rounds.done ? "done" : p.counts.has_spec ? "ready" : "locked"),
   },
   {
     key: "outline",
     title: "Outline",
     icon: ListTree,
     phase: 3,
-    describe: () => "One line per paragraph. You approve it before any prose is written.",
-    status: () => "soon",
+    to: (slug) => `/projects/${slug}/outline`,
+    describe: (p) =>
+      ["outline", "drafting", "review", "export"].includes(p.stage)
+        ? "Approved. Drafting follows it line by line."
+        : p.counts.has_outline
+          ? "Draft outline written, waiting for your approval."
+          : "One line per paragraph. You approve it before any prose is written.",
+    status: (p) => (["outline", "drafting", "review", "export"].includes(p.stage) ? "done" : p.counts.has_spec ? "ready" : "locked"),
   },
   {
     key: "references",
@@ -128,7 +150,9 @@ function StageCard({ def, p }: { def: StageDef; p: Project }) {
           ) : status === "ready" ? (
             <Badge variant="primary">Next</Badge>
           ) : status === "locked" ? (
-            <Badge variant="outline">Needs sources</Badge>
+            <Badge variant="outline">{def.key === "playbook" ? "Needs sources" : "Needs spec"}</Badge>
+          ) : status === "optional" ? (
+            <Badge variant="outline">Optional</Badge>
           ) : status === "soon" ? (
             <Badge variant="outline" className="gap-1">
               <Lock className="h-3 w-3" /> Phase {def.phase}

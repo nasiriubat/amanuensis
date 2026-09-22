@@ -13,7 +13,7 @@ from . import storage
 from .config import get_settings
 from .db import SessionLocal, init_db
 from .models import User
-from .routers import auth, jobs, kinds, papers, profiles, projects, providers, usage, users
+from .routers import auth, interview, jobs, kinds, papers, profiles, projects, providers, usage, users
 from .security import hash_password
 
 log = logging.getLogger("paper-writer")
@@ -66,7 +66,7 @@ app = FastAPI(
     title="Paper Writer", version="0.1.0", lifespan=lifespan, docs_url="/api/docs", openapi_url="/api/openapi.json"
 )
 
-for r in (auth, users, providers, profiles, projects, papers, kinds, usage, jobs):
+for r in (auth, users, providers, profiles, projects, papers, interview, kinds, usage, jobs):
     app.include_router(r.router)
 
 
