@@ -1,0 +1,20 @@
+You are analysing one published paper so that its structure and rhetorical moves can be learned. The paper is a {{ kind_name }}. Read the Markdown below and answer as a single JSON object with exactly these keys:
+
+- "title": string
+- "venue_guess": string, the venue or venue type this reads like (e.g. "software engineering conference, tool track"), or "unknown"
+- "problem_framing": 2 to 4 sentences describing HOW the introduction sets up the problem (scenario, statistic, gap, quote), not what the problem is
+- "contribution_statement": the sentences where the authors state their contributions, quoted verbatim if present, else ""
+- "contribution_style": one sentence: numbered list, prose, verbs used, how many contributions
+- "section_outline": array of {"title": string, "purpose": one sentence on what the section does for the argument, "words": approximate word count}
+- "related_work_strategy": 2 to 3 sentences: grouped by theme or listed by paper; where it sits; how the authors position themselves against it
+- "evidence": {"types": array of strings such as "user study", "case study", "benchmark", "demonstration", "none"; "what_was_measured": string; "sample": string describing participants or dataset and their size; "how_reported": string about tables, figures, statistics}
+- "figures_and_tables": array of short strings, one per figure or table, saying what kind it is and what it shows
+- "limitations_handling": one to two sentences on where and how limitations or threats to validity appear
+- "notable_moves": array of up to 5 short quotes or paraphrases of rhetorical moves worth imitating (e.g. how a paragraph opens, how a claim is hedged, how a transition is made)
+- "reader_takeaway": one sentence the authors clearly want the reader to remember
+
+Quote only what is in the text. If something is absent, say so briefly rather than inventing it.
+
+=== PAPER ===
+{{ paper }}
+=== END PAPER ===

@@ -43,7 +43,29 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
   return data as T;
 }
 
+async function upload<T>(url: string, file: File, field = "file"): Promise<T> {
+  const fd = new FormData();
+  fd.append(field, file, file.name);
+  const headers: Record<string, string> = { Accept: "application/json" };
+  const t = csrfToken();
+  if (t) headers["x-csrf-token"] = t;
+  const res = await fetch(url, { method: "POST", headers, body: fd, credentials: "same-origin" });
+  const text = await res.text();
+  let data: unknown = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
+  }
+  if (!res.ok) {
+    const d = data && typeof data === "object" && "detail" in data ? (data as { detail: unknown }).detail : res.statusText;
+    throw new ApiError(res.status, typeof d === "string" ? d : JSON.stringify(d));
+  }
+  return data as T;
+}
+
 export const api = {
+  upload,
   get: <T>(url: string) => request<T>("GET", url),
   post: <T>(url: string, body?: unknown) => request<T>("POST", url, body),
   put: <T>(url: string, body?: unknown) => request<T>("PUT", url, body),

@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ChevronLeft, Feather, Lock, MoreHorizontal, Trash2, Upload } from "lucide-react";
+import { ChevronLeft, MoreHorizontal, Sparkles, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
-import type { Profile } from "@/lib/types";
+import type { JobInfo, Profile } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
+import { useJobs } from "@/lib/jobs";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,12 +14,9 @@ import { PageHeader, SectionTitle, Skeleton } from "@/components/ui/misc";
 import { Switch } from "@/components/ui/switch";
 import { MarkdownEditor } from "@/components/markdown-editor";
 import { ConfirmDialog } from "@/components/dialogs";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AddPapers, JobProgress, PaperList } from "@/components/papers";
+import { BudgetPicker } from "@/pages/playbook";
 
 export function ProfilePage() {
   const { slug = "" } = useParams();
@@ -28,6 +26,10 @@ export function ProfilePage() {
   const profile = useQuery({ queryKey: ["profile", slug], queryFn: () => api.get<Profile>(`/api/profiles/${slug}`) });
   const style = useQuery({ queryKey: ["profile", slug, "style"], queryFn: () => api.get<{ content: string }>(`/api/profiles/${slug}/style`) });
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [budget, setBudget] = useState(15_000);
+  const { jobs, active, watch, dismiss } = useJobs({ profile_id: profile.data?.id }, (j) => {
+    if (j.type === "learn_profile" && j.status === "done") void qc.invalidateQueries({ queryKey: ["profile", slug] });
+  });
 
   const canEdit = !!profile.data && (user?.role === "admin" || profile.data.owner_id === user?.id);
 
@@ -39,7 +41,6 @@ export function ProfilePage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
-
   const del = useMutation({
     mutationFn: () => api.delete(`/api/profiles/${slug}`),
     onSuccess: () => {
@@ -47,6 +48,11 @@ export function ProfilePage() {
       toast.success("Profile deleted");
       navigate("/profiles");
     },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const learn = useMutation({
+    mutationFn: () => api.post<JobInfo>(`/api/profiles/${slug}/learn`, { max_chars_per_paper: budget }),
+    onSuccess: (job) => watch(job),
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -58,6 +64,7 @@ export function ProfilePage() {
   if (profile.isLoading) return <Skeleton className="h-64" />;
   if (!profile.data) return <p className="text-muted-foreground">Profile not found.</p>;
   const p = profile.data;
+  const base = `/api/profiles/${slug}/sources`;
 
   return (
     <div className="animate-in">
@@ -97,7 +104,39 @@ export function ProfilePage() {
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+      <div className="grid gap-8 lg:grid-cols-[1fr_1fr]">
+        <div>
+          <SectionTitle>Source papers</SectionTitle>
+          {canEdit ? <AddPapers arxivUrl={`${base}/arxiv`} uploadUrl={`${base}/upload`} onJob={watch} /> : null}
+          <JobProgress jobs={jobs} onDismiss={dismiss} />
+          <PaperList
+            listUrl={base}
+            itemUrl={(id) => `${base}/${id}`}
+            emptyTitle="No papers yet"
+            emptyText="Add papers this person wrote. Five to ten give a stable picture of their voice."
+          />
+          {canEdit ? (
+            <Card className="mt-4 p-4">
+              <div className="flex items-start gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
+                  <Sparkles className="h-4 w-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-[14px] font-semibold">Learn the voice</h3>
+                  <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+                    Reads a sample of each paper (introduction, one body section, conclusion) plus deterministic statistics, then writes the profile.
+                  </p>
+                  <div className="mt-3">
+                    <BudgetPicker value={budget} onChange={setBudget} disabled={active} />
+                  </div>
+                  <Button className="mt-3" onClick={() => learn.mutate()} loading={learn.isPending} disabled={active || p.source_count === 0}>
+                    <Sparkles className="h-4 w-4" /> {p.status === "ready" ? "Relearn voice" : "Learn voice"}
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ) : null}
+        </div>
         <div>
           <SectionTitle>Voice</SectionTitle>
           {style.data ? (
@@ -105,33 +144,13 @@ export function ProfilePage() {
               value={style.data.content}
               onSave={saveStyle}
               readOnly={!canEdit}
-              minHeight={420}
+              minHeight={520}
               placeholder={"# Voice\n\n## Sentences\n\n## Openers and transitions\n\n## Hedging\n\n## Things this author never does"}
-              emptyHint="Once source papers are added, the learned voice appears here. You can also describe it by hand."
+              emptyHint="Once papers are added and the voice is learned, the profile appears here. You can also write it by hand."
             />
           ) : (
-            <Skeleton className="h-[420px]" />
+            <Skeleton className="h-[520px]" />
           )}
-        </div>
-        <div>
-          <SectionTitle>Source papers</SectionTitle>
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                <Feather className="h-4 w-4" />
-              </span>
-              <div>
-                <div className="text-[14px] font-semibold">{p.source_count} papers</div>
-                <div className="text-[12px] text-muted-foreground">Five to ten give a stable voice.</div>
-              </div>
-            </div>
-            <Button variant="secondary" className="mt-4 w-full" disabled>
-              <Upload className="h-4 w-4" /> Add papers
-              <Badge variant="outline" className="ml-1 gap-1">
-                <Lock className="h-3 w-3" /> Phase 2
-              </Badge>
-            </Button>
-          </Card>
         </div>
       </div>
 

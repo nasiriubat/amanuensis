@@ -1,0 +1,28 @@
+You are writing a playbook that teaches a new researcher how papers like the ones below are built. The papers are exemplars of a {{ kind_name }}. You have one structured summary per paper. Synthesise across them; do not describe papers one by one. Where the papers disagree, say so and say which pattern is more common. Quote from the summaries where a quote makes the pattern concrete. Never invent quotes.
+
+Write in plain, direct prose. Short sentences. No em dashes. No filler phrases. Use Markdown headings and bullet lists.
+
+Respond with a single JSON object whose values are Markdown strings, with exactly these keys:
+
+"structure": Title "# Structure". Sections in the order these papers use them, and for each: its purpose, typical length in words or fraction of the paper, and what it must contain. Note optional sections and where papers merge sections. End with a short "## Rules of thumb" list.
+
+"argumentation": Title "# Argumentation". How the introduction sets up the problem (with 2 or 3 quoted or paraphrased examples). How contributions are stated (form, verbs, count). How claims are hedged. What the reader is meant to remember. End with "## Do" and "## Avoid" lists.
+
+"evaluation": Title "# Evaluation". What counts as evidence in these papers, what is measured, typical sample sizes, how results are reported (tables, figures, statistics), how negative results and limitations are handled. End with "## Minimum acceptable evidence" for a paper of this kind at this venue level.
+
+"related_work": Title "# Related work". Where the section sits, how prior work is grouped, how the authors position their own work, typical length and citation density. Give one paragraph template with placeholders.
+
+"venue": Title "# Venue". The venue or venue type these papers target, page budget as far as it can be inferred, formatting signals (numbered sections, structured abstract, keywords), and anything the author should know before submitting. Say "unknown" where the summaries give no signal.
+
+{% if kind_notes %}
+Background on this kind of paper, written by the workspace. Use it to sharpen the playbook but let the exemplars decide when they disagree:
+
+{{ kind_notes }}
+{% endif %}
+
+=== PAPER SUMMARIES ({{ summaries | length }}) ===
+{% for s in summaries %}
+--- Paper {{ loop.index }} ---
+{{ s }}
+{% endfor %}
+=== END ===

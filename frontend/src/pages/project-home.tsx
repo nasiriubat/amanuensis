@@ -41,6 +41,7 @@ const NONE = "__none__";
 
 interface StageDef {
   key: string;
+  to?: (slug: string) => string;
   title: string;
   icon: React.ComponentType<{ className?: string }>;
   phase: number;
@@ -54,16 +55,18 @@ const STAGES: StageDef[] = [
     title: "Sources",
     icon: BookMarked,
     phase: 2,
+    to: (slug) => `/projects/${slug}/sources`,
     describe: (p) => (p.counts.exemplars ? `${p.counts.exemplars} exemplar papers ingested.` : "Add 5 to 10 papers to learn from. arXiv links or PDFs."),
-    status: (p) => (p.counts.exemplars ? "done" : "soon"),
+    status: (p) => (p.counts.exemplars ? "done" : "ready"),
   },
   {
     key: "playbook",
     title: "Playbook",
     icon: Sparkles,
     phase: 2,
+    to: (slug) => `/projects/${slug}/playbook`,
     describe: (p) => (p.counts.playbook_files ? `${p.counts.playbook_files} of 5 playbook files learned.` : "How these papers frame contribution, structure sections and present evidence."),
-    status: (p) => (p.counts.playbook_files ? "done" : "soon"),
+    status: (p) => (p.counts.playbook_files ? "done" : p.counts.exemplars ? "ready" : "locked"),
   },
   {
     key: "interview",
@@ -110,8 +113,10 @@ const STAGES: StageDef[] = [
 function StageCard({ def, p }: { def: StageDef; p: Project }) {
   const status = def.status(p);
   const Icon = def.icon;
+  const navigate = useNavigate();
+  const href = def.to?.(p.slug);
   return (
-    <Card className="relative flex gap-3.5 p-4">
+    <Card interactive={!!href} onClick={href ? () => navigate(href) : undefined} className="relative flex gap-3.5 p-4">
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
         <Icon className="h-4 w-4" />
       </span>
@@ -120,6 +125,10 @@ function StageCard({ def, p }: { def: StageDef; p: Project }) {
           <h3 className="text-[14px] font-semibold">{def.title}</h3>
           {status === "done" ? (
             <Badge variant="success">Done</Badge>
+          ) : status === "ready" ? (
+            <Badge variant="primary">Next</Badge>
+          ) : status === "locked" ? (
+            <Badge variant="outline">Needs sources</Badge>
           ) : status === "soon" ? (
             <Badge variant="outline" className="gap-1">
               <Lock className="h-3 w-3" /> Phase {def.phase}

@@ -147,3 +147,40 @@ export interface HistoryEntry {
   timestamp: number;
   message: string;
 }
+
+export interface Paper {
+  id: string;
+  title: string;
+  authors?: string[];
+  year?: number | null;
+  arxiv_id?: string;
+  url?: string;
+  source?: string;
+  extraction?: string;
+  word_count?: number;
+  figures?: Array<{ kind?: string; index: number; caption: string }>;
+  figure_files?: string[];
+  status: "pending" | "ready" | "failed";
+  error?: string;
+  abstract?: string;
+}
+
+export interface PaperDetail {
+  meta: Paper & { sections?: Array<{ level: number; title: string; words: number }> };
+  markdown: string;
+  summary: string | null;
+}
+
+export interface JobInfo {
+  id: string;
+  type: string;
+  status: "queued" | "running" | "done" | "failed";
+  progress: number;
+  message: string | null;
+  error: string | null;
+  result: Record<string, unknown> | null;
+  project_id: string | null;
+  profile_id: string | null;
+  created_at: string;
+  updated_at: string;
+}

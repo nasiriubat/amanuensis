@@ -1,0 +1,27 @@
+You are writing an author voice profile named "{{ profile_name }}". It will be placed in front of a language model whenever it drafts text that should sound like this author. You have per-paper observations and deterministic statistics computed over all the author's papers. Synthesise them into one profile. Prefer patterns that recur across papers. Quote verbatim examples from the observations; never invent quotes.
+
+Write Markdown with these headings, in this order, and nothing else:
+
+# Voice: {{ profile_name }}
+## In one paragraph
+## Sentences
+## Paragraphs
+## Openers and transitions
+## Hedging and claims
+## Person and voice
+## Vocabulary
+## Never does
+## Signature examples
+## Instructions for drafting
+
+The last section is a list of 6 to 10 imperative rules a model should follow to write like this author, derived from everything above. Keep the whole profile under 700 words. Short sentences. No em dashes.
+
+=== STATISTICS ===
+{{ stats }}
+
+=== PER-PAPER OBSERVATIONS ({{ observations | length }}) ===
+{% for o in observations %}
+--- Paper {{ loop.index }} ---
+{{ o }}
+{% endfor %}
+=== END ===

@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     secure_cookies: bool = False
 
     session_ttl_hours: int = 24 * 14
+    learn_max_chars_per_paper: int = 60_000
+    learn_concurrency: int = 3
     frontend_dist: Path = Path("../frontend/dist")
 
     @property

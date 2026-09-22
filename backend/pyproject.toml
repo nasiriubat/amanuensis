@@ -17,12 +17,14 @@ dependencies = [
     "anthropic>=0.34",
     "python-slugify>=8.0",
     "pyyaml>=6.0",
+    "jinja2>=3.1",
+    "pypdfium2>=4.30",
+    "sse-starlette>=2.1",
 ]
 
 [project.optional-dependencies]
 extract = [
     "docling>=2.0",
-    "pypdfium2>=4.30",
 ]
 dev = [
     "pytest>=8.2",
