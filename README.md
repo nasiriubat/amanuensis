@@ -5,11 +5,12 @@ specific author writes, interviews you until your work fits a publishable shape,
 drafts the paper section by section with verified references and exports it in a venue
 template.
 
-Design and roadmap: [SPEC.md](SPEC.md). Phases 1 and 2 are done: accounts, providers,
+Design and roadmap: [SPEC.md](SPEC.md). Phases 1 to 3 are done: accounts, providers,
 model-per-purpose, projects, author profiles, paper kinds, house style, usage; arXiv and
-PDF ingest, background jobs with live progress, playbook learning from exemplars and
-author voice learning with a per-paper context budget. Interview, drafting, references
-and export follow in phases 3 to 7.
+PDF ingest, background jobs with live progress, playbook and voice learning with a
+per-paper context budget; research design from an idea, interview rounds with suggested
+answers, a side chat with pinning, facts extraction and an approvable outline. Drafting,
+references, figures and export follow in phases 4 to 7.
 
 ## Run with Docker
 
