@@ -426,7 +426,8 @@ async def run_export(project_id: str, ctx: JobContext, *, template_slug: str, fo
                 result["files"].append("main.pdf")
             else:
                 result["warnings"].append("PDF compilation failed; see compile.log in the export.")
-                result["compile_error"] = log[-1500:]
+                errors = [ln for ln in log.splitlines() if ln.startswith("error")]
+                result["compile_error"] = "\n".join(errors[-8:]) if errors else log[-1500:]
 
     if "docx" in formats:
         pandoc = tool("pandoc")

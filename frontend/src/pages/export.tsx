@@ -45,12 +45,12 @@ function AuthorsEditor({ slug }: { slug: string }) {
       </div>
       <div className="flex flex-col gap-3">
         {form.authors.map((a, i) => (
-          <div key={i} className="grid gap-2 rounded-[var(--radius-sm)] border border-border p-3 sm:grid-cols-[1.2fr_1.4fr_1fr_0.6fr_auto]">
+          <div key={i} className="relative grid gap-2 rounded-[var(--radius-sm)] border border-border p-3 pr-10 sm:grid-cols-2">
             <Input value={a.name} onChange={(e) => setAuthor(i, { name: e.target.value })} placeholder="Full name" />
             <Input value={a.affiliation} onChange={(e) => setAuthor(i, { affiliation: e.target.value })} placeholder="Affiliation" />
             <Input value={a.email} onChange={(e) => setAuthor(i, { email: e.target.value })} placeholder="Email" />
             <Input value={a.country} onChange={(e) => setAuthor(i, { country: e.target.value })} placeholder="Country" />
-            <button onClick={() => setForm({ ...form, authors: form.authors.filter((_, j) => j !== i) })} className="rounded p-1.5 text-subtle hover:text-destructive" aria-label="Remove author">
+            <button onClick={() => setForm({ ...form, authors: form.authors.filter((_, j) => j !== i) })} className="absolute right-2 top-2 rounded p-1.5 text-subtle hover:text-destructive" aria-label="Remove author">
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -139,7 +139,7 @@ export function ExportPage() {
   const project = useQuery({ queryKey: ["project", slug], queryFn: () => api.get<Project>(`/api/projects/${slug}`) });
   const templates = useQuery({ queryKey: ["templates"], queryFn: () => api.get<{ templates: TemplateInfo[]; tools: { pandoc: boolean; tectonic: boolean } }>("/api/templates") });
   const exports = useQuery({ queryKey: ["exports", slug], queryFn: () => api.get<ExportResult[]>(`/api/projects/${slug}/exports`) });
-  const [template, setTemplate] = useState<string>("lncs");
+  const [template, setTemplate] = useState<string>("");
   const { jobs, active, watch, dismiss } = useJobs({ project_id: project.data?.id }, (j) => {
     if (j.type === "export") void qc.invalidateQueries({ queryKey: ["exports", slug] });
   });
@@ -163,6 +163,7 @@ export function ExportPage() {
   const p = project.data;
   const tools = templates.data?.tools;
   const tpls = templates.data?.templates ?? [];
+  if (!template && tpls.length) setTemplate((tpls.find((t) => t.ready) ?? tpls[0]).slug);
   const selected = tpls.find((t) => t.slug === template);
 
   return (
