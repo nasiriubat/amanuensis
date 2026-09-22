@@ -5,10 +5,11 @@ specific author writes, interviews you until your work fits a publishable shape,
 drafts the paper section by section with verified references and exports it in a venue
 template.
 
-Design and roadmap: [SPEC.md](SPEC.md). This repository is at **phase 1 (skeleton)**:
-accounts, providers, model-per-purpose, projects, author profiles, paper kinds, house
-style and usage. Ingest, interview, drafting, references and export follow in phases 2
-to 7.
+Design and roadmap: [SPEC.md](SPEC.md). Phases 1 and 2 are done: accounts, providers,
+model-per-purpose, projects, author profiles, paper kinds, house style, usage; arXiv and
+PDF ingest, background jobs with live progress, playbook learning from exemplars and
+author voice learning with a per-paper context budget. Interview, drafting, references
+and export follow in phases 3 to 7.
 
 ## Run with Docker
 
@@ -60,6 +61,15 @@ backend/seed/       built-in paper kinds and house style, copied to DATA_DIR on 
 frontend/src/       React SPA: pages, components, design tokens in index.css
 data/               created at runtime (gitignored)
 ```
+
+## Learning budget and cost
+
+Every learning run is map-reduce: one call per paper, one synthesis call. The budget
+picker caps how many characters of each paper the model reads (15k, 40k or 90k) while
+keeping every section represented. Measured section lengths are passed separately, so
+structure advice stays accurate even at the small budget. A three-paper playbook at the
+small budget used about 20k tokens; a two-paper voice profile about 9k. Token usage per
+run is shown on the Playbook page and under Settings → Usage.
 
 ## Configuration
 

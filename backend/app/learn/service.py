@@ -92,7 +92,14 @@ async def learn_playbook(project_id: str, ctx: JobContext, *, max_chars_per_pape
     async def one(folder: Path, meta: dict, md: str):
         nonlocal done, tokens_in, tokens_out
         text = budget_markdown(md, max_chars_per_paper)
-        prompt = render("paper_summary.j2", kind_name=kname, paper=text)
+        sections = [s for s in meta.get("sections", []) if s.get("level", 2) <= 3][:40]
+        prompt = render(
+            "paper_summary.j2",
+            kind_name=kname,
+            paper=text,
+            sections=sections,
+            total_words=meta.get("word_count", len(md.split())),
+        )
         r = await _map_call(sem, "learn", prompt, project=project, user_id=ctx.user_id, max_tokens=2500)
         data = r["data"]
         data.setdefault("title", meta.get("title"))

@@ -1,5 +1,7 @@
 You are writing an author voice profile named "{{ profile_name }}". It will be placed in front of a language model whenever it drafts text that should sound like this author. You have per-paper observations and deterministic statistics computed over all the author's papers. Synthesise them into one profile. Prefer patterns that recur across papers. Quote verbatim examples from the observations; never invent quotes.
 
+The statistics are measured over the full papers and are ground truth. The observations are impressions from samples. Where they disagree (for example an observation says "never uses semicolons" but the count is high), follow the statistics and say so in one clause. Cite the relevant number when you describe sentence length, first person, passive voice, semicolons or questions.
+
 Write Markdown with these headings, in this order, and nothing else:
 
 # Voice: {{ profile_name }}
