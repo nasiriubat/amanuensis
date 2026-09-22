@@ -11,6 +11,9 @@
 
 \settopmatter{printacmref=false}
 \renewcommand\footnotetextcopyrightpermission[1]{}
+\setcopyright{none}
+<# The running header shows the venue you chose; acmart's sample "Conference'17" otherwise. #>
+<% if venue %>\acmConference[<< venue >>]{<< venue >>}{}{}<% else %>\acmConference{}{}{}<% endif %>
 \pagestyle{plain}
 
 \begin{document}
@@ -36,6 +39,9 @@
 <% if keywords_csv %>\keywords{<< keywords_csv >>}<% endif %>
 
 \maketitle
+<# acmart switches to its running header inside \maketitle; with no date or location it prints
+   "venue, , authors". Page numbers only until the camera-ready fills in the conference block. #>
+\pagestyle{plain}
 
 << body >>
 

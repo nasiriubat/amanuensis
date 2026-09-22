@@ -66,6 +66,7 @@ def test_wrapper_renders():
             "keywords_csv": "a, b",
             "body": "\\section{X}",
             "has_bib": True,
+            "venue": "PROFES 2027",
         },
     )
     assert "\\documentclass[runningheads]{llncs}" in tex and "\\title{T}" in tex and "\\author{Ada Lovelace}" in tex
@@ -83,11 +84,13 @@ def test_wrapper_renders():
             "keywords": [],
             "keywords_lncs": "",
             "keywords_csv": "",
+            "venue": "PROFES 2027",
             "body": "",
             "has_bib": False,
         },
     )
     assert "\\documentclass[sigconf" in tex and "\\email{a@x}" in tex and "\\institution{U}" in tex
+    assert "\\acmConference[PROFES 2027]{PROFES 2027}{}{}" in tex and "\\setcopyright{none}" in tex
 
 
 def test_figures_store(tmp_path: Path):

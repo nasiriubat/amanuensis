@@ -390,6 +390,7 @@ async def run_export(project_id: str, ctx: JobContext, *, template_slug: str, fo
             "keywords_csv": ", ".join(_tex_escape(k) for k in meta.get("keywords") or []),
             "body": body_tex,
             "has_bib": has_bib,
+            "venue": _tex_escape(project.venue or ""),
         },
     )
     storage.write_text(out / "main.tex", wrapper)
