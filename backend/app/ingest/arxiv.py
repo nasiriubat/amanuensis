@@ -195,4 +195,7 @@ async def fetch_pdf(arxiv_id: str, dest: Path, client: httpx.AsyncClient) -> Pat
 
 
 def make_client() -> httpx.AsyncClient:
-    return httpx.AsyncClient(headers={"User-Agent": _UA, "Accept": "*/*"}, follow_redirects=True)
+    # arXiv's edge answers 406 to some clients when they advertise gzip; identity encoding is reliable.
+    return httpx.AsyncClient(
+        headers={"User-Agent": _UA, "Accept": "*/*", "Accept-Encoding": "identity"}, follow_redirects=True
+    )

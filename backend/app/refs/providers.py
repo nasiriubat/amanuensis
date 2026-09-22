@@ -222,7 +222,9 @@ def merge(lists: list[list[Candidate]]) -> list[Candidate]:
 async def search(q: str, limit: int = 12) -> tuple[list[Candidate], list[str]]:
     q = q.strip()
     errors: list[str] = []
-    async with httpx.AsyncClient(headers={"User-Agent": _UA}, follow_redirects=True) as client:
+    async with httpx.AsyncClient(
+        headers={"User-Agent": _UA, "Accept-Encoding": "identity"}, follow_redirects=True
+    ) as client:
         results = await asyncio.gather(
             semantic_scholar(client, q, limit),
             openalex(client, q, limit),
