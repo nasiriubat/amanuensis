@@ -168,9 +168,30 @@ def assemble_markdown(root: Path, title: str) -> tuple[str, str, list[dict]]:
     return abstract, body, index["sections"]
 
 
+_FIG_REF = re.compile(r"@fig:([a-z0-9\-]+)")
+
+
+def figure_numbers(body: str) -> dict[str, int]:
+    """Figure labels in order of appearance, numbered from 1, as LaTeX will number them."""
+    numbers: dict[str, int] = {}
+    for m in _FIG.finditer(body):
+        label = m.group(4) or m.group(2)
+        if label not in numbers:
+            numbers[label] = len(numbers) + 1
+    return numbers
+
+
+def resolve_fig_refs(md: str, mode: str, numbers: dict[str, int] | None = None) -> str:
+    """`Figure @fig:name` in prose: \\ref for LaTeX, the number for DOCX, '?' when the figure is missing."""
+    if mode == "latex":
+        return _FIG_REF.sub(lambda m: "\\ref{fig:" + m.group(1) + "}", md)
+    nums = numbers or {}
+    return _FIG_REF.sub(lambda m: str(nums.get(m.group(1), "?")), md)
+
+
 def markdown_for_docx(abstract: str, body: str) -> str:
     """Pandoc-citeproc friendly Markdown: keep [@key] as is, render placeholders as bold red-ish text."""
-    md = body
+    md = resolve_fig_refs(body, "docx", figure_numbers(body))
     if abstract:
         md = md.replace("\n\n", f"\n\n**Abstract.** {abstract}\n\n", 1)
     md = _NEEDS.sub(lambda m: f"**[NEEDS: {m.group(1).strip()}]**", md)
@@ -181,6 +202,7 @@ def markdown_for_docx(abstract: str, body: str) -> str:
 def _preprocess_for_latex(md: str) -> str:
     # LaTeX gets the PNG render of every figure (Pandoc would emit \includesvg for .svg paths).
     md = re.sub(r"\(figures/([a-z0-9\-]+)\.(svg|jpg|jpeg|webp|pdf)\)", r"(figures/\1.png)", md)
+    md = resolve_fig_refs(md, "latex")
     md = _CITE.sub(lambda m: "\\cite{" + ",".join(k.strip().lstrip("@") for k in m.group(1).split(";")) + "}", md)
     md = _NEEDS.sub(lambda m: "\\needs{" + _tex_escape(m.group(1).strip()) + "}", md)
     md = _CITEP.sub(lambda m: "\\citeneeded{" + _tex_escape(m.group(1).strip()) + "}", md)
@@ -292,6 +314,13 @@ def _strip_top_title(tex: str, title: str) -> str:
     return re.sub(r"\\section\{" + esc + r"\}(\\label\{[^}]*\})?\n*", "", tex, count=1)
 
 
+_CITE_CMD = re.compile(r"\\(?:cite[tp]?|citep|citet|autocite|textcite)\*?\{")
+
+
+def has_citations(*tex: str) -> bool:
+    return any(_CITE_CMD.search(t or "") for t in tex)
+
+
 AUTHOR_FIELDS = ("name", "affiliation", "email", "country", "orcid")
 
 
@@ -371,8 +400,8 @@ async def run_export(project_id: str, ctx: JobContext, *, template_slug: str, fo
                 f"Figure '{f['name']}' has no PNG render yet; open it on the Figures page to render it."
             )
     bib_src = root / "references" / "refs.bib"
-    has_bib = bib_src.exists() and bib_src.stat().st_size > 0
-    if has_bib:
+    has_records = bib_src.exists() and bib_src.stat().st_size > 0
+    if has_records:
         shutil.copy2(bib_src, out / "refs.bib")
         result["files"].append("refs.bib")
 
@@ -385,6 +414,10 @@ async def run_export(project_id: str, ctx: JobContext, *, template_slug: str, fo
             "Pandoc is not installed here; a simpler converter was used for LaTeX (tables and math may need attention)."
         )
     abstract_tex, _ = markdown_to_latex(abstract, out) if abstract else ("", method)
+    # A bibliography with no \cite prints an empty "References" heading; include it only when used.
+    has_bib = has_records and has_citations(body_tex, abstract_tex)
+    if has_records and not has_bib:
+        result["warnings"].append("No section cites a verified reference yet, so the PDF has no reference list.")
     authors = normalise_authors(meta.get("authors"))
     institutes = []
     for a in authors:

@@ -160,3 +160,20 @@ def test_authors_are_normalised_for_wrappers():
         },
     )
     assert "\\author{Ada}" in tex
+
+
+def test_bibliography_only_when_cited():
+    assert svc.has_citations("Text \\cite{smith2020} more.") is True
+    assert svc.has_citations("", "\\citep{a}") is True
+    assert svc.has_citations("No citations here.", "") is False
+
+
+def test_figure_references_resolve_for_latex_and_docx():
+    body = (
+        "Intro.\n\n![Arch](figures/arch.svg){#fig:arch}\n\n"
+        "See Figure @fig:arch and Figure @fig:none.\n\n![B](figures/b.png)\n"
+    )
+    assert svc.figure_numbers(body) == {"arch": 1, "b": 2}
+    assert "\\ref{fig:arch}" in svc.resolve_fig_refs(body, "latex")
+    docx = svc.markdown_for_docx("", body)
+    assert "Figure 1 and Figure ?" in docx

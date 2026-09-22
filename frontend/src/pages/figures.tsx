@@ -169,7 +169,10 @@ function FigureEditor({ slug, fig, onClose }: { slug: string; fig: Figure; onClo
       ) : (
         <img src={`/api/projects/${slug}/figures/${fig.name}/file`} alt={fig.caption} className="max-h-[420px] rounded-[var(--radius-sm)] border border-border bg-white object-contain" />
       )}
-      <div className="mt-3 flex items-center gap-2 text-[12.5px] text-muted-foreground">
+      <p className="mt-3 text-[12.5px] text-muted-foreground">
+        Refer to it in the text as <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[12px]">{`Figure @fig:${fig.name}`}</code>. Export turns that into the figure number.
+      </p>
+      <div className="mt-1.5 flex items-center gap-2 text-[12.5px] text-muted-foreground">
         Insert in a section as
         <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[12px]">{`![${caption || "Caption"}](figures/${fig.name}.${fig.kind === "mermaid" ? "svg" : (fig.file ?? "x.png").split(".").pop()}){#fig:${fig.name}}`}</code>
         <button
