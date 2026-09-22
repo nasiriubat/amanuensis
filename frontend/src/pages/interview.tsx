@@ -55,7 +55,7 @@ function QuestionCard({ q, slug, onSaved }: { q: InterviewQuestion; slug: string
 
       {!na ? (
         <>
-          {q.suggested ? (
+          {q.suggested && !/^no basis/i.test(q.suggested) ? (
             <div className="mt-3 rounded-[var(--radius-sm)] border border-dashed border-border-strong bg-muted/40 p-3">
               <div className="mb-1 flex items-center gap-2 text-[11.5px] font-medium uppercase tracking-wide text-subtle">
                 Suggested from your spec

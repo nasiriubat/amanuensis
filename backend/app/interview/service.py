@@ -34,6 +34,13 @@ def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def _strip_fences(text: str) -> str:
+    """Models sometimes wrap Markdown in ```markdown fences. Remove one outer fence pair."""
+    t = text.strip()
+    m = re.fullmatch(r"```[a-zA-Z]*\n(.*?)\n```", t, re.DOTALL)
+    return (m.group(1) if m else t).strip()
+
+
 def _parse_json(text: str) -> dict:
     m = re.search(r"\{.*\}", text.strip(), re.DOTALL)
     return json.loads(m.group(0) if m else text)
@@ -114,8 +121,9 @@ def apply_answers(root: Path, answers: list[dict]) -> dict:
         elif q.get("answer", "").strip():
             q["status"] = "answered"
         changed += 1
-    if changed:
-        save_interview(root, state, f"Interview: {changed} answer(s)")
+    if not changed:
+        raise ValueError("None of the answer ids match a question in this interview")
+    save_interview(root, state, f"Interview: {changed} answer(s)")
     return state
 
 
@@ -240,7 +248,7 @@ async def generate_plan(project_id: str, ctx: JobContext, *, mode: str) -> dict:
         result = await complete(
             db, "interview", [Message("user", prompt)], project=p, user_id=ctx.user_id, max_tokens=3500, temperature=0.5
         )
-    storage.write_text(inputs / "research-plan.md", result.text.strip() + "\n")
+    storage.write_text(inputs / "research-plan.md", _strip_fences(result.text) + "\n")
     storage.git_commit(root, f"Research plan generated ({mode})")
     ctx.progress(100, "Research plan written")
     return {"mode": mode, "tokens_in": result.usage.input_tokens, "tokens_out": result.usage.output_tokens}
@@ -269,7 +277,7 @@ async def extract_facts(project_id: str, ctx: JobContext | None = None) -> dict:
             max_tokens=2000,
             temperature=0.1,
         )
-    storage.write_text(inputs / "facts.md", result.text.strip() + "\n")
+    storage.write_text(inputs / "facts.md", _strip_fences(result.text) + "\n")
     return {"tokens_in": result.usage.input_tokens, "tokens_out": result.usage.output_tokens}
 
 
@@ -312,9 +320,10 @@ async def generate_outline(project_id: str, ctx: JobContext) -> dict:
         result = await complete(
             db, "interview", [Message("user", prompt)], project=p, user_id=ctx.user_id, max_tokens=3500, temperature=0.3
         )
-    storage.write_text(root / "outline.md", result.text.strip() + "\n")
+    storage.write_text(root / "outline.md", _strip_fences(result.text) + "\n")
     storage.git_commit(root, "Outline generated")
-    needs = len(re.findall(r"\[NEEDS:", result.text))
+    body = result.text.split("## Open items")[0]
+    needs = len(re.findall(r"\[NEEDS:", body))
     ctx.progress(100, f"Outline written with {needs} open item(s)")
     return {
         "open_items": needs,

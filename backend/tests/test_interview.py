@@ -52,8 +52,11 @@ def test_answers_render_and_persist(tmp_path):
     assert "## Round 1: Users and problem" in md
     assert "**A:** Bid managers in Finnish SMEs." in md
     assert "Not applicable." in md
-    # unknown ids are ignored, nothing crashes
-    svc.apply_answers(root, [{"id": "zzz", "answer": "x"}])
+    # unknown ids are refused so a broken client notices
+    import pytest
+
+    with pytest.raises(ValueError):
+        svc.apply_answers(root, [{"id": "zzz", "answer": "x"}])
     svc.pin_note(root, "The matcher uses embeddings.")
     md = (root / "inputs" / "interview.md").read_text()
     assert "Notes pinned from chat" in md and "embeddings" in md
@@ -118,3 +121,9 @@ def test_phase3_prompts_render():
     assert "# Facts" in out
     out = render("chat_system.j2", kind_name="Tool paper", title="T", spec="", plan="", interview="")
     assert "PIN:" in out
+
+
+def test_strip_fences():
+    assert svc._strip_fences("```markdown\n# Facts\n- a\n```") == "# Facts\n- a"
+    assert svc._strip_fences("# Facts\n- a\n") == "# Facts\n- a"
+    assert svc._strip_fences("```\nx\n```\n") == "x"
