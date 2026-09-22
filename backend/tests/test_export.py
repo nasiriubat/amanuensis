@@ -133,3 +133,30 @@ def test_assemble_markdown(tmp_path: Path):
     assert body.startswith("# My Paper\n\n## Introduction\n\nIntro text.")
     docx_md = svc.markdown_for_docx(abstract, body + " [NEEDS: x]")
     assert "**Abstract.** Short abstract." in docx_md and "**[NEEDS: x]**" in docx_md
+
+
+def test_authors_are_normalised_for_wrappers():
+    from app.config import get_settings
+
+    assert svc.normalise_authors(None)[0]["name"].startswith("[NEEDS")
+    got = svc.normalise_authors([{"name": "Ada"}, {"name": ""}, "junk"])
+    assert got == [{"name": "Ada", "affiliation": "", "email": "", "country": "", "orcid": ""}]
+    # the ACM wrapper reads orcid/email/affiliation/country; a bare author must not crash it
+    tex = svc.render_wrapper(
+        get_settings().seed_dir / "templates" / "acm",
+        {
+            "title": "T",
+            "subtitle": "",
+            "authors": got,
+            "running_authors": "Ada",
+            "institutes": [""],
+            "abstract": "",
+            "keywords": [],
+            "keywords_lncs": "",
+            "keywords_csv": "",
+            "venue": "",
+            "body": "",
+            "has_bib": False,
+        },
+    )
+    assert "\\author{Ada}" in tex

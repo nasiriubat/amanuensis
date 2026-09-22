@@ -292,6 +292,23 @@ def _strip_top_title(tex: str, title: str) -> str:
     return re.sub(r"\\section\{" + esc + r"\}(\\label\{[^}]*\})?\n*", "", tex, count=1)
 
 
+AUTHOR_FIELDS = ("name", "affiliation", "email", "country", "orcid")
+
+
+def normalise_authors(authors: list[dict] | None) -> list[dict]:
+    """Every wrapper may read every author field, so missing keys become empty strings.
+
+    A project exported before its paper metadata is filled in gets one visible placeholder
+    author instead of a template crash.
+    """
+    out = []
+    for a in authors or []:
+        if not isinstance(a, dict) or not str(a.get("name", "")).strip():
+            continue
+        out.append({f: str(a.get(f) or "") for f in AUTHOR_FIELDS})
+    return out or [{"name": "[NEEDS: author names]", "affiliation": "", "email": "", "country": "", "orcid": ""}]
+
+
 def render_wrapper(tpl_dir: Path, ctx: dict) -> str:
     # LaTeX is full of "{{", "{%" and "{#", so wrappers use << >>, <% %> and <# #> instead.
     env = Environment(
@@ -368,7 +385,7 @@ async def run_export(project_id: str, ctx: JobContext, *, template_slug: str, fo
             "Pandoc is not installed here; a simpler converter was used for LaTeX (tables and math may need attention)."
         )
     abstract_tex, _ = markdown_to_latex(abstract, out) if abstract else ("", method)
-    authors = meta.get("authors") or [{"name": "Author Name", "affiliation": "", "email": ""}]
+    authors = normalise_authors(meta.get("authors"))
     institutes = []
     for a in authors:
         inst = " ".join(x for x in (a.get("affiliation", ""), a.get("country", "")) if x).strip()
