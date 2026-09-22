@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Archive, Database, FolderOpen, HardDrive, History, Trash2 } from "lucide-react";
+import { Archive, Database, Download, FolderOpen, HardDrive, History, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { cn, formatBytes, formatNumber, timeAgo } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -152,6 +152,26 @@ export function StoragePage() {
         <Stat label="Author profiles" value={formatBytes(o.profiles_total)} hint={`${o.profiles.length} profile${o.profiles.length === 1 ? "" : "s"}`} />
         <Stat label="Free on disk" value={formatBytes(o.disk_free)} hint={`Database ${formatBytes(o.other.database)} · checked ${timeAgo(o.checked_at)}`} />
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Back up</CardTitle>
+          <CardDescription>
+            One zip of the whole data volume: a consistent database snapshot plus every project, profile, template and kind file. Restore by unzipping it into an empty volume.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center gap-3">
+          <a href="/api/admin/storage/backup?include_exports=true&include_raw=false" download>
+            <Button variant="secondary">
+              <Download className="h-4 w-4" /> Download backup
+            </Button>
+          </a>
+          <a href="/api/admin/storage/backup?include_exports=true&include_raw=true" download className="text-[13px] text-muted-foreground underline-offset-2 hover:underline">
+            Include raw paper sources ({formatBytes(o.raw_sources)} more)
+          </a>
+          <span className="text-[12.5px] text-subtle">Version history is left out; every file is included at its latest state.</span>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

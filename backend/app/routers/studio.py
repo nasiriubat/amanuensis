@@ -54,9 +54,10 @@ def _views(root) -> dict:
     index = svc.load_index(root)
     house = storage.read_text(storage.house_style_path())
     keys = svc.known_ref_keys(root)
+    exemplars = svc.exemplar_texts(root)
     return {
         "initialized": index.get("initialized_at") is not None,
-        "sections": [svc.section_view(root, s, house, keys) for s in index["sections"]],
+        "sections": [svc.section_view(root, s, house, keys, exemplars) for s in index["sections"]],
     }
 
 
@@ -91,7 +92,11 @@ def get_section(slug: str, section_id: str, user: User = Depends(current_user), 
         raise HTTPException(404, str(e)) from e
     text = svc.read_section(root, sec)
     house = storage.read_text(storage.house_style_path())
-    return {"section": sec, "content": text, "lint": lint_mod.lint(text, house, svc.known_ref_keys(root))}
+    return {
+        "section": sec,
+        "content": text,
+        "lint": lint_mod.lint(text, house, svc.known_ref_keys(root), svc.exemplar_texts(root)),
+    }
 
 
 @router.put("/sections/{section_id}")
@@ -108,7 +113,7 @@ def put_section(
     return {
         "section": sec,
         "content": body.content,
-        "lint": lint_mod.lint(body.content, house, svc.known_ref_keys(root)),
+        "lint": lint_mod.lint(body.content, house, svc.known_ref_keys(root), svc.exemplar_texts(root)),
     }
 
 
@@ -210,4 +215,4 @@ def add_checklist(slug: str, body: ChecklistAdd, user: User = Depends(current_us
 def lint_text(slug: str, body: LintIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
     _, root = _root(db, user, slug)
     house = storage.read_text(storage.house_style_path())
-    return lint_mod.lint(body.text, house, svc.known_ref_keys(root))
+    return lint_mod.lint(body.text, house, svc.known_ref_keys(root), svc.exemplar_texts(root))

@@ -54,10 +54,56 @@ def _is_prose_line(line: str) -> bool:
     return bool(s) and not s.startswith(("#", "```", "|", "> **", "$$", "![")) and not re.match(r"^\s*\[NEEDS:", s)
 
 
-def lint(text: str, house_style: str, known_keys: set[str] | None = None) -> list[dict]:
+OVERLAP_N = 9  # consecutive words shared with an exemplar before it counts as copying
+
+
+def _shingles(text: str, n: int = OVERLAP_N) -> dict[tuple[str, ...], int]:
+    """Word n-grams of prose lines, mapped to the 1-based line they start on."""
+    out: dict[tuple[str, ...], int] = {}
+    for i, line in enumerate(text.splitlines(), start=1):
+        if not _is_prose_line(line):
+            continue
+        words = [w.lower() for w in _WORD.findall(line)]
+        for j in range(len(words) - n + 1):
+            out.setdefault(tuple(words[j : j + n]), i)
+    return out
+
+
+def exemplar_overlap(text: str, exemplars: dict[str, str], n: int = OVERLAP_N) -> list[Finding]:
+    """Flag runs of `n` or more words that also appear verbatim in an exemplar paper (SPEC 10)."""
+    if not text.strip() or not exemplars:
+        return []
+    mine = _shingles(text, n)
+    if not mine:
+        return []
+    findings: list[Finding] = []
+    seen_lines: set[int] = set()
+    for title, body in exemplars.items():
+        theirs = set(_shingles(body, n))
+        hits = [(line, gram) for gram, line in mine.items() if gram in theirs]
+        for line, gram in sorted(hits):
+            if line in seen_lines:
+                continue
+            seen_lines.add(line)
+            findings.append(
+                Finding(
+                    line,
+                    "overlap",
+                    "error",
+                    f"Matches text in exemplar “{title[:60]}”. Rewrite in your own words.",
+                    " ".join(gram),
+                )
+            )
+    return findings
+
+
+def lint(
+    text: str, house_style: str, known_keys: set[str] | None = None, exemplars: dict[str, str] | None = None
+) -> list[dict]:
     known = known_keys or set()
     phrases = banned_phrases(house_style)
     findings: list[Finding] = []
+    findings.extend(exemplar_overlap(text, exemplars or {}))
     prev_opener: str | None = None
     in_code = False
 

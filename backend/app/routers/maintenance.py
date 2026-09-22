@@ -283,6 +283,74 @@ def cleanup(body: CleanupIn, db: Session = Depends(get_db)):
     return {"report": report, "freed": freed, "finished_at": iso(now())}
 
 
+BACKUP_SKIP_DIRS = {".git"}
+
+
+def _backup_zip(include_exports: bool, include_raw: bool) -> Path:
+    """Consistent snapshot of the data volume: SQLite via its backup API, files by walking."""
+    import sqlite3
+    import tempfile
+    import zipfile
+
+    settings = get_settings()
+    data = settings.data_dir.resolve()
+    tmpdir = Path(tempfile.mkdtemp(prefix="pw-backup-"))
+    stamp = now().strftime("%Y%m%d-%H%M%S")
+    out = tmpdir / f"paper-writer-backup-{stamp}.zip"
+    with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+        db_snapshot = tmpdir / "app.db"
+        src = sqlite3.connect(str(settings.db_path))
+        try:
+            dst = sqlite3.connect(str(db_snapshot))
+            with dst:
+                src.backup(dst)
+            dst.close()
+        finally:
+            src.close()
+        zf.write(db_snapshot, "app.db")
+        db_snapshot.unlink()
+        for path in sorted(data.rglob("*")):
+            if not path.is_file():
+                continue
+            rel = path.relative_to(data)
+            parts = rel.parts
+            if parts[0] in ("app.db", "app.db-wal", "app.db-shm", "tmp"):
+                continue
+            if BACKUP_SKIP_DIRS & set(parts[:-1]):
+                continue  # git history is a convenience cache; drafts and versions of files are on disk
+            if not include_exports and "exports" in parts:
+                continue
+            if not include_raw and ("src" in parts or path.name in ("source.pdf", "source.tar", "source.tar.gz")):
+                continue
+            zf.write(path, str(rel))
+        zf.writestr(
+            "RESTORE.txt",
+            "Restore: stop the container, empty the data volume, unzip this archive into it, start again.\n"
+            "The database is a consistent snapshot taken with SQLite's backup API. Git history was not\n"
+            "included; every file is present at its latest version and history restarts from there.\n",
+        )
+    return out
+
+
+@router.get("/backup")
+def backup(include_exports: bool = True, include_raw: bool = False):
+    from fastapi.responses import FileResponse
+    from starlette.background import BackgroundTask
+
+    out = _backup_zip(include_exports, include_raw)
+
+    def _cleanup(p: Path = out) -> None:
+        shutil.rmtree(p.parent, ignore_errors=True)
+
+    return FileResponse(
+        out,
+        media_type="application/zip",
+        filename=out.name,
+        headers={"Cache-Control": "no-store"},
+        background=BackgroundTask(_cleanup),
+    )
+
+
 def purge_expired_sessions() -> int:
     """Called at boot so the sessions table never grows without bound."""
     from ..db import SessionLocal

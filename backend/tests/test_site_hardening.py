@@ -251,3 +251,25 @@ def test_storage_overview_and_cleanup(client, admin):
     assert client.get("/api/admin/storage", headers=member).status_code == 403
     login(client)
     client.delete(f"/api/projects/{slug}", headers=admin)
+
+
+def test_backup_zip_contains_db_and_files(client, admin):
+    import io
+    import zipfile
+
+    r = client.post("/api/projects", json={"title": "Backup Demo", "kind": "tool-paper"}, headers=admin)
+    slug = r.json()["slug"]
+    from app import storage
+
+    (storage.project_dir(slug) / "exports" / "20260101-000000").mkdir(parents=True)
+    (storage.project_dir(slug) / "exports" / "20260101-000000" / "paper.pdf").write_bytes(b"%PDF-")
+    res = client.get("/api/admin/storage/backup?include_exports=false", headers=admin)
+    assert res.status_code == 200 and res.headers["content-type"] == "application/zip"
+    names = zipfile.ZipFile(io.BytesIO(res.content)).namelist()
+    assert "app.db" in names and "RESTORE.txt" in names
+    assert any(n.startswith(f"projects/{slug}/") for n in names)
+    assert not any("/exports/" in n for n in names)
+    assert not any("/.git/" in n for n in names)
+    with_exports = client.get("/api/admin/storage/backup?include_exports=true", headers=admin)
+    assert any("/exports/" in n for n in zipfile.ZipFile(io.BytesIO(with_exports.content)).namelist())
+    client.delete(f"/api/projects/{slug}", headers=admin)

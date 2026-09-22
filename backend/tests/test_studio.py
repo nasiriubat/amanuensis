@@ -162,3 +162,22 @@ def test_review_prompts_render_and_endpoint(client, admin):
     )
     assert client.get(f"/api/projects/{slug}").json()["counts"]["reviewed"] is False
     client.delete(f"/api/projects/{slug}", headers=admin)
+
+
+def test_overlap_lint_flags_copied_runs():
+    from app.studio.lint import exemplar_overlap, lint
+
+    exemplar = "We evaluated the tool on three industrial case studies with twelve practitioners over six weeks.\n"
+    own = (
+        "Our approach differs.\n\n"
+        "We evaluated the tool on three industrial case studies with twelve practitioners over six weeks, "
+        "then stopped.\n"
+    )
+    hits = exemplar_overlap(own, {"Some Exemplar Paper": exemplar})
+    assert len(hits) == 1 and hits[0].kind == "overlap" and hits[0].line == 3
+    assert "Some Exemplar Paper" in hits[0].message
+    # short coincidences are not flagged
+    assert exemplar_overlap("We evaluated the tool on three cases.", {"X": exemplar}) == []
+    # wired into lint()
+    kinds = {f["kind"] for f in lint(own, "", set(), {"Some Exemplar Paper": exemplar})}
+    assert "overlap" in kinds

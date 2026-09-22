@@ -477,9 +477,16 @@ Each phase leaves a usable product.
 ## 10. Open items
 
 - Whether to allow a project to blend two author profiles (co-authored papers).
-- Does playbook learning produce advice the model would not give anyway? Phase 2
-  must include a small test: learn a playbook from five real papers and compare
-  drafts with and without it. If the gain is small, the learning prompts need work,
-  not the architecture.
-- Plagiarism guard: flag long n-gram overlap between drafts and exemplars. Cheap to
-  add in phase 4.
+- **Playbook value test, run 2026-09-22** (`backend/scripts/playbook_ablation.py`, three
+  exemplars, gpt-4.1, two sections of the demo project). Drafts with and without the
+  playbook and exemplar excerpts were near-identical in structure, length, placeholders
+  and lint. Where the research plan or facts already dictate the shape (Evaluation), the
+  playbook added nothing visible. Where they do not (Related Work), the version with the
+  playbook was tighter and used no passive voice, but said the same things. Conclusion, as
+  the spec anticipated: the gain from three exemplars is small; the architecture is fine,
+  the learning prompts and the number of exemplars are the levers. Next steps: repeat with
+  eight to ten exemplars, and make the playbook prescribe concrete moves per section
+  ("open with the practitioner's pain, name the gap in one sentence, list contributions")
+  rather than describing the genre.
+- Plagiarism guard: done. `exemplar_overlap` in `studio/lint.py` flags any run of nine
+  words shared verbatim with an exemplar as an error in the Studio.

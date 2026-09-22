@@ -121,9 +121,25 @@ def _word_count(text: str) -> int:
     return len(re.findall(r"[A-Za-z0-9][A-Za-z0-9'\-]*", re.sub(r"\[(NEEDS|CITE):[^\]]*\]", "", text)))
 
 
-def section_view(root: Path, sec: dict, house_style: str, known_keys: set[str]) -> dict:
+def exemplar_texts(root: Path) -> dict[str, str]:
+    """Title to extracted text for every ready exemplar; used by the overlap lint."""
+    out: dict[str, str] = {}
+    d = root / "exemplars"
+    if not d.exists():
+        return out
+    for sub in sorted(d.iterdir()):
+        md = sub / "extracted.md"
+        if sub.is_dir() and md.exists():
+            meta = ingest_extract.read_meta(sub) or {}
+            out[meta.get("title") or sub.name] = md.read_text(encoding="utf-8", errors="ignore")
+    return out
+
+
+def section_view(
+    root: Path, sec: dict, house_style: str, known_keys: set[str], exemplars: dict[str, str] | None = None
+) -> dict:
     text = read_section(root, sec)
-    findings = lint_mod.lint(text, house_style, known_keys) if text.strip() else []
+    findings = lint_mod.lint(text, house_style, known_keys, exemplars) if text.strip() else []
     return {
         **sec,
         "words": _word_count(text),
@@ -415,8 +431,21 @@ def _profile_text(project: Project) -> str:
 
 
 async def draft_section(
-    project_id: str, section_id: str, ctx: JobContext, *, instructions: str = "", force: bool = False
+    project_id: str,
+    section_id: str,
+    ctx: JobContext,
+    *,
+    instructions: str = "",
+    force: bool = False,
+    ablate: frozenset[str] = frozenset(),
+    dry_run: bool = False,
 ) -> dict:
+    """Draft one section.
+
+    `ablate` may contain "playbook" and/or "exemplars" to leave those out of the prompt, and
+    `dry_run` returns the text without saving anything. Both exist for the playbook value test
+    (SPEC 10) and are never exposed through the API.
+    """
     with SessionLocal() as db:
         project = db.get(Project, project_id)
         if not project:
@@ -438,6 +467,8 @@ async def draft_section(
         budget_markdown(storage.read_text(root / "playbook" / f), n)
         for f, n in (("argumentation.md", 3500), ("structure.md", 2500), ("evaluation.md", 2500))
     )
+    if "playbook" in ablate:
+        playbook = ""
     ctx.progress(15, f"Assembling context for “{sec['title']}”")
     system = render(
         "draft_system.j2",
@@ -461,7 +492,7 @@ async def draft_section(
         plan=budget_markdown(storage.read_text(inputs / "research-plan.md"), 3000),
         previous=budget_markdown(read_section(root, prev), 5000) if prev else "",
         others=_others_openings(root, index, sec["id"])[:3000],
-        exemplars=_exemplar_excerpts(root, sec["title"]),
+        exemplars="" if "exemplars" in ablate else _exemplar_excerpts(root, sec["title"]),
     )
     ctx.progress(35, "Drafting")
     with SessionLocal() as db:
@@ -480,9 +511,19 @@ async def draft_section(
     text = re.sub(r"^```[a-z]*\n|\n```$", "", text).strip()
     # drop a leading heading if the model added one anyway
     text = re.sub(r"^#{1,3}\s+.*\n+", "", text, count=1) if text.startswith("#") else text
-    sec = save_section_text(root, sec, text, by_user=False)
     words = _word_count(text)
     needs = len(_NEEDS.findall(text))
+    if dry_run:
+        return {
+            "section_id": sec["id"],
+            "text": text,
+            "words": words,
+            "open_items": needs,
+            "tokens_in": result.usage.input_tokens,
+            "tokens_out": result.usage.output_tokens,
+            "cached_tokens": result.usage.cached_tokens,
+        }
+    sec = save_section_text(root, sec, text, by_user=False)
     ctx.progress(100, f"Drafted “{sec['title']}”: {words} words, {needs} open item(s)")
     with SessionLocal() as db:
         p = db.get(Project, project_id)
