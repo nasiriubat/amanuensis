@@ -32,3 +32,12 @@ def test_style_templates_render():
     assert "We built it." in s
     p = render("style_profile.j2", profile_name="Nasir", stats='{"papers": 2}', observations=['{"openers": []}'])
     assert "# Voice: Nasir" in p and "--- Paper 1 ---" in p
+
+
+def test_draft_system_forbids_invented_example_particulars():
+    from app.learn.context import render
+
+    out = render(
+        "draft_system.j2", kind_name="Tool paper", profile="", house_style="", playbook="", facts="", ref_keys=""
+    )
+    assert "illustrative material" in out and "Never state a particular and then ask for it" in out
