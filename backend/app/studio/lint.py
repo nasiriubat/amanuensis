@@ -31,12 +31,17 @@ def banned_phrases(house_style: str) -> list[str]:
     m = re.search(r"^## Banned words and phrases\s*\n(.*?)(?=^## |\Z)", house_style, re.MULTILINE | re.DOTALL)
     if not m:
         return []
-    body = m.group(1)
-    # drop the explanatory sentence(s) before the list: keep from the first line that has a comma-separated run
+    # The list is one or more paragraphs wrapped at ~90 columns. Explanatory sentences
+    # have no commas to speak of; the list paragraphs are nothing but commas.
     items: list[str] = []
-    for chunk in re.split(r",|\n", body):
+    chunks: list[str] = []
+    for para in re.split(r"\n\s*\n", m.group(1)):
+        joined = " ".join(line.strip() for line in para.splitlines() if line.strip())
+        if joined.count(",") >= 2:
+            chunks.extend(joined.split(","))
+    for chunk in chunks:
         c = chunk.strip().strip(".").strip()
-        if not c or c.endswith(":") or len(c.split()) > 6 or c.lower().startswith(("never", "they are")):
+        if not c or c.endswith(":") or len(c.split()) > 6:
             continue
         c = re.sub(r"\s*\([^)]*\)", "", c).strip()
         if c and c.lower() not in items:

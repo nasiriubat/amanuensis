@@ -39,6 +39,8 @@ def test_banned_phrase_parsing():
     phrases = lint_mod.banned_phrases(HOUSE)
     assert "delve" in phrases and "leverage" in phrases and "it is worth noting" in phrases
     assert "landscape" in phrases  # parenthetical qualifier stripped
+    wrapped = "## Banned words and phrases\n\ndelve, in the\nrealm of, at its core.\n"
+    assert lint_mod.banned_phrases(wrapped) == ["delve", "in the realm of", "at its core"]
     assert not any(p.startswith("never") for p in phrases)
 
 
