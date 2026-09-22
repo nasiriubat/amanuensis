@@ -71,7 +71,9 @@ def get_exemplar(slug: str, paper_id: str, user: User = Depends(current_user), d
 
 
 @router.post("/projects/{slug}/exemplars/arxiv", status_code=202)
-def add_exemplar_arxiv(slug: str, body: ArxivIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+async def add_exemplar_arxiv(
+    slug: str, body: ArxivIn, user: User = Depends(current_user), db: Session = Depends(get_db)
+):
     p = get_owned(db, user, slug)
     aid = parse_arxiv_id(body.ref)
     if not aid:
@@ -103,7 +105,7 @@ def delete_exemplar(slug: str, paper_id: str, user: User = Depends(current_user)
 
 
 @router.post("/projects/{slug}/learn", status_code=202)
-def learn_playbook(
+async def learn_playbook(
     slug: str, body: LearnIn | None = None, user: User = Depends(current_user), db: Session = Depends(get_db)
 ):
     p = get_owned(db, user, slug)
@@ -130,7 +132,7 @@ def list_sources(slug: str, user: User = Depends(current_user), db: Session = De
 
 
 @router.post("/profiles/{slug}/sources/arxiv", status_code=202)
-def add_source_arxiv(slug: str, body: ArxivIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+async def add_source_arxiv(slug: str, body: ArxivIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
     p = get_visible(db, user, slug)
     require_owner(p, user)
     aid = parse_arxiv_id(body.ref)
@@ -165,7 +167,7 @@ def delete_source(slug: str, paper_id: str, user: User = Depends(current_user), 
 
 
 @router.post("/profiles/{slug}/learn", status_code=202)
-def learn_voice(
+async def learn_voice(
     slug: str, body: LearnIn | None = None, user: User = Depends(current_user), db: Session = Depends(get_db)
 ):
     p = get_visible(db, user, slug)

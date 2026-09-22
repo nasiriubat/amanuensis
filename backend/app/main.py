@@ -36,6 +36,21 @@ def seed_admin() -> None:
         log.info("Seeded first admin account %s", admin.email)
 
 
+def fail_orphaned_jobs() -> None:
+    """Jobs run in-process; anything still queued or running at boot died with the previous process."""
+    from .models import Job, now
+
+    with SessionLocal() as db:
+        stale = db.scalars(select(Job).where(Job.status.in_(["queued", "running"]))).all()
+        for j in stale:
+            j.status = "failed"
+            j.error = "Server restarted before this job finished"
+            j.updated_at = now()
+        if stale:
+            db.commit()
+            log.info("Marked %d orphaned jobs as failed", len(stale))
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     settings = get_settings()
@@ -43,6 +58,7 @@ async def lifespan(_: FastAPI):
     init_db()
     storage.seed_defaults()
     seed_admin()
+    fail_orphaned_jobs()
     yield
 
 
