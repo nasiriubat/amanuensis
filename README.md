@@ -54,6 +54,44 @@ The image is large (about 8 GB) because it bakes in CPU PyTorch and the Docling 
 models so PDF extraction works offline. The first build downloads a few gigabytes; pip runs
 with a long timeout and retries so a slow connection does not fail the build.
 
+## Deploying for a team
+
+Paper Writer is one container with one data volume. That is the right shape for a research
+group of up to a few dozen people. What to do before you hand the URL to colleagues:
+
+1. **Put it behind HTTPS.** Run the container on a private port and terminate TLS in a reverse
+   proxy. With Caddy, the whole configuration is two lines:
+   ```
+   papers.example.org {
+       reverse_proxy localhost:8000
+   }
+   ```
+   Then set `APP_URL=https://papers.example.org` and `SECURE_COOKIES=true` in `.env`. The app
+   trusts `X-Forwarded-*` headers from the proxy.
+2. **Generate a real secret.** `APP_SECRET_KEY` encrypts every provider API key at rest. Losing
+   it means re-entering the keys; changing it after the fact makes stored keys unreadable.
+3. **Sign in once as the seeded admin and change the password**, then add providers, assign a
+   model to each purpose, and invite members from Settings → Users. Members get a temporary
+   password and must change it on first sign-in.
+4. **Set `SEMANTIC_SCHOLAR_API_KEY`.** Without it, reference search and the literature scan
+   share the public quota and are throttled within seconds. The key is free.
+5. **Back up the volume.** Settings → Storage → Download backup produces one zip with a
+   consistent database snapshot and every file. For unattended backups, call
+   `GET /api/admin/storage/backup` with an admin session from a cron job, or snapshot the
+   `paper_data` volume. Restore by unzipping into an empty volume.
+6. **Watch disk and tokens.** Settings → Storage shows disk use per project and runs cleanups;
+   Settings → Usage shows tokens per user, purpose and model. Every model call is logged.
+7. **Size the host.** Two vCPUs and 4 GB of RAM are enough for a group. PDF extraction with
+   Docling is the only CPU-heavy step and runs as a background job. The image is about 8 GB.
+
+Known limits: the app runs as a single process, so run exactly one replica. Background jobs
+live inside that process and are marked failed if the container restarts mid-job; the user
+simply starts them again. SQLite is the database; it is not the bottleneck at this scale.
+
+**Updating.** `git pull && docker compose up -d --build`. Schema additions are applied
+automatically at start-up; built-in paper kinds, house style and templates are refreshed
+without touching files an admin has edited.
+
 ## Run for development
 
 Backend (FastAPI on port 8000):

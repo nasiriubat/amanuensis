@@ -36,12 +36,17 @@ RUN set -eux; \
 
 WORKDIR /app/backend
 COPY backend/pyproject.toml ./
+
+# Dependencies first, from pyproject alone, so editing application code does not redownload
+# PyTorch and Docling on every build. CPU-only PyTorch keeps the image far smaller than CUDA wheels.
+RUN python -c "import tomllib; d = tomllib.load(open('pyproject.toml', 'rb')); \
+print('\n'.join(d['project']['dependencies'] + d['project']['optional-dependencies']['extract']))" > /tmp/requirements.txt \
+    && pip install --timeout 600 --retries 5 --extra-index-url https://download.pytorch.org/whl/cpu torch \
+    && pip install --timeout 600 --retries 5 -r /tmp/requirements.txt
+
 COPY backend/app ./app
 COPY backend/seed ./seed
-
-# CPU-only PyTorch keeps the image far smaller than the default CUDA wheels.
-RUN pip install --timeout 600 --retries 5 --extra-index-url https://download.pytorch.org/whl/cpu torch \
-    && pip install --timeout 600 --retries 5 ".[extract]"
+RUN pip install --no-deps .
 
 # Bake Docling's layout and table models into the image so first use is offline.
 RUN mkdir -p /models/docling && docling-tools models download -o /models/docling || true
