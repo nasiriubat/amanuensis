@@ -1,0 +1,618 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import CodeMirror from "@uiw/react-codemirror";
+import { markdown } from "@codemirror/lang-markdown";
+import { EditorView } from "@codemirror/view";
+import { lintGutter, setDiagnostics, type Diagnostic } from "@codemirror/lint";
+import {
+  AlertCircle,
+  Check,
+  ChevronLeft,
+  CircleDashed,
+  History,
+  ListChecks,
+  Lock,
+  LockOpen,
+  PenLine,
+  RotateCcw,
+  Sparkles,
+  Wand2,
+} from "lucide-react";
+import { api } from "@/lib/api";
+import type { ChecklistItem, JobInfo, LintFinding, Project, Section, SectionDetail, StudioState } from "@/lib/types";
+import { useJobs } from "@/lib/jobs";
+import { useTheme } from "@/lib/theme";
+import { diffLines } from "@/lib/diff";
+import { cn, timeAgo } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/input";
+import { EmptyState, PageHeader, Skeleton } from "@/components/ui/misc";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
+import { Tooltip } from "@/components/ui/tooltip";
+import { JobProgress } from "@/components/papers";
+import { ConfirmDialog } from "@/components/dialogs";
+import { RichMarkdown } from "@/components/rich-markdown";
+import { NextStepBar } from "@/components/flow";
+
+const STATUS: Record<Section["status"], { label: string; variant: "neutral" | "primary" | "success" | "warning" }> = {
+  empty: { label: "Empty", variant: "neutral" },
+  drafted: { label: "Drafted", variant: "primary" },
+  edited: { label: "Edited", variant: "success" },
+  mine: { label: "Yours", variant: "success" },
+};
+
+function words(text: string): number {
+  return (text.replace(/\[(NEEDS|CITE):[^\]]*\]/g, "").match(/[A-Za-z0-9][A-Za-z0-9'-]*/g) ?? []).length;
+}
+
+function toDiagnostics(view: EditorView, findings: LintFinding[]): Diagnostic[] {
+  const out: Diagnostic[] = [];
+  const doc = view.state.doc;
+  for (const f of findings) {
+    if (f.line < 1 || f.line > doc.lines) continue;
+    const line = doc.line(f.line);
+    let from = line.from;
+    let to = line.to;
+    if (f.excerpt) {
+      const idx = line.text.indexOf(f.excerpt);
+      if (idx >= 0) {
+        from = line.from + idx;
+        to = from + f.excerpt.length;
+      }
+    }
+    if (to <= from) to = Math.min(line.to, from + 1);
+    out.push({ from, to, severity: f.severity === "error" ? "error" : f.severity === "warning" ? "warning" : "info", message: f.message });
+  }
+  return out;
+}
+
+function SectionRail({ sections, selected, onSelect }: { sections: Section[]; selected: string | null; onSelect: (id: string) => void }) {
+  return (
+    <div className="flex flex-col gap-1">
+      {sections.map((s) => {
+        const active = s.id === selected;
+        const pct = s.target_words ? Math.min(100, Math.round(((s.words ?? 0) / s.target_words) * 100)) : 0;
+        return (
+          <button
+            key={s.id}
+            onClick={() => onSelect(s.id)}
+            className={cn("group rounded-lg border px-3 py-2.5 text-left transition-colors", active ? "border-primary/40 bg-primary-soft/40" : "border-transparent hover:bg-muted")}
+          >
+            <div className="flex items-center gap-2">
+              <span
+                className={cn(
+                  "h-2 w-2 shrink-0 rounded-full",
+                  s.status === "empty" && "bg-border-strong",
+                  s.status === "drafted" && "bg-primary",
+                  (s.status === "edited" || s.status === "mine") && "bg-success",
+                )}
+              />
+              <span className={cn("min-w-0 flex-1 truncate text-[13px]", active ? "font-semibold" : "font-medium")}>
+                {s.order}. {s.title}
+              </span>
+              {s.status === "mine" ? <Lock className="h-3 w-3 text-success" /> : null}
+            </div>
+            <div className="mt-1 flex items-center gap-2 pl-4 text-[11.5px] text-subtle">
+              <span className="tabular-nums">
+                {s.words ?? 0}
+                {s.target_words ? ` / ${s.target_words}` : ""} words
+              </span>
+              {s.open_items ? <span className="text-warning">{s.open_items} open</span> : null}
+              {s.lint?.errors ? <span className="text-destructive">{s.lint.errors} err</span> : null}
+            </div>
+            {s.target_words ? (
+              <div className="ml-4 mt-1.5 h-0.5 overflow-hidden rounded-full bg-muted">
+                <div className={cn("h-full rounded-full", pct >= 85 ? "bg-success" : "bg-primary/70")} style={{ width: `${pct}%` }} />
+              </div>
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ChecklistPanel({ slug, items, sectionTitle }: { slug: string; items: ChecklistItem[]; sectionTitle: string | null }) {
+  const qc = useQueryClient();
+  const [showAll, setShowAll] = useState(false);
+  const patch = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: ChecklistItem["status"] }) => api.patch(`/api/projects/${slug}/checklist/${id}`, { status }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["checklist", slug] });
+      void qc.invalidateQueries({ queryKey: ["project", slug] });
+    },
+  });
+  const visible = items.filter((i) => showAll || i.section === sectionTitle || i.section === "Whole paper");
+  const open = visible.filter((i) => i.status === "open");
+  const closed = visible.filter((i) => i.status !== "open");
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between text-[12.5px] text-muted-foreground">
+        <span>
+          {open.length} open{sectionTitle && !showAll ? " for this section" : ""}
+        </span>
+        <button onClick={() => setShowAll((v) => !v)} className="font-medium text-primary hover:underline">
+          {showAll ? "This section only" : "Whole paper"}
+        </button>
+      </div>
+      {open.length === 0 ? <p className="text-[13px] text-subtle">Nothing open here.</p> : null}
+      {open.map((i) => (
+        <div key={i.id} className="rounded-[var(--radius-sm)] border border-warning/40 bg-warning-soft/40 p-3 text-[13px]">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+            <div className="min-w-0 flex-1">
+              <div>{i.text}</div>
+              <div className="mt-0.5 text-[11.5px] text-subtle">
+                {i.section} · from {i.source}
+              </div>
+            </div>
+          </div>
+          <div className="mt-2 flex gap-1.5">
+            <Button size="sm" variant="secondary" onClick={() => patch.mutate({ id: i.id, status: "resolved" })}>
+              <Check className="h-3.5 w-3.5" /> Resolved
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => patch.mutate({ id: i.id, status: "limitation" })}>
+              State as limitation
+            </Button>
+          </div>
+        </div>
+      ))}
+      {closed.length ? (
+        <details className="text-[12.5px] text-muted-foreground">
+          <summary className="cursor-pointer">{closed.length} closed</summary>
+          <div className="mt-2 flex flex-col gap-1.5">
+            {closed.map((i) => (
+              <div key={i.id} className="flex items-start gap-2 rounded-md px-2 py-1">
+                <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
+                <span className="line-through opacity-70">{i.text}</span>
+                <button onClick={() => patch.mutate({ id: i.id, status: "open" })} className="ml-auto text-primary hover:underline">
+                  Reopen
+                </button>
+              </div>
+            ))}
+          </div>
+        </details>
+      ) : null}
+    </div>
+  );
+}
+
+function IssuesPanel({ findings, onJump }: { findings: LintFinding[]; onJump: (line: number) => void }) {
+  if (findings.length === 0) return <p className="text-[13px] text-subtle">No issues. The lint checks house-style rules, placeholders and citation keys.</p>;
+  const order = { error: 0, warning: 1, info: 2 };
+  const sorted = [...findings].sort((a, b) => order[a.severity] - order[b.severity] || a.line - b.line);
+  return (
+    <div className="flex flex-col gap-1.5">
+      {sorted.map((f, i) => (
+        <button
+          key={i}
+          onClick={() => onJump(f.line)}
+          className="flex items-start gap-2 rounded-md px-2 py-1.5 text-left text-[12.5px] hover:bg-muted"
+        >
+          <span className={cn("mt-1 h-2 w-2 shrink-0 rounded-full", f.severity === "error" ? "bg-destructive" : f.severity === "warning" ? "bg-warning" : "bg-border-strong")} />
+          <span className="min-w-0 flex-1">
+            <span className="text-foreground">{f.message}</span>
+            <span className="ml-1 text-subtle">line {f.line}</span>
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function HistoryDialog({ slug, section, current, onRestore, onClose }: { slug: string; section: Section; current: string; onRestore: (text: string) => void; onClose: () => void }) {
+  const hist = useQuery({ queryKey: ["history", slug, section.id], queryFn: () => api.get<Array<{ sha: string; timestamp: number; message: string }>>(`/api/projects/${slug}/sections/${section.id}/history`) });
+  const [sha, setSha] = useState<string | null>(null);
+  const ver = useQuery({ queryKey: ["version", slug, section.id, sha], queryFn: () => api.get<{ content: string }>(`/api/projects/${slug}/sections/${section.id}/versions/${sha}`), enabled: !!sha });
+  const diff = useMemo(() => (ver.data ? diffLines(ver.data.content, current) : []), [ver.data, current]);
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent title={`Versions of “${section.title}”`} description="Every save and every draft is a version. Pick one to compare with the current text." className="max-w-4xl">
+        <div className="grid gap-4 md:grid-cols-[220px_1fr]">
+          <div className="max-h-[60vh] overflow-y-auto">
+            {(hist.data ?? []).map((h) => (
+              <button
+                key={h.sha}
+                onClick={() => setSha(h.sha)}
+                className={cn("w-full rounded-md px-2.5 py-2 text-left text-[12.5px] hover:bg-muted", sha === h.sha && "bg-muted font-medium")}
+              >
+                <div className="truncate">{h.message.replace(/^(Edit|Draft) section: .*/, (m) => m.split(" section:")[0])}</div>
+                <div className="text-[11.5px] text-subtle">{timeAgo(new Date(h.timestamp * 1000).toISOString())}</div>
+              </button>
+            ))}
+          </div>
+          <div className="max-h-[60vh] overflow-y-auto rounded-[var(--radius-sm)] border border-border bg-muted/30 p-3 font-mono text-[12px] leading-relaxed">
+            {!sha ? (
+              <p className="text-subtle">Select a version on the left.</p>
+            ) : ver.isLoading ? (
+              <Skeleton className="h-40" />
+            ) : (
+              diff.map((d, i) => (
+                <div key={i} className={cn("whitespace-pre-wrap px-1", d.type === "add" && "bg-success-soft text-success", d.type === "del" && "bg-destructive-soft text-destructive line-through")}>
+                  {d.text || " "}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            Close
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={!ver.data}
+            onClick={() => {
+              if (ver.data) onRestore(ver.data.content);
+              onClose();
+            }}
+          >
+            <RotateCcw className="h-4 w-4" /> Load this version into the editor
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function StudioPage() {
+  const { slug = "" } = useParams();
+  const qc = useQueryClient();
+  const { resolved } = useTheme();
+  const project = useQuery({ queryKey: ["project", slug], queryFn: () => api.get<Project>(`/api/projects/${slug}`) });
+  const studio = useQuery({ queryKey: ["studio", slug], queryFn: () => api.get<StudioState>(`/api/projects/${slug}/studio`) });
+  const checklist = useQuery({ queryKey: ["checklist", slug], queryFn: () => api.get<ChecklistItem[]>(`/api/projects/${slug}/checklist`) });
+  const [selected, setSelected] = useState<string | null>(null);
+  const detail = useQuery({ queryKey: ["section", slug, selected], queryFn: () => api.get<SectionDetail>(`/api/projects/${slug}/sections/${selected}`), enabled: !!selected });
+
+  const [text, setText] = useState("");
+  const [findings, setFindings] = useState<LintFinding[]>([]);
+  const [instructionsOpen, setInstructionsOpen] = useState(false);
+  const [instructions, setInstructions] = useState("");
+  const [confirmForce, setConfirmForce] = useState<null | { instructions: string }>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [tab, setTab] = useState("preview");
+  const viewRef = useRef<EditorView | null>(null);
+  const lintTimer = useRef<number | null>(null);
+
+  const sections = studio.data?.sections ?? [];
+  const section = sections.find((s) => s.id === selected) ?? null;
+  const serverText = detail.data?.content ?? "";
+  const dirty = !!detail.data && text !== serverText;
+
+  useEffect(() => {
+    if (!selected && sections.length) setSelected(sections.find((s) => s.status === "empty")?.id ?? sections[0].id);
+  }, [sections, selected]);
+
+  useEffect(() => {
+    if (detail.data) {
+      setText(detail.data.content);
+      setFindings(detail.data.lint);
+    }
+  }, [detail.data]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (view) view.dispatch(setDiagnostics(view.state, toDiagnostics(view, findings)));
+  }, [findings, text]);
+
+  const refresh = useCallback(() => {
+    void qc.invalidateQueries({ queryKey: ["studio", slug] });
+    void qc.invalidateQueries({ queryKey: ["section", slug] });
+    void qc.invalidateQueries({ queryKey: ["checklist", slug] });
+    void qc.invalidateQueries({ queryKey: ["project", slug] });
+  }, [qc, slug]);
+
+  const { jobs, active, watch, dismiss } = useJobs({ project_id: project.data?.id }, (j) => {
+    if (j.type === "draft_section") refresh();
+  });
+  const draftingIds = new Set(jobs.filter((j) => j.status === "queued" || j.status === "running").map((j) => (j.result?.section_id as string) ?? j.message?.replace("Queued: ", "")));
+
+  const init = useMutation({
+    mutationFn: () => api.post<StudioState>(`/api/projects/${slug}/studio/init`),
+    onSuccess: () => {
+      refresh();
+      toast.success("Sections created from your outline");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const save = useMutation({
+    mutationFn: () => api.put<SectionDetail>(`/api/projects/${slug}/sections/${selected}`, { content: text }),
+    onSuccess: (d) => {
+      qc.setQueryData(["section", slug, selected], d);
+      setFindings(d.lint);
+      void qc.invalidateQueries({ queryKey: ["studio", slug] });
+      void qc.invalidateQueries({ queryKey: ["checklist", slug] });
+      void qc.invalidateQueries({ queryKey: ["project", slug] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const draft = useMutation({
+    mutationFn: ({ id, instructions, force }: { id: string; instructions?: string; force?: boolean }) =>
+      api.post<JobInfo>(`/api/projects/${slug}/sections/${id}/draft`, { instructions: instructions ?? "", force: !!force }),
+    onSuccess: (job) => {
+      watch(job);
+      setInstructionsOpen(false);
+      setInstructions("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const lock = useMutation({
+    mutationFn: (mine: boolean) => api.post<Section>(`/api/projects/${slug}/sections/${selected}/lock`, { mine }),
+    onSuccess: (s) => {
+      refresh();
+      toast.success(s.status === "mine" ? "Marked as yours. Regeneration now asks first." : "Unlocked");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const requestDraft = (instr = "") => {
+    if (!section) return;
+    if (dirty) {
+      toast.error("Save or discard your edits before drafting");
+      return;
+    }
+    if (section.status === "mine" || (section.status === "edited" && !instr)) {
+      setConfirmForce({ instructions: instr });
+      return;
+    }
+    draft.mutate({ id: section.id, instructions: instr, force: false });
+  };
+
+  const onChange = useCallback(
+    (value: string) => {
+      setText(value);
+      if (lintTimer.current) window.clearTimeout(lintTimer.current);
+      lintTimer.current = window.setTimeout(() => {
+        void api.post<LintFinding[]>(`/api/projects/${slug}/lint`, { text: value }).then(setFindings).catch(() => undefined);
+      }, 900);
+    },
+    [slug],
+  );
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (dirty && !save.isPending) save.mutate();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [dirty, save]);
+
+  const jumpTo = (line: number) => {
+    const view = viewRef.current;
+    if (!view || line < 1 || line > view.state.doc.lines) return;
+    const pos = view.state.doc.line(line).from;
+    view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
+    view.focus();
+  };
+
+  const badKeys = useMemo(() => new Set(findings.filter((f) => f.kind === "citation" && f.severity === "error").flatMap((f) => (f.excerpt.match(/@([^\]\s;]+)/g) ?? []).map((k) => k.slice(1)))), [findings]);
+  const extensions = useMemo(() => [markdown(), EditorView.lineWrapping, lintGutter()], []);
+
+  if (project.isLoading || studio.isLoading) return <Skeleton className="h-64" />;
+  if (!project.data || !studio.data) return <p className="text-muted-foreground">Project not found.</p>;
+  const p = project.data;
+  const approved = ["outline", "drafting", "review", "export"].includes(p.stage);
+  const nextEmpty = sections.find((s) => s.status === "empty");
+  const openForSection = (checklist.data ?? []).filter((i) => i.status === "open" && section && (i.section === section.title || i.section === "Whole paper")).length;
+
+  return (
+    <div className="animate-in">
+      <Link to={`/projects/${slug}`} className="mb-4 inline-flex items-center gap-1 text-[12.5px] font-medium text-muted-foreground hover:text-foreground">
+        <ChevronLeft className="h-3.5 w-3.5" /> {p.title}
+      </Link>
+      <PageHeader
+        eyebrow={
+          sections.length ? (
+            <Badge variant="primary">
+              {sections.filter((s) => s.status !== "empty").length} of {sections.length} sections drafted
+            </Badge>
+          ) : (
+            <Badge>Not started</Badge>
+          )
+        }
+        title="Studio"
+        description="One section at a time, from the approved outline. Drafts use only your spec, answers and facts; gaps are marked [NEEDS]. Once you edit a section it is yours, and regeneration asks first."
+        actions={
+          sections.length ? (
+            <Button onClick={() => nextEmpty && draft.mutate({ id: nextEmpty.id })} disabled={!nextEmpty || active} loading={draft.isPending}>
+              <Sparkles className="h-4 w-4" /> {nextEmpty ? `Draft next: ${nextEmpty.title}` : "All sections drafted"}
+            </Button>
+          ) : null
+        }
+      />
+
+      <JobProgress jobs={jobs} onDismiss={dismiss} />
+
+      {!studio.data.initialized ? (
+        <EmptyState
+          icon={<PenLine />}
+          title={approved ? "Create the sections from your outline" : "Approve the outline first"}
+          description={
+            approved
+              ? "Each ## heading in the approved outline becomes a section file. Its bullet lines become the paragraphs the draft must follow, and every [NEEDS] item lands on the checklist."
+              : "The Studio drafts from an approved outline so the paper follows a plan you agreed to."
+          }
+          action={
+            approved ? (
+              <Button onClick={() => init.mutate()} loading={init.isPending}>
+                <ListChecks className="h-4 w-4" /> Create sections
+              </Button>
+            ) : (
+              <Link to={`/projects/${slug}/outline`}>
+                <Button variant="secondary">Go to the outline</Button>
+              </Link>
+            )
+          }
+        />
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-[230px_minmax(0,1fr)_320px]">
+          <aside className="lg:sticky lg:top-6 lg:self-start">
+            <SectionRail sections={sections} selected={selected} onSelect={setSelected} />
+          </aside>
+
+          <div className="min-w-0">
+            {section ? (
+              <Card className="overflow-hidden">
+                <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/40 px-3 py-2">
+                  <div className="mr-auto flex min-w-0 items-center gap-2">
+                    <h2 className="truncate text-[14px] font-semibold">
+                      {section.order}. {section.title}
+                    </h2>
+                    <Badge variant={STATUS[section.status].variant}>{STATUS[section.status].label}</Badge>
+                    <span className="text-[12px] tabular-nums text-subtle">
+                      {words(text)}
+                      {section.target_words ? ` / ${section.target_words}` : ""} words
+                    </span>
+                  </div>
+                  <Tooltip content={section.status === "empty" ? "Draft this section from the outline" : "Regenerate from scratch"}>
+                    <Button size="sm" variant={section.status === "empty" ? "primary" : "secondary"} onClick={() => requestDraft()} disabled={draftingIds.has(section.id) || active}>
+                      <Sparkles className="h-3.5 w-3.5" /> {section.status === "empty" ? "Draft" : "Redraft"}
+                    </Button>
+                  </Tooltip>
+                  <Tooltip content="Revise the current text with instructions">
+                    <Button size="sm" variant="secondary" onClick={() => setInstructionsOpen(true)} disabled={section.status === "empty" || active}>
+                      <Wand2 className="h-3.5 w-3.5" /> Revise…
+                    </Button>
+                  </Tooltip>
+                  <Tooltip content={section.status === "mine" ? "Unlock: allow regeneration without asking" : "Mark as yours: regeneration will ask first"}>
+                    <Button size="sm" variant="ghost" onClick={() => lock.mutate(section.status !== "mine")} disabled={section.status === "empty"}>
+                      {section.status === "mine" ? <LockOpen className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+                    </Button>
+                  </Tooltip>
+                  <Tooltip content="Versions">
+                    <Button size="sm" variant="ghost" onClick={() => setHistoryOpen(true)}>
+                      <History className="h-3.5 w-3.5" />
+                    </Button>
+                  </Tooltip>
+                  <Button size="sm" onClick={() => save.mutate()} disabled={!dirty} loading={save.isPending}>
+                    Save
+                  </Button>
+                </div>
+                {detail.isLoading ? (
+                  <Skeleton className="h-[520px]" />
+                ) : (
+                  <CodeMirror
+                    value={text}
+                    onChange={onChange}
+                    theme={resolved === "dark" ? "dark" : "light"}
+                    extensions={extensions}
+                    height="calc(100vh - 300px)"
+                    minHeight="480px"
+                    basicSetup={{ lineNumbers: false, foldGutter: false, highlightActiveLine: false, highlightActiveLineGutter: false }}
+                    onCreateEditor={(view) => {
+                      viewRef.current = view;
+                      view.dispatch(setDiagnostics(view.state, toDiagnostics(view, findings)));
+                    }}
+                    placeholder={section.status === "empty" ? "Empty. Press Draft to write this section from its outline lines, or start typing." : ""}
+                    className="text-[14px] [&_.cm-editor]:bg-transparent [&_.cm-content]:px-3 [&_.cm-content]:py-3 [&_.cm-content]:font-sans [&_.cm-content]:leading-[1.7] [&_.cm-focused]:outline-none [&_.cm-gutters]:bg-transparent [&_.cm-gutters]:border-0"
+                  />
+                )}
+                {dirty ? <div className="border-t border-border bg-warning-soft/40 px-3 py-1.5 text-[12px] text-warning">Unsaved changes. ⌘S or Save.</div> : null}
+              </Card>
+            ) : (
+              <Skeleton className="h-[520px]" />
+            )}
+          </div>
+
+          <aside className="min-w-0 lg:sticky lg:top-6 lg:self-start">
+            <Card className="p-3">
+              <Tabs value={tab} onValueChange={setTab}>
+                <TabsList className="w-full">
+                  <TabsTrigger value="preview" className="flex-1">
+                    Preview
+                  </TabsTrigger>
+                  <TabsTrigger value="outline" className="flex-1">
+                    Plan
+                  </TabsTrigger>
+                  <TabsTrigger value="checklist" className="flex-1">
+                    Items{openForSection ? <span className="ml-1 rounded-full bg-warning px-1.5 text-[10px] text-white">{openForSection}</span> : null}
+                  </TabsTrigger>
+                  <TabsTrigger value="issues" className="flex-1">
+                    Issues{findings.length ? <span className="ml-1 rounded-full bg-muted-foreground/30 px-1.5 text-[10px]">{findings.length}</span> : null}
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="preview" className="max-h-[calc(100vh-320px)] overflow-y-auto">
+                  {text.trim() ? <RichMarkdown source={`## ${section?.title ?? ""}\n\n${text}`} badKeys={badKeys} /> : <p className="text-[13px] text-subtle">Nothing to preview yet.</p>}
+                </TabsContent>
+                <TabsContent value="outline" className="max-h-[calc(100vh-320px)] overflow-y-auto">
+                  <p className="mb-2 text-[12px] text-muted-foreground">One paragraph per line. The draft follows these in order.</p>
+                  <ol className="flex flex-col gap-2 text-[13px]">
+                    {(section?.lines ?? []).map((l, i) => (
+                      <li key={i} className={cn("flex gap-2 rounded-md px-2 py-1.5", /\[NEEDS:/.test(l) ? "bg-warning-soft/50" : "bg-muted/50")}>
+                        <span className="text-subtle tabular-nums">{i + 1}.</span>
+                        <span>{l}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </TabsContent>
+                <TabsContent value="checklist" className="max-h-[calc(100vh-320px)] overflow-y-auto">
+                  <ChecklistPanel slug={slug} items={checklist.data ?? []} sectionTitle={section?.title ?? null} />
+                </TabsContent>
+                <TabsContent value="issues" className="max-h-[calc(100vh-320px)] overflow-y-auto">
+                  <IssuesPanel findings={findings} onJump={jumpTo} />
+                </TabsContent>
+              </Tabs>
+            </Card>
+          </aside>
+        </div>
+      )}
+
+      {studio.data.initialized ? <NextStepBar p={p} current="studio" /> : null}
+
+      <Dialog open={instructionsOpen} onOpenChange={setInstructionsOpen}>
+        <DialogContent title="Revise this section" description="The model keeps what you kept and applies your instructions. Your current text is the starting point.">
+          <Textarea
+            autoFocus
+            value={instructions}
+            onChange={(e) => setInstructions(e.target.value)}
+            placeholder="e.g. Shorten the second paragraph, make the contribution list three items, remove the claim about accuracy."
+            className="min-h-[120px]"
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setInstructionsOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => requestDraft(instructions)} disabled={!instructions.trim()} loading={draft.isPending}>
+              <Wand2 className="h-4 w-4" /> Revise
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={!!confirmForce}
+        onOpenChange={(o) => !o && setConfirmForce(null)}
+        title={section?.status === "mine" ? "This section is marked as yours" : "Replace your edited text?"}
+        description="The current text is kept as a version you can restore, but the editor will show the new draft."
+        confirmLabel="Regenerate"
+        onConfirm={() => {
+          if (section && confirmForce) draft.mutate({ id: section.id, instructions: confirmForce.instructions, force: true });
+          setConfirmForce(null);
+        }}
+        busy={draft.isPending}
+      />
+
+      {historyOpen && section ? (
+        <HistoryDialog
+          slug={slug}
+          section={section}
+          current={text}
+          onRestore={(t) => {
+            setText(t);
+            toast("Loaded into the editor. Save to keep it.", { icon: <CircleDashed className="h-4 w-4" /> });
+          }}
+          onClose={() => setHistoryOpen(false)}
+        />
+      ) : null}
+    </div>
+  );
+}

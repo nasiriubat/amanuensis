@@ -1,0 +1,47 @@
+Draft the section "{{ section.title }}" ({{ section.order }} of {{ total }}) of the paper "{{ title }}". Target about {{ section.target_words }} words.
+
+=== OUTLINE FOR THIS SECTION (one paragraph per line) ===
+{% for line in section.lines %}
+- {{ line }}
+{% endfor %}
+
+=== WHOLE OUTLINE (for orientation; do not draft other sections) ===
+{{ outline_compact }}
+
+{% if instructions %}
+=== INSTRUCTIONS FROM THE AUTHOR FOR THIS DRAFT ===
+{{ instructions }}
+{% endif %}
+
+{% if current.strip() %}
+=== CURRENT DRAFT OF THIS SECTION (revise it; keep what the author kept, apply the instructions) ===
+{{ current }}
+{% endif %}
+
+=== SYSTEM SPECIFICATION ===
+{{ spec }}
+
+=== INTERVIEW ANSWERS ===
+{{ interview if interview.strip() else "(none)" }}
+
+{% if plan.strip() %}
+=== RESEARCH PLAN (planned work, not results) ===
+{{ plan }}
+{% endif %}
+
+{% if previous.strip() %}
+=== PREVIOUS SECTION, FULL TEXT (continue from it; do not repeat it) ===
+{{ previous }}
+{% endif %}
+
+{% if others.strip() %}
+=== OTHER DRAFTED SECTIONS, OPENING LINES (for consistency of names and claims) ===
+{{ others }}
+{% endif %}
+
+{% if exemplars.strip() %}
+=== HOW EXEMPLAR PAPERS WROTE THIS KIND OF SECTION (imitate the moves, never the content) ===
+{{ exemplars }}
+{% endif %}
+
+Write the section body now.

@@ -12,17 +12,16 @@ import { EmptyState, PageHeader, ProgressRing, SectionTitle, Skeleton } from "@/
 import { NewProfileDialog, NewProjectDialog } from "@/components/dialogs";
 import { useAuth } from "@/lib/auth";
 
-const STAGES = ["setup", "sources", "playbook", "interview", "outline", "drafting", "review", "export"];
-
 export function projectProgress(p: Project): number {
+  // Six gates to a full draft, weighted so drafting dominates the second half.
   let score = 0;
   if (p.counts.has_spec) score += 1;
   if (p.counts.exemplars > 0) score += 1;
   if (p.counts.playbook_files > 0) score += 1;
-  if (p.counts.sections > 0) score += 2;
-  if (p.counts.references > 0) score += 1;
-  const idx = Math.max(STAGES.indexOf(p.stage), 0);
-  return Math.min(100, Math.round(((score + idx) / (6 + STAGES.length - 1)) * 100));
+  if (p.counts.interview_rounds.rounds > 0) score += 1;
+  if (["outline", "drafting", "review", "export"].includes(p.stage)) score += 1;
+  const drafting = p.counts.sections ? p.counts.sections_drafted / p.counts.sections : 0;
+  return Math.min(100, Math.round(((score + drafting * 5) / 10) * 100));
 }
 
 export function ProjectCard({ p }: { p: Project }) {

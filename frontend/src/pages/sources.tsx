@@ -7,6 +7,7 @@ import { useJobs } from "@/lib/jobs";
 import { Button } from "@/components/ui/button";
 import { PageHeader, SectionTitle, Skeleton } from "@/components/ui/misc";
 import { AddPapers, JobProgress, PaperList } from "@/components/papers";
+import { NextStepBar } from "@/components/flow";
 
 export function SourcesPage() {
   const { slug = "" } = useParams();
@@ -42,6 +43,7 @@ export function SourcesPage() {
         emptyTitle="No exemplars yet"
         emptyText="Paste arXiv ids of papers you admire in this genre, or upload PDFs. The tool reads them and learns how they are built."
       />
+      <NextStepBar p={p} current="sources" />
     </div>
   );
 }

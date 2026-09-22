@@ -81,6 +81,8 @@ export interface ProjectCounts {
   has_spec: boolean;
   has_plan: boolean;
   has_outline: boolean;
+  sections_drafted: number;
+  checklist_open: number;
   interview_rounds: { rounds: number; answered: number; open: number; done: boolean };
 }
 
@@ -219,4 +221,47 @@ export interface ChatMessage {
   content: string;
   pin?: string | null;
   at: string;
+}
+
+export interface LintFinding {
+  line: number;
+  kind: string;
+  severity: "error" | "warning" | "info";
+  message: string;
+  excerpt: string;
+}
+
+export interface Section {
+  id: string;
+  slug: string;
+  file: string;
+  order: number;
+  title: string;
+  target_words: number;
+  lines: string[];
+  status: "empty" | "drafted" | "edited" | "mine";
+  words?: number;
+  open_items?: number;
+  lint?: { errors: number; warnings: number; info: number };
+  updated_at?: string;
+}
+
+export interface StudioState {
+  initialized: boolean;
+  sections: Section[];
+}
+
+export interface SectionDetail {
+  section: Section;
+  content: string;
+  lint: LintFinding[];
+}
+
+export interface ChecklistItem {
+  id: string;
+  section: string;
+  text: string;
+  source: "outline" | "kind" | "draft" | "citation" | "user";
+  status: "open" | "resolved" | "limitation";
+  created_at: string;
 }

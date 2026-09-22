@@ -47,6 +47,28 @@ def _interview_rounds(root: Path) -> dict:
     }
 
 
+def _sections_drafted(root: Path) -> int:
+    p = root / "sections" / "index.json"
+    if not p.exists():
+        return 0
+    try:
+        return sum(
+            1 for s in json.loads(p.read_text(encoding="utf-8")).get("sections", []) if s.get("status") != "empty"
+        )
+    except json.JSONDecodeError:
+        return 0
+
+
+def _checklist_open(root: Path) -> int:
+    p = root / "checklist.json"
+    if not p.exists():
+        return 0
+    try:
+        return sum(1 for i in json.loads(p.read_text(encoding="utf-8")) if i.get("status") == "open")
+    except (json.JSONDecodeError, AttributeError):
+        return 0
+
+
 def _counts(slug: str) -> dict:
     root = storage.project_dir(slug)
 
@@ -61,7 +83,9 @@ def _counts(slug: str) -> dict:
     )
     return {
         "exemplars": count("exemplars"),
-        "sections": count("sections"),
+        "sections": len(list((root / "sections").glob("*.md"))) if (root / "sections").exists() else 0,
+        "sections_drafted": _sections_drafted(root),
+        "checklist_open": _checklist_open(root),
         "references": max(count("references") - 1, 0),
         "figures": count("figures"),
         "playbook_files": playbook_filled,

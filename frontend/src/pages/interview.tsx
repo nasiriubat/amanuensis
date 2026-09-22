@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/input";
 import { EmptyState, PageHeader, ProgressRing, SectionTitle, Skeleton } from "@/components/ui/misc";
 import { JobProgress } from "@/components/papers";
 import { Markdown } from "@/components/markdown";
+import { NextStepBar } from "@/components/flow";
 
 function QuestionCard({ q, slug, onSaved }: { q: InterviewQuestion; slug: string; onSaved: (s: InterviewState) => void }) {
   const [answer, setAnswer] = useState(q.answer);
@@ -247,9 +248,9 @@ export function InterviewPage() {
                 <Sparkles className="h-4 w-4" /> {st.rounds.length ? "Next round" : "Start interview"}
               </Button>
             ) : (
-              <Button onClick={() => (window.location.href = `/projects/${slug}/outline`)}>
+              <Link to={`/projects/${slug}/outline`}><Button>
                 <ListTree className="h-4 w-4" /> Go to outline
-              </Button>
+              </Button></Link>
             )}
           </>
         }
@@ -332,6 +333,7 @@ export function InterviewPage() {
           <ChatPanel slug={slug} onPinned={() => void qc.invalidateQueries({ queryKey: ["interview", slug] })} />
         </div>
       </div>
+      <NextStepBar p={p} current="interview" />
     </div>
   );
 }

@@ -12,6 +12,7 @@ import { PageHeader, Skeleton } from "@/components/ui/misc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MarkdownEditor } from "@/components/markdown-editor";
 import { JobProgress } from "@/components/papers";
+import { NextStepBar } from "@/components/flow";
 
 function FileEditor({ slug, name, minHeight, emptyHint }: { slug: string; name: string; minHeight: number; emptyHint: string }) {
   const qc = useQueryClient();
@@ -111,6 +112,7 @@ export function OutlinePage() {
           <FileEditor slug={slug} name="facts" minHeight={560} emptyHint="Facts are extracted when the outline is generated." />
         </TabsContent>
       </Tabs>
+      <NextStepBar p={p} current="outline" />
     </div>
   );
 }

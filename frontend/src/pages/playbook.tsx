@@ -14,6 +14,7 @@ import { PageHeader, Skeleton } from "@/components/ui/misc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MarkdownEditor } from "@/components/markdown-editor";
 import { BUDGETS, JobProgress } from "@/components/papers";
+import { NextStepBar } from "@/components/flow";
 
 const FILES = [
   { key: "structure", label: "Structure", hint: "Section order, purpose and length." },
@@ -134,6 +135,7 @@ export function PlaybookPage() {
           </TabsContent>
         ))}
       </Tabs>
+      <NextStepBar p={p} current="playbook" />
     </div>
   );
 }

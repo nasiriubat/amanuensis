@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader, SectionTitle, Skeleton } from "@/components/ui/misc";
 import { MarkdownEditor } from "@/components/markdown-editor";
 import { JobProgress } from "@/components/papers";
+import { NextStepBar } from "@/components/flow";
 
 type Mode = "refine" | "explore";
 
@@ -121,6 +122,7 @@ export function DesignPage() {
           )}
         </div>
       </div>
+      <NextStepBar p={p} current="design" />
     </div>
   );
 }
