@@ -5,14 +5,17 @@ specific author writes, interviews you until your work fits a publishable shape,
 drafts the paper section by section with verified references and exports it in a venue
 template.
 
-Design and roadmap: [SPEC.md](SPEC.md). Phases 1 to 5 are done: accounts, providers,
+Design and roadmap: [SPEC.md](SPEC.md). Phases 1 to 6 are done: accounts, providers,
 model-per-purpose, projects, author profiles, paper kinds, house style, usage; arXiv and
 PDF ingest, background jobs with live progress, playbook and voice learning with a
 per-paper context budget; research design from an idea, interview rounds with suggested
 answers, a side chat with pinning, facts extraction and an approvable outline; the Studio
 with section-by-section drafting, a checklist of open items, house-style lint and version
 history; verified references from Semantic Scholar, OpenAlex, arXiv, .bib import or manual
-entry, with a Cite picker in the Studio. Figures and export follow in phases 6 and 7.
+entry, with a Cite picker in the Studio; Mermaid figures rendered in the browser and uploaded
+result images; export to LNCS, ACM or a custom template as PDF (Tectonic), DOCX (Pandoc) and a
+LaTeX zip; site settings, logo, SEO and public Markdown pages. Phase 7 is polish: the critique
+pass, venue suggestion and a dark-mode audit.
 
 ## Run with Docker
 
@@ -48,6 +51,10 @@ cd frontend
 npm install
 npm run dev
 ```
+
+LaTeX templates: acmart is fetched by Tectonic automatically. Springer's `llncs.cls` and
+`splncs04.bst` are not on CTAN; download the LNCS author package from Springer and upload the
+two files under Export → Template (admin), or place them in `data/templates/lncs/`.
 
 Tests and lint:
 

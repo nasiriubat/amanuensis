@@ -255,7 +255,16 @@ def markdown_to_latex(md: str, workdir: Path) -> tuple[str, str]:
     pandoc = tool("pandoc")
     if pandoc:
         r = subprocess.run(
-            [pandoc, "-f", "markdown+raw_tex", "-t", "latex", "--wrap=none", "--top-level-division=section"],
+            [
+                pandoc,
+                "-f",
+                "markdown+raw_tex",
+                "-t",
+                "latex",
+                "--wrap=none",
+                "--top-level-division=section",
+                "--shift-heading-level-by=-1",
+            ],
             input=pre,
             capture_output=True,
             text=True,
@@ -267,7 +276,6 @@ def markdown_to_latex(md: str, workdir: Path) -> tuple[str, str]:
             tex = r.stdout
             # Pandoc renders ![cap](figures/x.svg){#fig:x} into a figure with the svg path; point it at the png.
             tex = re.sub(r"figures/([a-z0-9\-]+)\.(svg|jpg|jpeg|webp)", r"figures/\1.png", tex)
-            tex = re.sub(r"^\\section\{[^}]*\}\\label\{[^}]*\}\n?", "", tex, count=1) if md.startswith("# ") else tex
             return tex, "pandoc"
     return _fallback_md_to_latex(pre), "fallback"
 
@@ -334,8 +342,9 @@ async def run_export(project_id: str, ctx: JobContext, *, template_slug: str, fo
         result["files"].append("refs.bib")
 
     ctx.progress(25, "Converting Markdown to LaTeX")
-    body_tex, method = markdown_to_latex(body_md, out)
-    body_tex = _strip_top_title(body_tex, project.title)
+    # The wrapper sets \title; strip the H1 so ## headings become \section (not 0.1 subsections).
+    body_no_title = re.sub(r"^# .*\n+", "", body_md, count=1)
+    body_tex, method = markdown_to_latex(body_no_title, out)
     if method == "fallback":
         result["warnings"].append(
             "Pandoc is not installed here; a simpler converter was used for LaTeX (tables and math may need attention)."
