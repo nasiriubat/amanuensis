@@ -1,0 +1,92 @@
+- generic [ref=f25e2]:
+  - generic [ref=f25e5]:
+    - complementary [ref=f25e6]:
+      - link "Paper Writer" [ref=f25e7] [cursor=pointer]:
+        - /url: /library
+      - navigation [ref=f25e12]:
+        - link "Library" [ref=f25e13] [cursor=pointer]:
+          - /url: /library
+        - link "Author profiles" [ref=f25e16] [cursor=pointer]:
+          - /url: /profiles
+        - generic [ref=f25e20]: Workspace
+        - link "Settings" [ref=f25e21] [cursor=pointer]:
+          - /url: /admin
+      - generic [ref=f25e25]:
+        - button "Change your temporary password." [ref=f25e26] [cursor=pointer]
+        - button "A Admin admin@paper.local" [ref=f25e31] [cursor=pointer]:
+          - generic [ref=f25e32]: A
+          - generic [ref=f25e33]:
+            - generic [ref=f25e34]: Admin
+            - generic [ref=f25e35]: admin@paper.local
+    - main [ref=f25e39]:
+      - generic [ref=f25e43]:
+        - 'link "Tender Scout: matching public tenders to SMEs" [ref=f25e44] [cursor=pointer]':
+          - /url: /projects/tender-scout-matching-public-tenders-to-smes
+        - generic [ref=f25e47]:
+          - generic [ref=f25e48]:
+            - generic [ref=f25e49]: 1 figure
+            - heading "Figures" [level=1] [ref=f25e51]
+            - paragraph [ref=f25e52]: "Diagrams from Mermaid text, rendered here and stored as SVG and PNG for export. Result charts and screenshots are uploaded, never generated: the tool does not invent data."
+          - generic [ref=f25e53]:
+            - button "Upload image" [ref=f25e54] [cursor=pointer]
+            - button "New diagram" [ref=f25e58] [cursor=pointer]
+        - generic [ref=f25e61]:
+          - generic [ref=f25e62]:
+            - heading "architecture" [level=3] [ref=f25e63]
+            - generic [ref=f25e64]: Mermaid
+            - generic [ref=f25e65]: Not rendered
+            - generic [ref=f25e66]:
+              - button "Close" [ref=f25e67] [cursor=pointer]
+              - button "Save and render" [ref=f25e68] [cursor=pointer]
+          - generic [ref=f25e71]:
+            - generic [ref=f25e72]: Caption
+            - textbox [ref=f25e73]
+            - paragraph [ref=f25e74]: Shown under the figure. Say what the reader should see, not what the figure is.
+          - generic [ref=f25e75]:
+            - textbox [ref=f25e76]: flowchart LR subgraph Inputs A1[TED Feed] A2[Hilma Feed] end subgraph Processing B1[Ingest Feeds] B2[Rank Tenders] B3[LLM] B4[Company Profile] end subgraph Storage C1[Procurement Notices] C2[Ranked Tenders] end subgraph Interface D1[SME Owners] D2[Bid Managers] end A1 --> B1 A2 --> B1 B1 --> C1 C1 --> B2 B4 --> B2 B3 --> B2 B2 --> C2 C2 --> D1 C2 --> D2
+            - document [ref=f25e78]:
+              - generic [ref=f25e80]:
+                - generic [ref=f25e81]:
+                  - generic [ref=f25e82]: Interface
+                  - generic [ref=f25e88]: Storage
+                  - generic [ref=f25e94]: Processing
+                  - generic [ref=f25e100]: Inputs
+                - generic [ref=f25e115]:
+                  - generic [ref=f25e116]: TED Feed
+                  - generic [ref=f25e122]: Hilma Feed
+                  - generic [ref=f25e128]: Ingest Feeds
+                  - generic [ref=f25e134]: Rank Tenders
+                  - generic [ref=f25e140]: LLM
+                  - generic [ref=f25e150]:
+                    - generic [ref=f25e151]: Company
+                    - generic [ref=f25e152]: Profile
+                  - generic [ref=f25e157]:
+                    - generic [ref=f25e158]: Procurement
+                    - generic [ref=f25e159]: Notices
+                  - generic [ref=f25e164]:
+                    - generic [ref=f25e165]: Ranked
+                    - generic [ref=f25e166]: Tenders
+                  - generic [ref=f25e167]: SME Owners
+                  - generic [ref=f25e173]: Bid Managers
+          - generic [ref=f25e179]:
+            - text: Insert in a section as
+            - code [ref=f25e180]: "![Caption](figures/architecture.svg){#fig:architecture}"
+            - button "Copy" [ref=f25e181] [cursor=pointer]
+        - heading "All figures" [level=2] [ref=f25e186]
+        - generic [ref=f25e188] [cursor=pointer]:
+          - generic [ref=f25e189]: Not rendered yet
+          - generic [ref=f25e191]:
+            - generic [ref=f25e192]:
+              - generic [ref=f25e193]:
+                - generic [ref=f25e194]: architecture
+                - generic [ref=f25e195]: Mermaid
+              - generic [ref=f25e196]: No caption yet
+            - button "Delete" [ref=f25e197]
+        - generic [ref=f25e201]:
+          - generic [ref=f25e202]:
+            - text: When you are done here, the next step is Draft the paper
+            - generic [ref=f25e203]: . 2 of 11 sections drafted, 33 open items.
+          - link [ref=f25e204] [cursor=pointer]:
+            - /url: /projects/tender-scout-matching-public-tenders-to-smes/studio
+            - button "Draft the paper" [ref=f25e205]
+  - region "Notifications alt+T"

@@ -19,7 +19,15 @@ import { ConfirmDialog } from "@/components/dialogs";
 import { NextStepBar } from "@/components/flow";
 
 function ensureMermaid(dark: boolean) {
-  mermaid.initialize({ startOnLoad: false, theme: dark ? "dark" : "neutral", securityLevel: "strict", fontFamily: "Inter Variable, sans-serif" });
+  // htmlLabels off: plain SVG text rasterises to PNG; foreignObject labels taint the canvas.
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: dark ? "dark" : "neutral",
+    securityLevel: "strict",
+    fontFamily: "Inter Variable, sans-serif",
+    htmlLabels: false,
+    flowchart: { htmlLabels: false },
+  });
 }
 
 async function renderMermaid(id: string, source: string): Promise<string> {
@@ -36,7 +44,7 @@ async function svgToPng(svg: string, scale = 2): Promise<Blob> {
       img.onerror = () => rej(new Error("Could not rasterise the SVG"));
       img.src = blobUrl;
     });
-    const w = Math.max(1, Math.round((img.naturalWidth || 800) * scale));
+    const w = Math.max(1, Math.round((img.naturalWidth || 1200) * scale));
     const h = Math.max(1, Math.round((img.naturalHeight || 400) * scale));
     const canvas = document.createElement("canvas");
     canvas.width = w;
@@ -108,13 +116,18 @@ function FigureEditor({ slug, fig, onClose }: { slug: string; fig: Figure; onClo
     try {
       await api.patch(`/api/projects/${slug}/figures/${fig.name}`, { caption, source: fig.kind === "mermaid" ? source : undefined });
       if (fig.kind === "mermaid" && svg) {
-        const png = await svgToPng(svg);
         const fd = new FormData();
         fd.append("svg", new Blob([svg], { type: "image/svg+xml" }), `${fig.name}.svg`);
-        fd.append("png", png, `${fig.name}.png`);
+        let pngFailed: string | null = null;
+        try {
+          fd.append("png", await svgToPng(svg), `${fig.name}.png`);
+        } catch (e) {
+          pngFailed = (e as Error).message;
+        }
         const t = document.cookie.match(/(?:^|;\s*)pw_csrf=([^;]+)/)?.[1] ?? "";
         const res = await fetch(`/api/projects/${slug}/figures/${fig.name}/render`, { method: "POST", body: fd, headers: { "x-csrf-token": decodeURIComponent(t) } });
-        if (!res.ok) throw new Error("Could not store the rendered figure");
+        if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as { detail?: string }).detail ?? "Could not store the rendered figure");
+        if (pngFailed) toast.warning(`SVG saved, but the PNG for LaTeX failed: ${pngFailed}`);
       }
       await qc.invalidateQueries({ queryKey: ["figures", slug] });
       toast.success("Figure saved and rendered");
