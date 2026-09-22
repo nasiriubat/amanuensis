@@ -11,6 +11,7 @@ import { InterviewPage } from "@/pages/interview";
 import { OutlinePage } from "@/pages/outline";
 import { SpecPage } from "@/pages/spec";
 import { StudioPage } from "@/pages/studio";
+import { ReferencesPage } from "@/pages/references";
 import { ProfilePage } from "@/pages/profile-page";
 import { AccountPage } from "@/pages/account";
 import { AdminLayout } from "@/pages/admin/layout";
@@ -69,6 +70,7 @@ const router = createBrowserRouter([
       { path: "/projects/:slug/outline", element: <OutlinePage /> },
       { path: "/projects/:slug/spec", element: <SpecPage /> },
       { path: "/projects/:slug/studio", element: <StudioPage /> },
+      { path: "/projects/:slug/references", element: <ReferencesPage /> },
       { path: "/account", element: <AccountPage /> },
       {
         element: <RequireAdmin />,

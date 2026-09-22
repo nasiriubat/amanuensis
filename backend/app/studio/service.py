@@ -342,6 +342,16 @@ def add_checklist_item(root: Path, section: str, text: str) -> dict:
 # ------------------------------------------------------------------ context helpers
 
 
+def _ref_key_lines(root: Path) -> str:
+    from ..refs import service as refs
+
+    lines = []
+    for r in sorted(refs.list_records(root), key=lambda x: x["key"]):
+        who = (r.get("authors") or ["?"])[0].split(",")[0]
+        lines.append(f"[@{r['key']}] {who} {r.get('year') or ''}: {r.get('title', '')[:90]}")
+    return "\n".join(lines)
+
+
 def known_ref_keys(root: Path) -> set[str]:
     bib = storage.read_text(root / "references" / "refs.bib")
     return set(re.findall(r"@\w+\s*\{\s*([^,\s]+)\s*,", bib))
@@ -436,7 +446,7 @@ async def draft_section(
         house_style=storage.read_text(storage.house_style_path()),
         playbook=playbook,
         facts=storage.read_text(inputs / "facts.md")[:6000],
-        ref_keys=", ".join(sorted(known_ref_keys(root))),
+        ref_keys=_ref_key_lines(root),
     )
     user = render(
         "draft_section.j2",

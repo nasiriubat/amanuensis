@@ -153,6 +153,13 @@
 
 /* ------------------------------------------------------------------ utilities */
 
+@utility main-surface {
+  background:
+    radial-gradient(900px 420px at 18% -10%, color-mix(in oklch, var(--primary) 9%, transparent), transparent 70%),
+    radial-gradient(700px 360px at 95% 0%, color-mix(in oklch, var(--success) 6%, transparent), transparent 70%),
+    var(--background);
+}
+
 @utility card-surface {
   background: var(--card);
   border: 1px solid var(--border);

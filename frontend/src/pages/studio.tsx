@@ -15,13 +15,14 @@ import {
   ListChecks,
   Lock,
   LockOpen,
+  Quote,
   PenLine,
   RotateCcw,
   Sparkles,
   Wand2,
 } from "lucide-react";
 import { api } from "@/lib/api";
-import type { ChecklistItem, JobInfo, LintFinding, Project, Section, SectionDetail, StudioState } from "@/lib/types";
+import type { ChecklistItem, JobInfo, LintFinding, Project, RefRecord, Section, SectionDetail, StudioState } from "@/lib/types";
 import { useJobs } from "@/lib/jobs";
 import { useTheme } from "@/lib/theme";
 import { diffLines } from "@/lib/diff";
@@ -38,6 +39,7 @@ import { JobProgress } from "@/components/papers";
 import { ConfirmDialog } from "@/components/dialogs";
 import { RichMarkdown } from "@/components/rich-markdown";
 import { NextStepBar } from "@/components/flow";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const STATUS: Record<Section["status"], { label: string; variant: "neutral" | "primary" | "success" | "warning" }> = {
   empty: { label: "Empty", variant: "neutral" },
@@ -73,7 +75,7 @@ function toDiagnostics(view: EditorView, findings: LintFinding[]): Diagnostic[] 
 
 function SectionRail({ sections, selected, onSelect }: { sections: Section[]; selected: string | null; onSelect: (id: string) => void }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0 [&>button]:min-w-[200px] lg:[&>button]:min-w-0">
       {sections.map((s) => {
         const active = s.id === selected;
         const pct = s.target_words ? Math.min(100, Math.round(((s.words ?? 0) / s.target_words) * 100)) : 0;
@@ -267,6 +269,7 @@ export function StudioPage() {
   const project = useQuery({ queryKey: ["project", slug], queryFn: () => api.get<Project>(`/api/projects/${slug}`) });
   const studio = useQuery({ queryKey: ["studio", slug], queryFn: () => api.get<StudioState>(`/api/projects/${slug}/studio`) });
   const checklist = useQuery({ queryKey: ["checklist", slug], queryFn: () => api.get<ChecklistItem[]>(`/api/projects/${slug}/checklist`) });
+  const refs = useQuery({ queryKey: ["references", slug], queryFn: () => api.get<RefRecord[]>(`/api/projects/${slug}/references`) });
   const [selected, setSelected] = useState<string | null>(null);
   const detail = useQuery({ queryKey: ["section", slug, selected], queryFn: () => api.get<SectionDetail>(`/api/projects/${slug}/sections/${selected}`), enabled: !!selected });
 
@@ -386,6 +389,17 @@ export function StudioPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [dirty, save]);
 
+  const insertCitation = (key: string) => {
+    const view = viewRef.current;
+    if (!view) return;
+    const { from, to } = view.state.selection.main;
+    const before = view.state.doc.sliceString(Math.max(0, from - 1), from);
+    const text = `${before && before !== " " ? " " : ""}[@${key}]`;
+    view.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length } });
+    view.focus();
+    onChange(view.state.doc.toString());
+  };
+
   const jumpTo = (line: number) => {
     const view = viewRef.current;
     if (!view || line < 1 || line > view.state.doc.lines) return;
@@ -483,6 +497,24 @@ export function StudioPage() {
                       <Wand2 className="h-3.5 w-3.5" /> Revise…
                     </Button>
                   </Tooltip>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="sm" variant="secondary" disabled={!refs.data?.length} title={refs.data?.length ? "Insert a citation" : "Add references first"}>
+                        <Quote className="h-3.5 w-3.5" /> Cite
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="max-h-80 w-[360px] overflow-y-auto">
+                      <DropdownMenuLabel>Insert at cursor</DropdownMenuLabel>
+                      {(refs.data ?? []).map((r) => (
+                        <DropdownMenuItem key={r.key} onSelect={() => insertCitation(r.key)}>
+                          <span className="min-w-0">
+                            <span className="block truncate text-[12.5px]">{r.title}</span>
+                            <span className="block font-mono text-[11px] text-subtle">@{r.key}</span>
+                          </span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <Tooltip content={section.status === "mine" ? "Unlock: allow regeneration without asking" : "Mark as yours: regeneration will ask first"}>
                     <Button size="sm" variant="ghost" onClick={() => lock.mutate(section.status !== "mine")} disabled={section.status === "empty"}>
                       {section.status === "mine" ? <LockOpen className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}

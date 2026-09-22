@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     session_ttl_hours: int = 24 * 14
     learn_max_chars_per_paper: int = 60_000
     learn_concurrency: int = 3
+    semantic_scholar_api_key: str | None = None
     frontend_dist: Path = Path("../frontend/dist")
 
     @property

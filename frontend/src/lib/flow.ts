@@ -81,7 +81,19 @@ export const STEPS: Step[] = [
           ? "Section by section, from the approved outline."
           : "Needs an approved outline.",
   },
-  { key: "references", title: "References", to: (s) => `/projects/${s}`, soonPhase: 5, state: () => "soon", summary: () => "Verified citations from Semantic Scholar, OpenAlex and arXiv." },
+  {
+    key: "references",
+    title: "References",
+    to: (s) => `/projects/${s}/references`,
+    state: (p) =>
+      p.counts.references > 0 && p.counts.cite_requests === 0 ? "done" : p.counts.sections > 0 ? "todo" : p.counts.has_spec ? "optional" : "locked",
+    summary: (p) =>
+      p.counts.cite_requests
+        ? `${p.counts.references} verified, ${p.counts.cite_requests} claim${p.counts.cite_requests === 1 ? "" : "s"} still need a source.`
+        : p.counts.references
+          ? `${p.counts.references} verified reference${p.counts.references === 1 ? "" : "s"}.`
+          : "Search three indexes, import a .bib, or add by hand. Drafts cite only these.",
+  },
   { key: "figures", title: "Figures", to: (s) => `/projects/${s}`, soonPhase: 6, state: () => "soon", summary: () => "Mermaid diagrams. Results only from your data." },
   { key: "export", title: "Export", to: (s) => `/projects/${s}`, soonPhase: 6, state: () => "soon", summary: () => "LNCS, ACM or your template. PDF, LaTeX, DOCX." },
 ];

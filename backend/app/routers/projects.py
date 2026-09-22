@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -69,6 +70,13 @@ def _checklist_open(root: Path) -> int:
         return 0
 
 
+def _cite_requests(root: Path) -> int:
+    d = root / "sections"
+    if not d.exists():
+        return 0
+    return sum(len(re.findall(r"\[CITE:", f.read_text(encoding="utf-8", errors="ignore"))) for f in d.glob("*.md"))
+
+
 def _counts(slug: str) -> dict:
     root = storage.project_dir(slug)
 
@@ -86,7 +94,8 @@ def _counts(slug: str) -> dict:
         "sections": len(list((root / "sections").glob("*.md"))) if (root / "sections").exists() else 0,
         "sections_drafted": _sections_drafted(root),
         "checklist_open": _checklist_open(root),
-        "references": max(count("references") - 1, 0),
+        "references": len(list((root / "references").glob("*.json"))) if (root / "references").exists() else 0,
+        "cite_requests": _cite_requests(root),
         "figures": count("figures"),
         "playbook_files": playbook_filled,
         "has_plan": (root / "inputs" / "research-plan.md").exists()

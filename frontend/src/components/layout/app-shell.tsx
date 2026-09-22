@@ -1,5 +1,7 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { BookOpen, ChevronsUpDown, Feather, KeyRound, Library, LogOut, Moon, Settings2, Sun, UserRound } from "lucide-react";
+import { useState } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { BookOpen, ChevronsUpDown, Feather, KeyRound, Library, LogOut, Menu, Moon, Settings2, Sun, UserRound, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 import { cn, initials } from "@/lib/utils";
@@ -28,21 +30,24 @@ function Brand() {
   );
 }
 
-export function AppShell() {
+function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   const { user, logout } = useAuth();
   const { resolved, setTheme } = useTheme();
   const navigate = useNavigate();
-
+  const go = (to: string) => {
+    onNavigate?.();
+    navigate(to);
+  };
   return (
-    <div className="flex min-h-screen">
-      <aside className="sticky top-0 hidden h-screen w-[232px] shrink-0 flex-col border-r border-border bg-card/60 px-3 py-4 md:flex">
-        <Brand />
+    <>
+      <Brand />
         <nav className="mt-6 flex flex-col gap-0.5">
           {nav.map((n) => (
             <NavLink
               key={n.to}
               to={n.to}
               end={n.end}
+              onClick={onNavigate}
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
@@ -59,6 +64,7 @@ export function AppShell() {
               <div className="mt-5 mb-1 px-2.5 text-[11px] font-medium uppercase tracking-wide text-subtle">Workspace</div>
               <NavLink
                 to="/admin"
+                onClick={onNavigate}
                 className={({ isActive }) =>
                   cn(
                     "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
@@ -76,7 +82,7 @@ export function AppShell() {
         <div className="mt-auto">
           {user?.must_change_password ? (
             <button
-              onClick={() => navigate("/account")}
+              onClick={() => go("/account")}
               className="mb-2 flex w-full items-start gap-2 rounded-lg border border-warning/40 bg-warning-soft px-2.5 py-2 text-left text-[12px] leading-snug text-foreground"
             >
               <KeyRound className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
@@ -98,7 +104,7 @@ export function AppShell() {
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="start" className="w-[208px]">
               <DropdownMenuLabel>{user?.role === "admin" ? "Administrator" : "Member"}</DropdownMenuLabel>
-              <DropdownMenuItem onSelect={() => navigate("/account")}>
+              <DropdownMenuItem onSelect={() => go("/account")}>
                 <UserRound /> Account
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setTheme(resolved === "dark" ? "light" : "dark")}>
@@ -112,10 +118,42 @@ export function AppShell() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+    </>
+  );
+}
+
+export function AppShell() {
+  const [open, setOpen] = useState(false);
+  const location = useLocation();
+
+  return (
+    <div className="flex min-h-screen">
+      <aside className="sticky top-0 hidden h-screen w-[232px] shrink-0 flex-col border-r border-border bg-card/60 px-3 py-4 md:flex">
+        <SidebarBody />
       </aside>
 
-      <main className="min-w-0 flex-1">
-        <div className="mx-auto w-full max-w-[1120px] px-5 py-8 md:px-10">
+      {/* Mobile: top bar with a drawer */}
+      <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40 md:hidden" />
+          <DialogPrimitive.Content className="fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col bg-card px-3 py-4 shadow-xl focus:outline-none md:hidden">
+            <DialogPrimitive.Title className="sr-only">Navigation</DialogPrimitive.Title>
+            <DialogPrimitive.Close className="absolute right-3 top-3 rounded-md p-1 text-muted-foreground hover:bg-muted" aria-label="Close menu">
+              <X className="h-4 w-4" />
+            </DialogPrimitive.Close>
+            <SidebarBody onNavigate={() => setOpen(false)} />
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
+
+      <main className="main-surface min-w-0 flex-1">
+        <div className="sticky top-0 z-40 flex items-center gap-2 border-b border-border bg-background/90 px-3 py-2 backdrop-blur md:hidden">
+          <button onClick={() => setOpen(true)} className="rounded-md p-2 hover:bg-muted" aria-label="Open menu">
+            <Menu className="h-5 w-5" />
+          </button>
+          <Brand />
+        </div>
+        <div key={location.pathname} className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 md:px-8 md:py-8 xl:px-12">
           <Outlet />
         </div>
       </main>

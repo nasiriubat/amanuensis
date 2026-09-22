@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ChevronLeft, MoreHorizontal, Settings2, Trash2 } from "lucide-react";
+import { ChevronLeft, Settings2, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import type { KindSummary, Profile, Project } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -11,14 +11,13 @@ import { PageHeader, ProgressRing, SectionTitle, Skeleton } from "@/components/u
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/dialogs";
 import { NextUp, Stepper } from "@/components/flow";
 import { projectProgress } from "./library";
 
 const NONE = "__none__";
 
-function ProjectSettingsDialog({ p, open, onOpenChange }: { p: Project; open: boolean; onOpenChange: (o: boolean) => void }) {
+function ProjectSettingsDialog({ p, open, onOpenChange, onDelete }: { p: Project; open: boolean; onOpenChange: (o: boolean) => void; onDelete: () => void }) {
   const qc = useQueryClient();
   const kinds = useQuery({ queryKey: ["kinds"], queryFn: () => api.get<KindSummary[]>("/api/kinds"), enabled: open });
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: () => api.get<Profile[]>("/api/profiles"), enabled: open });
@@ -101,6 +100,15 @@ function ProjectSettingsDialog({ p, open, onOpenChange }: { p: Project; open: bo
             </Button>
           </DialogFooter>
         </form>
+        <div className="mt-6 flex items-center justify-between gap-4 rounded-[var(--radius-sm)] border border-destructive/30 bg-destructive-soft/40 px-3 py-2.5">
+          <div className="text-[12.5px]">
+            <div className="font-semibold">Delete this project</div>
+            <div className="text-muted-foreground">Removes every file, draft and version. Cannot be undone.</div>
+          </div>
+          <Button type="button" variant="destructive" size="sm" onClick={onDelete}>
+            <Trash2 className="h-3.5 w-3.5" /> Delete
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -160,22 +168,6 @@ export function ProjectHomePage() {
             <Button variant="secondary" onClick={() => setSettings(true)}>
               <Settings2 className="h-4 w-4" /> Settings
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="icon" aria-label="More">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => setSettings(true)}>
-                  <Settings2 /> Project settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem destructive onSelect={() => setConfirmDelete(true)}>
-                  <Trash2 /> Delete project
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </>
         }
       />
@@ -187,7 +179,16 @@ export function ProjectHomePage() {
       <SectionTitle>Steps</SectionTitle>
       <Stepper p={p} />
 
-      <ProjectSettingsDialog key={p.updated_at} p={p} open={settings} onOpenChange={setSettings} />
+      <ProjectSettingsDialog
+        key={p.updated_at}
+        p={p}
+        open={settings}
+        onOpenChange={setSettings}
+        onDelete={() => {
+          setSettings(false);
+          setConfirmDelete(true);
+        }}
+      />
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}

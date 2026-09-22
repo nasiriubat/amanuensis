@@ -83,6 +83,7 @@ export interface ProjectCounts {
   has_outline: boolean;
   sections_drafted: number;
   checklist_open: number;
+  cite_requests: number;
   interview_rounds: { rounds: number; answered: number; open: number; done: boolean };
 }
 
@@ -264,4 +265,43 @@ export interface ChecklistItem {
   source: "outline" | "kind" | "draft" | "citation" | "user";
   status: "open" | "resolved" | "limitation";
   created_at: string;
+}
+
+export interface RefCandidate {
+  title: string;
+  authors: string[];
+  year: number | null;
+  venue: string | null;
+  doi: string | null;
+  url: string | null;
+  arxiv_id: string | null;
+  abstract: string | null;
+  citation_count: number | null;
+  source: string;
+  sources: string[];
+  bibtype: string;
+  score: number;
+}
+
+export interface RefRecord {
+  key: string;
+  title: string;
+  authors: string[];
+  year: number | null;
+  venue: string | null;
+  doi: string | null;
+  url: string | null;
+  arxiv_id: string | null;
+  abstract: string | null;
+  source: string;
+  verified_at: string;
+  added_at: string;
+  uses: number;
+}
+
+export interface RefRequest {
+  section: string;
+  section_id: string;
+  text: string;
+  query: string;
 }
