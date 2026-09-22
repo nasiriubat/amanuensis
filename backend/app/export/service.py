@@ -179,6 +179,8 @@ def markdown_for_docx(abstract: str, body: str) -> str:
 
 
 def _preprocess_for_latex(md: str) -> str:
+    # LaTeX gets the PNG render of every figure (Pandoc would emit \includesvg for .svg paths).
+    md = re.sub(r"\(figures/([a-z0-9\-]+)\.(svg|jpg|jpeg|webp|pdf)\)", r"(figures/\1.png)", md)
     md = _CITE.sub(lambda m: "\\cite{" + ",".join(k.strip().lstrip("@") for k in m.group(1).split(";")) + "}", md)
     md = _NEEDS.sub(lambda m: "\\needs{" + _tex_escape(m.group(1).strip()) + "}", md)
     md = _CITEP.sub(lambda m: "\\citeneeded{" + _tex_escape(m.group(1).strip()) + "}", md)
@@ -276,6 +278,10 @@ def markdown_to_latex(md: str, workdir: Path) -> tuple[str, str]:
             tex = r.stdout
             # Pandoc renders ![cap](figures/x.svg){#fig:x} into a figure with the svg path; point it at the png.
             tex = re.sub(r"figures/([a-z0-9\-]+)\.(svg|jpg|jpeg|webp)", r"figures/\1.png", tex)
+            tex = tex.replace("\\includesvg", "\\includegraphics")
+            # graphicx's alt= key is newer than many TeX distributions; drop it.
+            tex = re.sub(r"(\\includegraphics\[[^\]]*?),?alt=\{[^}]*\}", r"\1", tex)
+            tex = tex.replace("\\includegraphics[]", "\\includegraphics")
             return tex, "pandoc"
     return _fallback_md_to_latex(pre), "fallback"
 
@@ -287,7 +293,19 @@ def _strip_top_title(tex: str, title: str) -> str:
 
 
 def render_wrapper(tpl_dir: Path, ctx: dict) -> str:
-    env = Environment(undefined=StrictUndefined, autoescape=False, trim_blocks=True, lstrip_blocks=True)
+    # LaTeX is full of "{{", "{%" and "{#", so wrappers use << >>, <% %> and <# #> instead.
+    env = Environment(
+        undefined=StrictUndefined,
+        autoescape=False,
+        trim_blocks=True,
+        lstrip_blocks=True,
+        variable_start_string="<<",
+        variable_end_string=">>",
+        block_start_string="<%",
+        block_end_string="%>",
+        comment_start_string="<#",
+        comment_end_string="#>",
+    )
     return env.from_string((tpl_dir / "wrapper.tex.j2").read_text(encoding="utf-8")).render(**ctx)
 
 

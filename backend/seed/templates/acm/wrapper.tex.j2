@@ -2,6 +2,9 @@
 \usepackage{booktabs}
 \usepackage{longtable}
 \usepackage{xcolor}
+\providecommand{\pandocbounded}[1]{#1}
+\usepackage{graphicx}
+\setkeys{Gin}{width=\linewidth,keepaspectratio}
 \providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \newcommand{\needs}[1]{\textcolor{red}{\textbf{[NEEDS: #1]}}}
 \newcommand{\citeneeded}[1]{\textcolor{red}{\textbf{[CITE: #1]}}}
@@ -12,33 +15,33 @@
 
 \begin{document}
 
-\title{ {{- title -}} }
-{% if subtitle %}\subtitle{ {{- subtitle -}} }{% endif %}
-{% for a in authors %}
-\author{ {{- a.name -}} }
-{% if a.orcid %}\orcid{ {{- a.orcid -}} }{% endif %}
-{% if a.email %}\email{ {{- a.email -}} }{% endif %}
+\title{<< title >>}
+<% if subtitle %>\subtitle{<< subtitle >>}<% endif %>
+<% for a in authors %>
+\author{<< a.name >>}
+<% if a.orcid %>\orcid{<< a.orcid >>}<% endif %>
+<% if a.email %>\email{<< a.email >>}<% endif %>
 \affiliation{
-  \institution{ {{- a.affiliation or "" -}} }
-  \country{ {{- a.country or "" -}} }
+  \institution{<< a.affiliation or "" >>}
+  \country{<< a.country or "" >>}
 }
-{% endfor %}
+<% endfor %>
 
-{% if abstract %}
+<% if abstract %>
 \begin{abstract}
-{{ abstract }}
+<< abstract >>
 \end{abstract}
-{% endif %}
+<% endif %>
 
-{% if keywords_csv %}\keywords{ {{- keywords_csv -}} }{% endif %}
+<% if keywords_csv %>\keywords{<< keywords_csv >>}<% endif %>
 
 \maketitle
 
-{{ body }}
+<< body >>
 
-{% if has_bib %}
+<% if has_bib %>
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{refs}
-{% endif %}
+<% endif %>
 
 \end{document}

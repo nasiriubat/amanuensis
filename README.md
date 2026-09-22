@@ -52,7 +52,10 @@ npm install
 npm run dev
 ```
 
-LaTeX templates: acmart is fetched by Tectonic automatically. Springer's `llncs.cls` and
+LaTeX templates live in `data/templates/<slug>/` as `meta.json` plus `wrapper.tex.j2`. Wrappers
+use LaTeX-safe Jinja delimiters (`<< title >>`, `<% for a in authors %>`, `<# comment #>`) and
+receive `title`, `subtitle`, `authors`, `institutes`, `abstract`, `keywords_lncs`,
+`keywords_csv`, `body` and `has_bib`. acmart is fetched by Tectonic automatically. Springer's `llncs.cls` and
 `splncs04.bst` are not on CTAN; download the LNCS author package from Springer and upload the
 two files under Export → Template (admin), or place them in `data/templates/lncs/`.
 

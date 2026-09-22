@@ -43,7 +43,7 @@ def test_templates_seeded_and_status(tmp_path, monkeypatch):
     except ValueError:
         pass
     custom = svc.create_custom_template(
-        "My Workshop", "d", "article", "plain", "\\documentclass{article}\\begin{document}{{ body }}\\end{document}"
+        "My Workshop", "d", "article", "plain", "\\documentclass{article}\\begin{document}<< body >>\\end{document}"
     )
     assert custom["custom"] is True and custom["slug"] == "my-workshop"
 

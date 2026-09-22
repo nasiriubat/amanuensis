@@ -7,6 +7,9 @@
 \usepackage{hyperref}
 \usepackage{xcolor}
 \usepackage{longtable}
+\providecommand{\pandocbounded}[1]{#1}
+\usepackage{graphicx}
+\setkeys{Gin}{width=\linewidth,keepaspectratio}
 \providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \newcommand{\needs}[1]{\textcolor{red}{\textbf{[NEEDS: #1]}}}
 \newcommand{\citeneeded}[1]{\textcolor{red}{\textbf{[CITE: #1]}}}
@@ -14,26 +17,26 @@
 
 \begin{document}
 
-\title{ {{- title -}} }
-{% if subtitle %}\subtitle{ {{- subtitle -}} }{% endif %}
-\author{ {%- for a in authors -%}{{ a.name }}{% if a.orcid %}\orcidID{ {{- a.orcid -}} }{% endif %}{% if not loop.last %} \and {% endif %}{%- endfor -%} }
-\authorrunning{ {{- running_authors -}} }
-\institute{ {%- for inst in institutes -%}{{ inst }}{% if not loop.last %} \and {% endif %}{%- endfor -%} }
+\title{<< title >>}
+<% if subtitle %>\subtitle{<< subtitle >>}<% endif %>
+\author{<% for a in authors %><< a.name >><% if a.orcid %>\orcidID{<< a.orcid >>}<% endif %><% if not loop.last %> \and <% endif %><% endfor %>}
+\authorrunning{<< running_authors >>}
+\institute{<% for inst in institutes %><< inst >><% if not loop.last %> \and <% endif %><% endfor %>}
 
 \maketitle
 
-{% if abstract %}
+<% if abstract %>
 \begin{abstract}
-{{ abstract }}
-{% if keywords_lncs %}\keywords{ {{- keywords_lncs -}} }{% endif %}
+<< abstract >>
+<% if keywords_lncs %>\keywords{<< keywords_lncs >>}<% endif %>
 \end{abstract}
-{% endif %}
+<% endif %>
 
-{{ body }}
+<< body >>
 
-{% if has_bib %}
+<% if has_bib %>
 \bibliographystyle{splncs04}
 \bibliography{refs}
-{% endif %}
+<% endif %>
 
 \end{document}
