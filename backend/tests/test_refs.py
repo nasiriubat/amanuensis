@@ -142,3 +142,150 @@ def test_references_api(client, admin):
     assert client.delete(f"/api/projects/{slug}/references/zed2022manual", headers=admin).status_code == 204
     assert client.delete(f"/api/projects/{slug}/references/zed2022manual", headers=admin).status_code == 404
     client.delete(f"/api/projects/{slug}", headers=admin)
+
+
+def test_scan_prompts_render_and_adopt(client, admin, monkeypatch):
+    import json
+
+    from app import storage
+    from app.ingest import service as ingest
+    from app.learn.context import render
+    from app.refs import scan
+
+    q = render("scan_queries.j2", kind_name="Tool paper", idea="Match tenders to SMEs", plan="", spec="", known="")
+    assert "Match tenders" in q and '"queries"' in q
+    cands = [{"title": "A", "year": 2020, "venue": None, "citation_count": 3, "abstract": "x"}]
+    r = render("scan_rank.j2", kind_name="Tool paper", work="spec", candidates=cands)
+    assert "[0] A (2020, 3 citations)" in r
+
+    proj = client.post(
+        "/api/projects", json={"title": "Scan Demo", "kind": "tool-paper", "entry": "idea"}, headers=admin
+    )
+    assert proj.status_code == 201 and proj.json()["entry"] == "idea"
+    slug = proj.json()["slug"]
+    root = storage.project_dir(slug)
+    assert client.get(f"/api/projects/{slug}/references/scan", headers=admin).json() == {"scan": None}
+    # a scan needs something to read
+    scan.save_scan(
+        root,
+        {
+            "queries": ["tender matching"],
+            "themes": ["domain"],
+            "candidates": [
+                {
+                    "title": "Tender matching with LLMs",
+                    "authors": ["A. B."],
+                    "year": 2024,
+                    "arxiv_id": "2401.00001",
+                    "doi": None,
+                    "url": "https://arxiv.org/abs/2401.00001",
+                    "abstract": "",
+                    "source": "arxiv",
+                    "sources": ["arxiv"],
+                    "bibtype": "misc",
+                    "relevance": 3,
+                    "why": "same problem",
+                    "already_reference": False,
+                    "already_exemplar": False,
+                    "adopted_reference": None,
+                    "adopted_exemplar": False,
+                },
+                {
+                    "title": "Procurement analytics",
+                    "authors": ["C. D."],
+                    "year": 2019,
+                    "arxiv_id": None,
+                    "doi": "10.1/x",
+                    "url": None,
+                    "abstract": "",
+                    "source": "openalex",
+                    "sources": ["openalex"],
+                    "bibtype": "article",
+                    "relevance": 2,
+                    "why": "related",
+                    "already_reference": False,
+                    "already_exemplar": False,
+                    "adopted_reference": None,
+                    "adopted_exemplar": False,
+                },
+            ],
+            "errors": [],
+            "created_at": "2026-01-01T00:00:00+00:00",
+            "tokens_in": 1,
+            "tokens_out": 1,
+        },
+    )
+    started = []
+
+    async def fake_ingest(root_, aid, ctx):
+        started.append(aid)
+        return {"id": aid}
+
+    monkeypatch.setattr(ingest, "ingest_arxiv", fake_ingest)
+    r = client.post(
+        f"/api/projects/{slug}/references/scan/adopt",
+        json={"idx": [0, 1], "as_reference": True, "as_exemplar": True},
+        headers=admin,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert len(body["references"]) == 2 and len(body["jobs"]) == 1 and body["skipped"] == ["Procurement analytics"]
+    assert started == ["2401.00001"]
+    keys = {x["key"] for x in client.get(f"/api/projects/{slug}/references", headers=admin).json()}
+    assert set(body["references"]) <= keys
+    # adopting again is idempotent
+    again = client.post(
+        f"/api/projects/{slug}/references/scan/adopt",
+        json={"idx": [0], "as_reference": True, "as_exemplar": True},
+        headers=admin,
+    )
+    assert again.json()["references"] == [body["references"][0]] and again.json()["jobs"] == []
+    stored = json.loads((root / "inputs" / "scan.json").read_text())
+    assert stored["candidates"][0]["adopted_exemplar"] is True
+    # duplicates are recognised across doi / arxiv / title
+    ref_ids, _ = scan._known(root)
+    assert "arxiv:2401.00001" in ref_ids and "doi:10.1/x" in ref_ids
+    client.delete(f"/api/projects/{slug}", headers=admin)
+
+
+def test_cite_exemplar_and_entry_update(client, admin):
+    import json
+
+    from app import storage
+
+    proj = client.post("/api/projects", json={"title": "Cite Demo", "kind": "tool-paper"}, headers=admin)
+    slug = proj.json()["slug"]
+    assert proj.json()["entry"] == "built"
+    root = storage.project_dir(slug)
+    folder = root / "exemplars" / "arxiv-2401-00002"
+    folder.mkdir(parents=True)
+    (folder / "meta.json").write_text(
+        json.dumps(
+            {
+                "id": "arxiv-2401-00002",
+                "arxiv_id": "2401.00002",
+                "title": "An Exemplar Tool",
+                "authors": ["E. F.", "G. H."],
+                "year": 2023,
+                "abstract": "Abs",
+                "journal_ref": None,
+                "doi": None,
+                "url": "https://arxiv.org/abs/2401.00002",
+                "status": "ready",
+            }
+        )
+    )
+    r = client.post(f"/api/projects/{slug}/exemplars/arxiv-2401-00002/cite", headers=admin)
+    assert r.status_code == 201, r.text
+    key = r.json()["key"]
+    assert r.json()["existing"] is False
+    again = client.post(f"/api/projects/{slug}/exemplars/arxiv-2401-00002/cite", headers=admin)
+    assert again.json() == {"key": key, "existing": True}
+    assert client.post(f"/api/projects/{slug}/exemplars/nope/cite", headers=admin).status_code == 404
+    assert client.post(f"/api/projects/{slug}/exemplars/..%2F..%2Fx/cite", headers=admin).status_code in (400, 404, 405)
+    rec = client.get(f"/api/projects/{slug}/references", headers=admin).json()[0]
+    assert rec["arxiv_id"] == "2401.00002" and rec["source"] == "exemplar"
+    # entry can change later, and only to a known value
+    assert client.patch(f"/api/projects/{slug}", json={"entry": "draft"}, headers=admin).json()["entry"] == "draft"
+    assert client.patch(f"/api/projects/{slug}", json={"entry": "other"}, headers=admin).status_code == 422
+    client.delete(f"/api/projects/{slug}", headers=admin)

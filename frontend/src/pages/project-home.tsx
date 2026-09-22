@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ChevronLeft, Settings2, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
-import type { KindSummary, Profile, Project } from "@/lib/types";
+import type { KindSummary, Profile, Project, ProjectEntry } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader, ProgressRing, SectionTitle, Skeleton } from "@/components/ui/misc";
@@ -25,12 +25,14 @@ function ProjectSettingsDialog({ p, open, onOpenChange, onDelete }: { p: Project
   const [kind, setKind] = useState(p.kind);
   const [profileId, setProfileId] = useState(p.profile_id ?? NONE);
   const [venue, setVenue] = useState(p.venue ?? "");
+  const [entry, setEntry] = useState<ProjectEntry>(p.entry ?? "built");
 
   const save = useMutation({
     mutationFn: () =>
       api.patch<Project>(`/api/projects/${p.slug}`, {
         title: title.trim(),
         kind,
+        entry,
         profile_id: profileId === NONE ? null : profileId,
         clear_profile: profileId === NONE,
         venue,
@@ -71,14 +73,26 @@ function ProjectSettingsDialog({ p, open, onOpenChange, onDelete }: { p: Project
               </SelectContent>
             </Select>
           </Field>
+          <Field label="Starting point" hint="Changes the order and wording of the first steps. Nothing is deleted.">
+            <Select value={entry} onValueChange={(v) => setEntry(v as ProjectEntry)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="built">I built something</SelectItem>
+                <SelectItem value="idea">I have an idea</SelectItem>
+                <SelectItem value="draft">I have a draft</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Author profile" hint="Whose voice the drafts follow.">
+            <Field label="Author voice (optional)" hint="Learned from one author's own papers. Without one, drafts follow the house style.">
               <Select value={profileId} onValueChange={setProfileId}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NONE}>None</SelectItem>
+                  <SelectItem value={NONE}>House style</SelectItem>
                   {(profiles.data ?? []).map((pr) => (
                     <SelectItem key={pr.id} value={pr.id}>
                       {pr.name}
@@ -154,7 +168,9 @@ export function ProjectHomePage() {
           <span className="flex items-center gap-2">
             <Badge variant="primary">{p.kind_name}</Badge>
             {p.venue ? <Badge variant="outline">{p.venue}</Badge> : null}
-            <Badge variant="outline">{p.profile_name ? `Voice: ${p.profile_name}` : "No author profile"}</Badge>
+            <Badge variant="outline" title={p.profile_name ? "Drafts follow this author's learned voice." : "Drafts follow the house style. Attach an author profile in Settings to draft in a specific voice."}>
+              {p.profile_name ? `Voice: ${p.profile_name}` : "Voice: house style"}
+            </Badge>
           </span>
         }
         title={p.title}

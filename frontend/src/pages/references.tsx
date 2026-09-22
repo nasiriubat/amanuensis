@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AlertCircle, BookMarked, Check, ChevronLeft, Copy, Download, ExternalLink, Plus, Quote, Search, Trash2, Upload } from "lucide-react";
+import { AlertCircle, BookMarked, Check, ChevronLeft, Copy, Download, ExternalLink, Plus, Quote, Search, Telescope, Trash2, Upload } from "lucide-react";
 import { api } from "@/lib/api";
 import type { Project, RefCandidate, RefRecord, RefRequest } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ import { EmptyState, PageHeader, SectionTitle, Skeleton } from "@/components/ui/
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/dialogs";
 import { NextStepBar } from "@/components/flow";
+import { LiteratureScan } from "@/components/literature-scan";
 
 function authorsLine(a: string[] | undefined, max = 3): string {
   if (!a?.length) return "";
@@ -145,6 +146,7 @@ export function ReferencesPage() {
   const [errors, setErrors] = useState<string[]>([]);
   const [acceptedTitles, setAcceptedTitles] = useState<Set<string>>(new Set());
   const [manual, setManual] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const [del, setDel] = useState<RefRecord | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -224,9 +226,17 @@ export function ReferencesPage() {
             <Button variant="secondary" onClick={() => setManual(true)}>
               <Plus className="h-4 w-4" /> Add by hand
             </Button>
+            <Button onClick={() => setScanOpen(true)}>
+              <Telescope className="h-4 w-4" /> Suggest from my spec
+            </Button>
           </>
         }
       />
+      <Dialog open={scanOpen} onOpenChange={setScanOpen}>
+        <DialogContent title="Find related papers" description="Suggestions from your idea, plan and specification. Nothing is cited until you add it." className="max-w-3xl">
+          <LiteratureScan slug={slug} projectId={p.id} compact />
+        </DialogContent>
+      </Dialog>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div>

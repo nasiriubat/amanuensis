@@ -127,6 +127,7 @@ def _out(p: Project) -> ProjectOut:
         owner_name=p.owner.display_name,
         kind=p.kind,
         kind_name=kind_name(p.kind),
+        entry=p.entry or "built",
         profile_id=p.profile_id,
         profile_name=p.profile.name if p.profile else None,
         venue=p.venue,
@@ -170,7 +171,13 @@ def create_project(body: ProjectCreate, user: User = Depends(current_user), db: 
     base = storage.slugify(body.title)
     slug = storage.unique_slug(base, lambda s: db.scalar(select(Project).where(Project.slug == s)) is not None)
     p = Project(
-        slug=slug, title=body.title, owner_id=user.id, kind=body.kind, profile_id=body.profile_id, venue=body.venue
+        slug=slug,
+        title=body.title,
+        owner_id=user.id,
+        kind=body.kind,
+        entry=body.entry,
+        profile_id=body.profile_id,
+        venue=body.venue,
     )
     db.add(p)
     db.flush()
@@ -194,6 +201,8 @@ def update_project(slug: str, body: ProjectUpdate, user: User = Depends(current_
         if not kind_exists(body.kind):
             raise HTTPException(400, f"Unknown paper kind '{body.kind}'")
         p.kind = body.kind
+    if body.entry is not None:
+        p.entry = body.entry
     if body.clear_profile:
         p.profile_id = None
     elif body.profile_id is not None:

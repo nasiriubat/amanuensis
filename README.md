@@ -18,6 +18,15 @@ LaTeX zip; site settings, logo, SEO and public Markdown pages; a reviewer-style 
 whose major findings land on the checklist, and venue suggestions you can adopt as the target
 venue. All seven build phases from SPEC.md are done; what remains is feedback-driven polish.
 
+Three starting points are offered when a project is created. "I built something" opens with
+the specification. "I have an idea" opens with research design and the specification grows out
+of the plan. "I have a draft" makes exemplars optional and sends you to the Studio to paste your
+sections as your own. A literature scan on the Sources and References pages turns the idea, plan
+and specification into search queries, asks Semantic Scholar, OpenAlex and arXiv, ranks what comes
+back, and lets you adopt papers as verified references or as exemplars in one click. Any exemplar
+can be made citable with one click as well. Author profiles stay optional: without one, drafts
+follow the house style.
+
 Around the pipeline: a public landing page whose copy the admin edits (steps and entry points
 come from the product itself), seeded About and Contact pages, server-rendered SEO tags and a
 sitemap, a top bar with breadcrumbs, live background-job indicator and account menu, and an

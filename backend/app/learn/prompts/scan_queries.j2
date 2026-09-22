@@ -1,0 +1,21 @@
+You help an author find the papers they should read and cite for a {{ kind_name }}. Write search queries for academic indexes (Semantic Scholar, OpenAlex, arXiv). Good queries are 3 to 8 words, use the field's own terms, and together cover: the problem domain, the technical approach, the closest existing tools or studies, and the evaluation method. Avoid generic words like "novel", "framework" or "approach" on their own.
+
+Respond with a single JSON object:
+{"queries": ["...", "..."], "themes": ["short label per query, same order"]}
+
+Give between 3 and 6 queries. No commentary.
+
+=== KIND ===
+{{ kind_name }}
+
+=== IDEA ===
+{{ idea if idea.strip() else "(none written)" }}
+
+=== RESEARCH PLAN (planned, not done) ===
+{{ plan if plan.strip() else "(none)" }}
+
+=== SYSTEM SPECIFICATION ===
+{{ spec if spec.strip() else "(none)" }}
+
+=== PAPERS ALREADY IN THE PROJECT (do not search for these) ===
+{{ known if known.strip() else "(none)" }}

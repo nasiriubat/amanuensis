@@ -101,6 +101,7 @@ class Project(Base):
     title: Mapped[str] = mapped_column(String(300))
     owner_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     kind: Mapped[str] = mapped_column(String(64), default="other")
+    entry: Mapped[str] = mapped_column(String(16), default="built")  # built | idea | draft
     profile_id: Mapped[str | None] = mapped_column(ForeignKey("author_profiles.id", ondelete="SET NULL"), nullable=True)
     venue: Mapped[str | None] = mapped_column(String(200), nullable=True)
     model_overrides: Mapped[dict | None] = mapped_column(JSON, nullable=True)

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Check, Circle, Lock } from "lucide-react";
 import type { Project } from "@/lib/types";
-import { type StepKey, nextStep, stepAfter, stepStates } from "@/lib/flow";
+import { type StepKey, isOptional, nextStep, stepAfter, stepStates, titleFor } from "@/lib/flow";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +27,7 @@ export function NextUp({ p }: { p: Project }) {
     <Card className="flex flex-wrap items-center gap-4 border-primary/30 bg-primary-soft/40 p-5">
       <div className="min-w-0 flex-1">
         <div className="mb-1 text-[11.5px] font-semibold uppercase tracking-wide text-primary">Next up</div>
-        <div className="text-[16px] font-semibold leading-tight">{next.title}</div>
+        <div className="text-[16px] font-semibold leading-tight">{titleFor(next, p)}</div>
         <div className="mt-0.5 text-[13px] text-muted-foreground">{next.summary(p)}</div>
       </div>
       <Link to={next.to(p.slug)}>
@@ -61,8 +61,8 @@ export function Stepper({ p }: { p: Project }) {
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className={cn("text-[14px] font-medium", (state === "locked" || state === "soon") && "text-muted-foreground")}>{step.title}</span>
-                {step.optional ? <Badge variant="outline">Optional</Badge> : null}
+                <span className={cn("text-[14px] font-medium", (state === "locked" || state === "soon") && "text-muted-foreground")}>{titleFor(step, p)}</span>
+                {isOptional(step, p) ? <Badge variant="outline">Optional</Badge> : null}
                 {state === "current" ? <Badge variant="primary">Next</Badge> : null}
                 {state === "soon" ? <Badge variant="outline">Phase {step.soonPhase}</Badge> : null}
               </div>
@@ -92,12 +92,12 @@ export function NextStepBar({ p, current }: { p: Project; current: StepKey }) {
     <div className="mt-10 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius)] border border-border bg-card px-4 py-3">
       <div className="text-[13px]">
         <span className="text-muted-foreground">{isNext ? "When you are done here, the next step is " : "You can also continue with "}</span>
-        <span className="font-semibold">{after.title}</span>
+        <span className="font-semibold">{titleFor(after, p)}</span>
         <span className="text-muted-foreground">. {after.summary(p)}</span>
       </div>
       <Link to={after.to(p.slug)}>
         <Button variant={isNext ? "primary" : "secondary"} size="sm">
-          {after.title} <ArrowRight className="h-3.5 w-3.5" />
+          {titleFor(after, p)} <ArrowRight className="h-3.5 w-3.5" />
         </Button>
       </Link>
     </div>

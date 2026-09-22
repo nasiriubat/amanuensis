@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -8,8 +8,11 @@ from sqlalchemy.orm import Session
 from .. import storage
 from ..db import get_db
 from ..deps import current_user
+from ..jobs import create_job, job_dict, start_job
 from ..models import User
+from ..refs import scan as scan_svc
 from ..refs import service as svc
+from ..security import llm_limiter
 from .projects import get_owned
 
 router = APIRouter(prefix="/api/projects/{slug}/references", tags=["references"])
@@ -36,9 +39,65 @@ class ManualIn(BaseModel):
     bibtype: str = Field(default="misc", max_length=30)
 
 
+class AdoptIn(BaseModel):
+    idx: list[int] = Field(min_length=1, max_length=60)
+    as_reference: bool = True
+    as_exemplar: bool = False
+
+
 def _root(db: Session, user: User, slug: str):
     p = get_owned(db, user, slug)
     return p, storage.project_dir(p.slug)
+
+
+# ------------------------------------------------------------------ literature scan
+
+
+@router.get("/scan")
+def get_scan(slug: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    _, root = _root(db, user, slug)
+    return {"scan": scan_svc.load_scan(root)}
+
+
+@router.post("/scan", status_code=202)
+async def run_scan(slug: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    p, _ = _root(db, user, slug)
+    if not llm_limiter.allow(user.id):
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Slow down")
+    job = create_job(db, user_id=user.id, type="scan", project_id=p.id, message="Queued literature scan")
+    start_job(job, lambda ctx: scan_svc.run_scan(p.id, ctx))
+    return job_dict(job)
+
+
+@router.post("/scan/adopt")
+async def adopt(slug: str, body: AdoptIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Turn chosen scan candidates into references and/or queue them as exemplars."""
+    from .papers import start_exemplar_ingest
+
+    p, root = _root(db, user, slug)
+    data = scan_svc.load_scan(root)
+    if not data:
+        raise HTTPException(404, "No scan yet")
+    added: list[str] = []
+    jobs: list[dict] = []
+    skipped: list[str] = []
+    if body.as_reference:
+        added = scan_svc.adopt_references(root, body.idx)
+    if body.as_exemplar:
+        for i in body.idx:
+            if not 0 <= i < len(data["candidates"]):
+                continue
+            c = data["candidates"][i]
+            if c.get("adopted_exemplar") or c.get("already_exemplar"):
+                continue
+            if not c.get("arxiv_id"):
+                skipped.append(c.get("title") or f"#{i}")
+                continue
+            jobs.append(start_exemplar_ingest(db, user, p, c["arxiv_id"]))
+            scan_svc.mark_exemplar(root, i)
+    if added:
+        storage.git_commit(root, f"Adopt {len(added)} reference(s) from literature scan")
+    return {"references": added, "jobs": jobs, "skipped": skipped}
 
 
 @router.get("")

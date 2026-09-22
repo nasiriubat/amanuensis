@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AlertCircle, CheckCircle2, ExternalLink, FileText, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
+import { AlertCircle, CheckCircle2, ExternalLink, FileText, Loader2, Plus, Quote, Trash2, Upload, X } from "lucide-react";
 import { api } from "@/lib/api";
 import type { JobInfo, Paper, PaperDetail } from "@/lib/types";
 import { cn, formatNumber } from "@/lib/utils";
@@ -19,6 +19,10 @@ const JOB_LABEL: Record<string, string> = {
   ingest_pdf: "Extracting PDF",
   learn_playbook: "Learning playbook",
   learn_profile: "Learning voice",
+  scan: "Scanning the literature",
+  draft_section: "Drafting section",
+  critique: "Reviewing",
+  export: "Exporting",
 };
 
 export function JobProgress({ jobs, onDismiss }: { jobs: JobInfo[]; onDismiss: (id: string) => void }) {
@@ -148,7 +152,7 @@ export function AddPapers({
   );
 }
 
-function PaperCard({ p, onOpen, onDelete }: { p: Paper; onOpen: () => void; onDelete: () => void }) {
+function PaperCard({ p, onOpen, onDelete, onCite, citing }: { p: Paper; onOpen: () => void; onDelete: () => void; onCite?: () => void; citing?: boolean }) {
   const authors = p.authors?.length ? (p.authors.length > 3 ? `${p.authors.slice(0, 3).join(", ")} et al.` : p.authors.join(", ")) : null;
   return (
     <Card interactive={p.status === "ready"} onClick={p.status === "ready" ? onOpen : undefined} className="flex items-start gap-3 p-4">
@@ -174,6 +178,11 @@ function PaperCard({ p, onOpen, onDelete }: { p: Paper; onOpen: () => void; onDe
         </div>
       </div>
       <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+        {onCite && p.status === "ready" ? (
+          <button onClick={onCite} disabled={citing} className="rounded p-1.5 text-subtle hover:bg-primary-soft hover:text-primary disabled:opacity-50" aria-label="Add as reference" title="Add as a verified reference so the draft can cite it">
+            {citing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Quote className="h-4 w-4" />}
+          </button>
+        ) : null}
         {p.url ? (
           <a href={p.url} target="_blank" rel="noreferrer" className="rounded p-1.5 text-subtle hover:bg-muted hover:text-foreground" aria-label="Open on arXiv">
             <ExternalLink className="h-4 w-4" />
@@ -220,10 +229,21 @@ function PaperDialog({ url, onClose }: { url: string | null; onClose: () => void
   );
 }
 
-export function PaperList({ listUrl, itemUrl, emptyTitle, emptyText }: { listUrl: string; itemUrl: (id: string) => string; emptyTitle: string; emptyText: string }) {
+export function PaperList({ listUrl, itemUrl, citeUrl, emptyTitle, emptyText }: { listUrl: string; itemUrl: (id: string) => string; citeUrl?: (id: string) => string; emptyTitle: string; emptyText: string }) {
+  const qc = useQueryClient();
   const papers = useQuery({ queryKey: ["papers", listUrl], queryFn: () => api.get<Paper[]>(listUrl), refetchInterval: (q) => (q.state.data?.some((p) => p.status === "pending") ? 2000 : false) });
   const [open, setOpen] = useState<string | null>(null);
   const [del, setDel] = useState<Paper | null>(null);
+  const cite = useMutation({
+    mutationFn: (id: string) => api.post<{ key: string; existing: boolean }>(citeUrl!(id)),
+    onSuccess: (r) => {
+      void qc.invalidateQueries({ queryKey: ["references"] });
+      void qc.invalidateQueries({ queryKey: ["project"] });
+      if (r.existing) toast.info(`Already in your references as ${r.key}`);
+      else toast.success(`Added as reference ${r.key}. Cite it with [@${r.key}].`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const remove = useMutation({
     mutationFn: (id: string) => api.delete(itemUrl(id)),
     onSuccess: () => {
@@ -243,7 +263,7 @@ export function PaperList({ listUrl, itemUrl, emptyTitle, emptyText }: { listUrl
       ) : (
         <div className="flex flex-col gap-2.5">
           {list.map((p) => (
-            <PaperCard key={p.id} p={p} onOpen={() => setOpen(itemUrl(p.id))} onDelete={() => setDel(p)} />
+            <PaperCard key={p.id} p={p} onOpen={() => setOpen(itemUrl(p.id))} onDelete={() => setDel(p)} onCite={citeUrl ? () => cite.mutate(p.id) : undefined} citing={cite.isPending && cite.variables === p.id} />
           ))}
         </div>
       )}

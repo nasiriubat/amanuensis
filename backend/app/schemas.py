@@ -163,9 +163,13 @@ class ProfileOut(ApiModel):
 # ------------------------------------------------------------------ projects
 
 
+ENTRY_PATTERN = "^(built|idea|draft)$"
+
+
 class ProjectCreate(BaseModel):
     title: str = Field(min_length=1, max_length=300)
     kind: str = Field(default="other", max_length=64)
+    entry: str = Field(default="built", pattern=ENTRY_PATTERN, description="Where the author starts")
     profile_id: str | None = None
     venue: str | None = Field(default=None, max_length=200)
 
@@ -173,6 +177,7 @@ class ProjectCreate(BaseModel):
 class ProjectUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=300)
     kind: str | None = Field(default=None, max_length=64)
+    entry: str | None = Field(default=None, pattern=ENTRY_PATTERN)
     profile_id: str | None = None
     clear_profile: bool = False
     venue: str | None = Field(default=None, max_length=200)
@@ -187,6 +192,7 @@ class ProjectOut(ApiModel):
     owner_name: str
     kind: str
     kind_name: str
+    entry: str
     profile_id: str | None
     profile_name: str | None
     venue: str | None

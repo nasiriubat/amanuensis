@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader, SectionTitle, Skeleton } from "@/components/ui/misc";
 import { AddPapers, JobProgress, PaperList } from "@/components/papers";
 import { NextStepBar } from "@/components/flow";
+import { LiteratureScan } from "@/components/literature-scan";
 
 export function SourcesPage() {
   const { slug = "" } = useParams();
@@ -27,21 +28,26 @@ export function SourcesPage() {
       </Link>
       <PageHeader
         title="Sources"
-        description="Exemplar papers the playbook is learned from. Five to ten papers of the kind you are writing, ideally from the venue you target."
+        description="Exemplar papers the playbook is learned from. Five to ten papers of the kind you are writing, ideally from the venue you target. Any exemplar can also be cited with one click."
         actions={
           <Button variant="secondary" onClick={() => navigate(`/projects/${slug}/playbook`)} disabled={!p.counts.exemplars}>
             <Sparkles className="h-4 w-4" /> Go to playbook
           </Button>
         }
       />
+      <div className="mb-6">
+        <LiteratureScan slug={slug} projectId={p.id} />
+      </div>
+      <SectionTitle>Add papers you already know</SectionTitle>
       <AddPapers arxivUrl={`${base}/arxiv`} uploadUrl={`${base}/upload`} onJob={watch} />
-      <JobProgress jobs={jobs} onDismiss={dismiss} />
+      <JobProgress jobs={jobs.filter((j) => j.type !== "scan")} onDismiss={dismiss} />
       <SectionTitle>Exemplars</SectionTitle>
       <PaperList
         listUrl={base}
         itemUrl={(id) => `${base}/${id}`}
+        citeUrl={(id) => `${base}/${id}/cite`}
         emptyTitle="No exemplars yet"
-        emptyText="Paste arXiv ids of papers you admire in this genre, or upload PDFs. The tool reads them and learns how they are built."
+        emptyText="Let the scan suggest papers, paste arXiv ids of papers you admire in this genre, or upload PDFs. The tool reads them and learns how they are built."
       />
       <NextStepBar p={p} current="sources" />
     </div>

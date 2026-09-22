@@ -155,7 +155,15 @@ async def value_error_handler(_: Request, exc: ValueError):
 _dist = (Path(__file__).resolve().parent.parent / get_settings().frontend_dist).resolve()
 if _dist.is_dir() and (_dist / "index.html").exists():
     app.mount("/assets", StaticFiles(directory=_dist / "assets"), name="assets")
-    _index_html = (_dist / "index.html").read_text(encoding="utf-8")
+    _index_cache: dict = {"mtime": 0.0, "html": ""}
+
+    def _index_html() -> str:
+        # Re-read when the frontend is rebuilt under a running dev server; a stat per request is cheap.
+        path = _dist / "index.html"
+        mtime = path.stat().st_mtime
+        if mtime != _index_cache["mtime"]:
+            _index_cache.update(mtime=mtime, html=path.read_text(encoding="utf-8"))
+        return _index_cache["html"]
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def spa(full_path: str):
@@ -169,4 +177,4 @@ if _dist.is_dir() and (_dist / "index.html").exists():
 
         with SessionLocal() as db:
             meta = head_for(full_path, site.load_site(db), db)
-        return HTMLResponse(inject(_index_html, meta), headers={"Cache-Control": "no-cache"})
+        return HTMLResponse(inject(_index_html(), meta), headers={"Cache-Control": "no-cache"})

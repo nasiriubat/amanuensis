@@ -1,0 +1,16 @@
+Rate how relevant each candidate paper is to the author's work below. Use only the title, venue and abstract given; do not invent details. Relevance scale: 3 = must read and likely cite (same problem or same kind of tool); 2 = related, worth citing in related work; 1 = tangential, only if space allows; 0 = not relevant or not a research paper.
+
+Respond with a single JSON object:
+{"ranked": [{"idx": 0, "relevance": 3, "why": "one plain sentence, under 25 words, naming what links it to this work"}, ...]}
+
+Include every idx once. No commentary.
+
+=== THE AUTHOR'S WORK ({{ kind_name }}) ===
+{{ work }}
+
+=== CANDIDATES ===
+{% for c in candidates %}
+[{{ loop.index0 }}] {{ c.title }} ({{ c.year or "n.d." }}{% if c.venue %}, {{ c.venue }}{% endif %}{% if c.citation_count %}, {{ c.citation_count }} citations{% endif %})
+{{ (c.abstract or "(no abstract)")[:600] }}
+
+{% endfor %}

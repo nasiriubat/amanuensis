@@ -26,22 +26,35 @@ export const STEPS: Step[] = [
     title: "Describe what you built",
     to: (s) => `/projects/${s}/spec`,
     state: (p) => (p.counts.has_spec ? "done" : "current"),
-    summary: (p) => (p.counts.has_spec ? "Specification saved." : "Paste or write the system specification. Everything else reads it."),
+    summary: (p) =>
+      p.counts.has_spec
+        ? "Specification saved."
+        : p.entry === "idea"
+          ? "Turn the plan into a specification of what you will build or study."
+          : p.entry === "draft"
+            ? "Say what the paper is about in your own words. The interview and the reviewer read it."
+            : "Paste or write the system specification. Everything else reads it.",
   },
   {
     key: "design",
     title: "Research design",
     to: (s) => `/projects/${s}/design`,
     optional: true,
-    state: (p) => (p.counts.has_plan ? "done" : "optional"),
-    summary: (p) => (p.counts.has_plan ? "Research plan written." : "Optional. Turn an idea into a study reviewers would accept."),
+    state: (p) => (p.counts.has_plan ? "done" : p.entry === "idea" ? "current" : "optional"),
+    summary: (p) =>
+      p.counts.has_plan ? "Research plan written." : p.entry === "idea" ? "Refine the idea or explore the space, then get a study plan you can edit." : "Optional. Turn an idea into a study reviewers would accept.",
   },
   {
     key: "sources",
     title: "Add exemplar papers",
     to: (s) => `/projects/${s}/sources`,
-    state: (p) => (p.counts.exemplars > 0 ? "done" : "todo"),
-    summary: (p) => (p.counts.exemplars ? `${p.counts.exemplars} exemplar${p.counts.exemplars === 1 ? "" : "s"} ingested.` : "Five to ten papers of this kind, from arXiv or PDF."),
+    state: (p) => (p.counts.exemplars > 0 ? "done" : p.entry === "draft" ? "optional" : "todo"),
+    summary: (p) =>
+      p.counts.exemplars
+        ? `${p.counts.exemplars} exemplar${p.counts.exemplars === 1 ? "" : "s"} ingested.`
+        : p.entry === "draft"
+          ? "Optional for a draft you already wrote; exemplars still sharpen the reviewer pass."
+          : "Paste five to ten papers of this kind, or let the literature scan suggest them.",
   },
   {
     key: "playbook",
@@ -118,31 +131,53 @@ export const STEPS: Step[] = [
   },
 ];
 
+/** Steps in the order this project walks them. Idea-first projects design the study before describing it. */
+export function orderedSteps(p: Project): Step[] {
+  if (p.entry !== "idea") return STEPS;
+  const design = STEPS.find((s) => s.key === "design")!;
+  return [design, ...STEPS.filter((s) => s.key !== "design")];
+}
+
+/** Step title as this project should read it. */
+export function titleFor(step: Step, p: Project): string {
+  if (step.key === "spec" && p.entry !== "built") return "Describe the work";
+  return step.title;
+}
+
+/** Whether a step is optional for this project. */
+export function isOptional(step: Step, p: Project): boolean {
+  if (step.key === "design") return p.entry !== "idea";
+  if (step.key === "sources") return p.entry === "draft";
+  return !!step.optional;
+}
+
 /** The single step the user should do next. */
 export function nextStep(p: Project): Step | null {
-  for (const s of STEPS) {
+  for (const s of orderedSteps(p)) {
     const st = s.state(p);
     if (st === "current" || st === "todo") return s;
   }
   return null;
 }
 
-/** Steps for the stepper, with the "current" one resolved. */
+/** Steps for the stepper, with exactly one "current" resolved. */
 export function stepStates(p: Project): Array<{ step: Step; state: StepState }> {
   const next = nextStep(p);
-  return STEPS.map((step) => {
+  return orderedSteps(p).map((step) => {
     let state = step.state(p);
     if (next && step.key === next.key) state = "current";
+    else if (state === "current") state = "todo";
     return { step, state };
   });
 }
 
 /** What comes after a given step, for the footer bar on stage pages. */
 export function stepAfter(p: Project, key: StepKey): Step | null {
-  const idx = STEPS.findIndex((s) => s.key === key);
+  const steps = orderedSteps(p);
+  const idx = steps.findIndex((s) => s.key === key);
   const next = nextStep(p);
   if (next && next.key !== key) return next;
-  for (const s of STEPS.slice(idx + 1)) {
+  for (const s of steps.slice(idx + 1)) {
     const st = s.state(p);
     if (st !== "soon" && st !== "done") return s;
   }

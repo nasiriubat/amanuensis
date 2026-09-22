@@ -70,6 +70,14 @@ def get_exemplar(slug: str, paper_id: str, user: User = Depends(current_user), d
     return {"meta": meta, "markdown": md, "summary": summary}
 
 
+def start_exemplar_ingest(db: Session, user: User, project, arxiv_id: str) -> dict:
+    """Queue an arXiv paper as a project exemplar. Shared with the literature scan."""
+    root = storage.project_dir(project.slug) / "exemplars"
+    job = create_job(db, user_id=user.id, type="ingest_arxiv", project_id=project.id, message=f"Queued {arxiv_id}")
+    start_job(job, lambda ctx: ingest.ingest_arxiv(root, arxiv_id, ctx))
+    return job_dict(job)
+
+
 @router.post("/projects/{slug}/exemplars/arxiv", status_code=202)
 async def add_exemplar_arxiv(
     slug: str, body: ArxivIn, user: User = Depends(current_user), db: Session = Depends(get_db)
@@ -78,10 +86,34 @@ async def add_exemplar_arxiv(
     aid = parse_arxiv_id(body.ref)
     if not aid:
         raise HTTPException(400, "That does not look like an arXiv id or URL")
-    root = storage.project_dir(p.slug) / "exemplars"
-    job = create_job(db, user_id=user.id, type="ingest_arxiv", project_id=p.id, message=f"Queued {aid}")
-    start_job(job, lambda ctx: ingest.ingest_arxiv(root, aid, ctx))
-    return job_dict(job)
+    return start_exemplar_ingest(db, user, p, aid)
+
+
+@router.post("/projects/{slug}/exemplars/{paper_id}/cite", status_code=201)
+def cite_exemplar(slug: str, paper_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Make an exemplar citable: its metadata becomes a verified reference record."""
+    from ..ingest import extract as ingest_extract
+    from ..refs import scan
+    from ..refs import service as refs
+
+    p = get_owned(db, user, slug)
+    root = storage.project_dir(p.slug)
+    try:
+        folder = storage.safe_child(root / "exemplars", paper_id)
+    except ValueError as e:
+        raise HTTPException(400, "Bad paper id") from e
+    meta = ingest_extract.read_meta(folder) if folder.is_dir() else None
+    if not meta or meta.get("status") != "ready":
+        raise HTTPException(404, "Exemplar not found or not extracted yet")
+    cand = scan.candidate_from_meta(meta)
+    existing = scan.existing_key_for(root, cand)
+    if existing:
+        return {"key": existing, "existing": True}
+    try:
+        rec = refs.accept(root, cand)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    return {"key": rec["key"], "existing": False}
 
 
 @router.post("/projects/{slug}/exemplars/upload", status_code=202)

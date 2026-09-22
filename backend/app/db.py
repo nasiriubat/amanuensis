@@ -42,7 +42,34 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
+# Columns added after the first release. create_all never alters existing tables, so
+# each entry is applied with a plain ALTER TABLE when missing. Keep additions nullable
+# or defaulted so old rows stay valid.
+_ADDED_COLUMNS: dict[str, dict[str, str]] = {
+    "projects": {"entry": "VARCHAR(16) NOT NULL DEFAULT 'built'"},
+}
+
+
+def ensure_columns() -> list[str]:
+    """Add any column listed in _ADDED_COLUMNS that the live database lacks."""
+    from sqlalchemy import inspect, text
+
+    added = []
+    insp = inspect(engine)
+    with engine.begin() as conn:
+        for table, cols in _ADDED_COLUMNS.items():
+            if table not in insp.get_table_names():
+                continue
+            existing = {c["name"] for c in insp.get_columns(table)}
+            for name, ddl in cols.items():
+                if name not in existing:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}"))
+                    added.append(f"{table}.{name}")
+    return added
+
+
 def init_db() -> None:
     from . import models  # noqa: F401  (register tables)
 
     Base.metadata.create_all(engine)
+    ensure_columns()

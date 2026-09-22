@@ -89,6 +89,8 @@ export interface ProjectCounts {
   interview_rounds: { rounds: number; answered: number; open: number; done: boolean };
 }
 
+export type ProjectEntry = "built" | "idea" | "draft";
+
 export interface Project {
   id: string;
   slug: string;
@@ -97,6 +99,7 @@ export interface Project {
   owner_name: string;
   kind: string;
   kind_name: string;
+  entry: ProjectEntry;
   profile_id: string | null;
   profile_name: string | null;
   venue: string | null;
@@ -379,4 +382,35 @@ export interface VenueSuggestions {
   recommendation: string;
   before_submitting: string[];
   created_at: string;
+}
+
+export interface ScanCandidate {
+  title: string;
+  authors: string[];
+  year: number | null;
+  venue: string | null;
+  doi: string | null;
+  url: string | null;
+  arxiv_id: string | null;
+  abstract: string | null;
+  citation_count: number | null;
+  sources: string[];
+  queries: number[];
+  relevance: 0 | 1 | 2 | 3;
+  why: string;
+  already_reference: boolean;
+  already_exemplar: boolean;
+  adopted_reference: string | null;
+  adopted_exemplar: boolean;
+}
+
+export interface ScanState {
+  queries: string[];
+  themes: string[];
+  candidates: ScanCandidate[];
+  skipped_known: number;
+  errors: string[];
+  created_at: string;
+  tokens_in: number;
+  tokens_out: number;
 }

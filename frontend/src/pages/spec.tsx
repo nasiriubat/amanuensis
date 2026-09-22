@@ -29,8 +29,12 @@ export function SpecPage() {
         <ChevronLeft className="h-3.5 w-3.5" /> {p.title}
       </Link>
       <PageHeader
-        title="What you built"
-        description="The system specification. The interview reads it to skip what you already said, and the draft may only state what is in here, in your answers, or in the facts."
+        title={p.entry === "built" ? "What you built" : "What the paper is about"}
+        description={
+          p.entry === "idea"
+            ? "The specification of what you will build or study, grown from the research plan. The interview reads it to skip what you already said, and the draft may only state what is in here, in your answers, or in the facts."
+            : "The system specification. The interview reads it to skip what you already said, and the draft may only state what is in here, in your answers, or in the facts."
+        }
       />
       <Card className="p-5">
         <div className="mb-4 flex items-start gap-3.5">

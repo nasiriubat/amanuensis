@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { FileText, Lightbulb, PenLine } from "lucide-react";
 import { api } from "@/lib/api";
-import type { KindSummary, Profile, Project } from "@/lib/types";
+import type { KindSummary, Profile, Project, ProjectEntry } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Field, Input, Textarea } from "@/components/ui/input";
@@ -11,12 +13,19 @@ import { Switch } from "@/components/ui/switch";
 
 const NONE = "__none__";
 
+const ENTRIES: Array<{ value: ProjectEntry; label: string; icon: typeof FileText; next: string }> = [
+  { value: "built", label: "I built something", icon: FileText, next: "You start by describing the system; the interview fills what a reviewer would ask." },
+  { value: "idea", label: "I have an idea", icon: Lightbulb, next: "You start with research design: refine or explore the idea and get a study plan first." },
+  { value: "draft", label: "I have a draft", icon: PenLine, next: "You describe the work briefly, then paste your sections into the Studio as your own." },
+];
+
 export function NewProjectDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpenChange: (o: boolean) => void; onCreated: (p: Project) => void }) {
   const qc = useQueryClient();
   const kinds = useQuery({ queryKey: ["kinds"], queryFn: () => api.get<KindSummary[]>("/api/kinds"), enabled: open });
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: () => api.get<Profile[]>("/api/profiles"), enabled: open });
   const [title, setTitle] = useState("");
   const [kind, setKind] = useState("tool-paper");
+  const [entry, setEntry] = useState<ProjectEntry>("built");
   const [profileId, setProfileId] = useState(NONE);
   const [venue, setVenue] = useState("");
 
@@ -25,6 +34,7 @@ export function NewProjectDialog({ open, onOpenChange, onCreated }: { open: bool
       api.post<Project>("/api/projects", {
         title: title.trim(),
         kind,
+        entry,
         profile_id: profileId === NONE ? null : profileId,
         venue: venue.trim() || null,
       }),
@@ -50,8 +60,28 @@ export function NewProjectDialog({ open, onOpenChange, onCreated }: { open: bool
           }}
           className="flex flex-col gap-4"
         >
+          <Field label="Where are you starting from?" hint={ENTRIES.find((e) => e.value === entry)?.next}>
+            <div role="radiogroup" className="grid grid-cols-3 gap-2">
+              {ENTRIES.map((e) => (
+                <button
+                  key={e.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={entry === e.value}
+                  onClick={() => setEntry(e.value)}
+                  className={cn(
+                    "flex flex-col items-start gap-1 rounded-[var(--radius-sm)] border px-3 py-2.5 text-left transition-colors",
+                    entry === e.value ? "border-primary bg-primary-soft/50" : "border-border hover:bg-muted/60",
+                  )}
+                >
+                  <e.icon className={cn("h-4 w-4", entry === e.value ? "text-primary" : "text-muted-foreground")} />
+                  <span className="text-[13px] font-medium leading-tight">{e.label}</span>
+                </button>
+              ))}
+            </div>
+          </Field>
           <Field label="Working title">
-            <Input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Tender Scout: matching public tenders to SMEs" required />
+            <Input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder={entry === "idea" ? "A working title for the idea; you can change it" : "Tender Scout: matching public tenders to SMEs"} required />
           </Field>
           <Field label="Paper kind" hint={selectedKind?.summary}>
             <Select value={kind} onValueChange={setKind}>
@@ -68,13 +98,13 @@ export function NewProjectDialog({ open, onOpenChange, onCreated }: { open: bool
             </Select>
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Author profile" hint="Whose voice the drafts follow.">
+            <Field label="Author voice (optional)" hint="Learned from one author's own papers so drafts sound like them. Not needed to start.">
               <Select value={profileId} onValueChange={setProfileId}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NONE}>None yet</SelectItem>
+                  <SelectItem value={NONE}>House style</SelectItem>
                   {(profiles.data ?? []).map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.name}

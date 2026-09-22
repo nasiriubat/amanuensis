@@ -45,7 +45,7 @@ export function ProjectCard({ p }: { p: Project }) {
       </div>
       <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-[12px] text-subtle">
         <span>
-          {p.profile_name ? `Voice: ${p.profile_name}` : "No author profile"} · updated {timeAgo(p.updated_at)}
+          {p.profile_name ? `Voice: ${p.profile_name} · ` : ""}updated {timeAgo(p.updated_at)}
         </span>
         <ArrowRight className="h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
       </div>

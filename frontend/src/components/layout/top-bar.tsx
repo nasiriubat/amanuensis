@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, CheckCircle2, ChevronRight, CircleHelp, Loader2, LogOut, Moon, Settings2, Sun, UserRound } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { STEPS } from "@/lib/flow";
+import { STEPS, titleFor } from "@/lib/flow";
 import type { JobInfo, Profile, Project } from "@/lib/types";
 import { SiteLogo, useSite } from "@/lib/site";
 import { useTheme } from "@/lib/theme";
@@ -39,6 +39,7 @@ const JOB_LABEL: Record<string, string> = {
   draft_section: "Drafting section",
   critique: "Reviewing",
   export: "Exporting",
+  scan: "Scanning the literature",
 };
 
 interface Crumb {
@@ -70,7 +71,7 @@ function useCrumbs(): Crumb[] {
   if (proj) {
     const crumbs: Crumb[] = [{ label: "Library", to: "/library" }, { label: project.data?.title ?? "Project", to: `/projects/${slug}` }];
     const step = STEPS.find((s) => s.to(slug).endsWith(`/${proj.params.step}`));
-    if (step) crumbs.push({ label: step.title });
+    if (step) crumbs.push({ label: project.data ? titleFor(step, project.data) : step.title });
     return crumbs;
   }
   if (prof) return [{ label: "Author profiles", to: "/profiles" }, { label: profile.data?.name ?? "Profile" }];
