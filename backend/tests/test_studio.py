@@ -124,3 +124,41 @@ def test_studio_api_requires_approved_outline(client, admin):
     f = client.post(f"/api/projects/{slug}/lint", headers=admin, json={"text": "We delve — deeply."}).json()
     assert {x["kind"] for x in f} >= {"banned", "dash"}
     client.delete(f"/api/projects/{slug}", headers=admin)
+
+
+def test_review_prompts_render_and_endpoint(client, admin):
+    from app.learn.context import render
+
+    out = render(
+        "critique.j2",
+        kind_name="Tool paper",
+        venue="ICSE",
+        kind_notes="k",
+        checklist="c",
+        playbook="p",
+        facts="",
+        draft="## Intro\n\nText.",
+        total_words=2,
+    )
+    assert "ICSE" in out and "=== DRAFT (2 words) ===" in out
+    out = render(
+        "venue.j2",
+        kind_name="Tool paper",
+        spec="s",
+        plan="",
+        venue_notes="",
+        exemplar_venues="",
+        total_words=0,
+        drafted_sections=0,
+        total_sections=0,
+    )
+    assert '"suggestions"' in out
+    r = client.post("/api/projects", headers=admin, json={"title": "Review flow", "kind": "tool-paper"})
+    slug = r.json()["slug"]
+    assert client.get(f"/api/projects/{slug}/review").json() == {"review": None, "venues": None}
+    assert (
+        client.post(f"/api/projects/{slug}/venue", headers=admin, json={"venue": "PROFES 2027"}).json()["venue"]
+        == "PROFES 2027"
+    )
+    assert client.get(f"/api/projects/{slug}").json()["counts"]["reviewed"] is False
+    client.delete(f"/api/projects/{slug}", headers=admin)

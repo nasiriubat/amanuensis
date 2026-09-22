@@ -107,6 +107,7 @@ def _counts(slug: str) -> dict:
         "cite_requests": _cite_requests(root),
         "figures": _json_len(root / "figures" / "index.json"),
         "exports": len([d for d in (root / "exports").iterdir() if d.is_dir()]) if (root / "exports").exists() else 0,
+        "reviewed": (root / "review.json").exists(),
         "playbook_files": playbook_filled,
         "has_plan": (root / "inputs" / "research-plan.md").exists()
         and (root / "inputs" / "research-plan.md").stat().st_size > 0,

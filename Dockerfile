@@ -40,8 +40,8 @@ COPY backend/app ./app
 COPY backend/seed ./seed
 
 # CPU-only PyTorch keeps the image far smaller than the default CUDA wheels.
-RUN pip install --extra-index-url https://download.pytorch.org/whl/cpu torch \
-    && pip install ".[extract]"
+RUN pip install --timeout 600 --retries 5 --extra-index-url https://download.pytorch.org/whl/cpu torch \
+    && pip install --timeout 600 --retries 5 ".[extract]"
 
 # Bake Docling's layout and table models into the image so first use is offline.
 RUN mkdir -p /models/docling && docling-tools models download -o /models/docling || true

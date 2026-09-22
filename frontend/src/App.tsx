@@ -14,6 +14,7 @@ import { StudioPage } from "@/pages/studio";
 import { ReferencesPage } from "@/pages/references";
 import { FiguresPage } from "@/pages/figures";
 import { ExportPage } from "@/pages/export";
+import { ReviewPage } from "@/pages/review";
 import { ProfilePage } from "@/pages/profile-page";
 import { AccountPage } from "@/pages/account";
 import { AdminLayout } from "@/pages/admin/layout";
@@ -90,6 +91,7 @@ const router = createBrowserRouter([
       { path: "/projects/:slug/references", element: <ReferencesPage /> },
       { path: "/projects/:slug/figures", element: <FiguresPage /> },
       { path: "/projects/:slug/export", element: <ExportPage /> },
+      { path: "/projects/:slug/review", element: <ReviewPage /> },
       { path: "/account", element: <AccountPage /> },
       {
         element: <RequireAdmin />,

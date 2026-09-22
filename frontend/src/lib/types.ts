@@ -85,6 +85,7 @@ export interface ProjectCounts {
   checklist_open: number;
   cite_requests: number;
   exports: number;
+  reviewed: boolean;
   interview_rounds: { rounds: number; answered: number; open: number; done: boolean };
 }
 
@@ -348,4 +349,34 @@ export interface ExportResult {
   warnings: string[];
   compile_error?: string;
   tools: { pandoc: boolean; tectonic: boolean };
+}
+
+export interface ReviewFinding {
+  id: string;
+  section: string;
+  severity: "major" | "minor";
+  kind: string;
+  quote: string;
+  issue: string;
+  fix: string;
+}
+
+export interface ReviewState {
+  verdict: string;
+  summary: string;
+  strengths: string[];
+  findings: ReviewFinding[];
+  cross_section: string[];
+  page_budget: string;
+  words: number;
+  drafted_sections: number;
+  total_sections: number;
+  created_at: string;
+}
+
+export interface VenueSuggestions {
+  suggestions: Array<{ venue: string; track: string; fit: "high" | "medium"; why: string; typical_length: string; template: string; risk: string; ai_policy_note: string }>;
+  recommendation: string;
+  before_submitting: string[];
+  created_at: string;
 }

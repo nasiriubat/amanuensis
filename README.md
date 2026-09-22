@@ -14,8 +14,9 @@ with section-by-section drafting, a checklist of open items, house-style lint an
 history; verified references from Semantic Scholar, OpenAlex, arXiv, .bib import or manual
 entry, with a Cite picker in the Studio; Mermaid figures rendered in the browser and uploaded
 result images; export to LNCS, ACM or a custom template as PDF (Tectonic), DOCX (Pandoc) and a
-LaTeX zip; site settings, logo, SEO and public Markdown pages. Phase 7 is polish: the critique
-pass, venue suggestion and a dark-mode audit.
+LaTeX zip; site settings, logo, SEO and public Markdown pages; a reviewer-style critique pass
+whose major findings land on the checklist, and venue suggestions you can adopt as the target
+venue. All seven build phases from SPEC.md are done; what remains is feedback-driven polish.
 
 ## Run with Docker
 
@@ -31,6 +32,10 @@ to assign a model to each purpose.
 
 All data lives in the `paper_data` volume: SQLite database, projects, profiles,
 templates. Back it up by copying that volume.
+
+The image is large (about 8 GB) because it bakes in CPU PyTorch and the Docling layout
+models so PDF extraction works offline. The first build downloads a few gigabytes; pip runs
+with a long timeout and retries so a slow connection does not fail the build.
 
 ## Run for development
 

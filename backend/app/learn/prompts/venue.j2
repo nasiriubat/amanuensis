@@ -1,0 +1,35 @@
+Suggest where to submit this {{ kind_name }}. Use the paper's specification, what the exemplar papers targeted, and your knowledge of venues in this field. Be honest about uncertainty: name venues you are confident exist, and mark any detail you are unsure of with "(verify)". Never invent deadlines or page limits; describe them as typical ranges and tell the author to check the call.
+
+Respond with a single JSON object:
+{
+  "suggestions": [
+    {"venue": "full name (acronym)", "track": "main, tool, demo, industry, workshop, journal", "fit": "high" | "medium",
+     "why": "two sentences on why this paper fits, referring to its actual contribution",
+     "typical_length": "e.g. 4 to 6 pages plus references (verify)",
+     "template": "lncs" | "acm" | "ieee" | "other",
+     "risk": "one sentence on the main reason it could be rejected there",
+     "ai_policy_note": "one sentence: whether the venue is known to require disclosure of AI assistance, or 'check the call'"}
+  ],
+  "recommendation": "which one to try first and why, two sentences",
+  "before_submitting": ["three to five concrete things to do first"]
+}
+
+Give three suggestions, ordered by fit. Prefer venues consistent with the exemplars' venue type.
+
+=== KIND ===
+{{ kind_name }}
+
+=== SYSTEM SPECIFICATION ===
+{{ spec }}
+
+=== RESEARCH PLAN (planned, not done) ===
+{{ plan if plan.strip() else "(none)" }}
+
+=== PLAYBOOK: VENUE SIGNALS FROM EXEMPLARS ===
+{{ venue_notes if venue_notes.strip() else "(no playbook learned)" }}
+
+=== EXEMPLAR VENUES ===
+{{ exemplar_venues if exemplar_venues.strip() else "(none)" }}
+
+=== CURRENT DRAFT LENGTH ===
+{{ total_words }} words drafted across {{ drafted_sections }} of {{ total_sections }} sections.

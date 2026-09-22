@@ -5,7 +5,7 @@ import type { Project } from "./types";
  * reads from here, so the user is never told two different things.
  */
 
-export type StepKey = "spec" | "design" | "sources" | "playbook" | "interview" | "outline" | "studio" | "references" | "figures" | "export";
+export type StepKey = "spec" | "design" | "sources" | "playbook" | "interview" | "outline" | "studio" | "references" | "figures" | "review" | "export";
 export type StepState = "done" | "current" | "todo" | "locked" | "optional" | "soon";
 
 export interface Step {
@@ -101,6 +101,13 @@ export const STEPS: Step[] = [
     optional: true,
     state: (p) => (p.counts.figures > 0 ? "done" : p.counts.has_spec ? "optional" : "locked"),
     summary: (p) => (p.counts.figures ? `${p.counts.figures} figure${p.counts.figures === 1 ? "" : "s"}.` : "Optional. Architecture diagrams from Mermaid; results and screenshots uploaded."),
+  },
+  {
+    key: "review",
+    title: "Review",
+    to: (s) => `/projects/${s}/review`,
+    state: (p) => (p.counts.reviewed ? "done" : p.counts.sections_drafted > 0 ? "todo" : "locked"),
+    summary: (p) => (p.counts.reviewed ? "Reviewed. Major findings are on the checklist." : p.counts.sections_drafted ? "A reviewer pass over the draft, plus venue suggestions." : "Needs at least one drafted section."),
   },
   {
     key: "export",
