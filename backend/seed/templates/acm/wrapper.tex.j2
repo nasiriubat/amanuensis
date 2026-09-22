@@ -1,0 +1,44 @@
+\documentclass[sigconf,review,anonymous=false]{acmart}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{xcolor}
+\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\newcommand{\needs}[1]{\textcolor{red}{\textbf{[NEEDS: #1]}}}
+\newcommand{\citeneeded}[1]{\textcolor{red}{\textbf{[CITE: #1]}}}
+
+\settopmatter{printacmref=false}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+\pagestyle{plain}
+
+\begin{document}
+
+\title{ {{- title -}} }
+{% if subtitle %}\subtitle{ {{- subtitle -}} }{% endif %}
+{% for a in authors %}
+\author{ {{- a.name -}} }
+{% if a.orcid %}\orcid{ {{- a.orcid -}} }{% endif %}
+{% if a.email %}\email{ {{- a.email -}} }{% endif %}
+\affiliation{
+  \institution{ {{- a.affiliation or "" -}} }
+  \country{ {{- a.country or "" -}} }
+}
+{% endfor %}
+
+{% if abstract %}
+\begin{abstract}
+{{ abstract }}
+\end{abstract}
+{% endif %}
+
+{% if keywords_csv %}\keywords{ {{- keywords_csv -}} }{% endif %}
+
+\maketitle
+
+{{ body }}
+
+{% if has_bib %}
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+{% endif %}
+
+\end{document}

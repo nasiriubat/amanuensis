@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { SiteLogo, useDocumentMeta } from "@/lib/site";
 import { ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Field, Input } from "@/components/ui/input";
 export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const site = useDocumentMeta("Sign in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +21,7 @@ export function LoginPage() {
     setError(null);
     try {
       const u = await login(email, password);
-      navigate(u.must_change_password ? "/account" : "/", { replace: true });
+      navigate(u.must_change_password ? "/account" : "/library", { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not sign in");
     } finally {
@@ -32,11 +33,11 @@ export function LoginPage() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-[380px] animate-in">
         <div className="mb-8 flex flex-col items-center text-center">
-          <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_8px_24px_-8px_var(--primary)]">
-            <BookOpen className="h-5 w-5" />
+          <span className="mb-4">
+            <SiteLogo className="h-12 w-12" iconClassName="h-6 w-6" />
           </span>
-          <h1 className="text-[22px] font-semibold tracking-tight">Paper Writer</h1>
-          <p className="mt-1 text-[13.5px] text-muted-foreground">Sign in to your workspace</p>
+          <h1 className="text-[22px] font-semibold tracking-tight">{site.name}</h1>
+          <p className="mt-1 text-[13.5px] text-muted-foreground">{site.tagline || "Sign in to your workspace"}</p>
         </div>
         <form onSubmit={submit} className="card-surface p-6 shadow-[0_8px_32px_-12px_rgba(16,24,40,0.12)]">
           <div className="flex flex-col gap-4">

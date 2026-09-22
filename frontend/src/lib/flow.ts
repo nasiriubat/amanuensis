@@ -94,8 +94,21 @@ export const STEPS: Step[] = [
           ? `${p.counts.references} verified reference${p.counts.references === 1 ? "" : "s"}.`
           : "Search three indexes, import a .bib, or add by hand. Drafts cite only these.",
   },
-  { key: "figures", title: "Figures", to: (s) => `/projects/${s}`, soonPhase: 6, state: () => "soon", summary: () => "Mermaid diagrams. Results only from your data." },
-  { key: "export", title: "Export", to: (s) => `/projects/${s}`, soonPhase: 6, state: () => "soon", summary: () => "LNCS, ACM or your template. PDF, LaTeX, DOCX." },
+  {
+    key: "figures",
+    title: "Figures",
+    to: (s) => `/projects/${s}/figures`,
+    optional: true,
+    state: (p) => (p.counts.figures > 0 ? "done" : p.counts.has_spec ? "optional" : "locked"),
+    summary: (p) => (p.counts.figures ? `${p.counts.figures} figure${p.counts.figures === 1 ? "" : "s"}.` : "Optional. Architecture diagrams from Mermaid; results and screenshots uploaded."),
+  },
+  {
+    key: "export",
+    title: "Export",
+    to: (s) => `/projects/${s}/export`,
+    state: (p) => (p.counts.exports > 0 ? "done" : p.counts.sections_drafted > 0 ? "todo" : "locked"),
+    summary: (p) => (p.counts.exports ? `${p.counts.exports} export${p.counts.exports === 1 ? "" : "s"} so far.` : p.counts.sections_drafted ? "LNCS, ACM or your own template. PDF, LaTeX zip and DOCX." : "Needs at least one drafted section."),
+  },
 ];
 
 /** The single step the user should do next. */

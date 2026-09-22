@@ -15,6 +15,8 @@ from .db import SessionLocal, init_db
 from .models import User
 from .routers import (
     auth,
+    export,
+    figures,
     interview,
     jobs,
     kinds,
@@ -23,6 +25,7 @@ from .routers import (
     projects,
     providers,
     references,
+    site,
     studio,
     usage,
     users,
@@ -72,6 +75,9 @@ async def lifespan(_: FastAPI):
     storage.seed_defaults()
     seed_admin()
     fail_orphaned_jobs()
+    from .export.service import seed_templates
+
+    seed_templates()
     yield
 
 
@@ -79,8 +85,25 @@ app = FastAPI(
     title="Paper Writer", version="0.1.0", lifespan=lifespan, docs_url="/api/docs", openapi_url="/api/openapi.json"
 )
 
-for r in (auth, users, providers, profiles, projects, papers, interview, studio, references, kinds, usage, jobs):
+for r in (
+    auth,
+    users,
+    providers,
+    profiles,
+    projects,
+    papers,
+    interview,
+    studio,
+    references,
+    kinds,
+    usage,
+    jobs,
+    site,
+    figures,
+    export,
+):
     app.include_router(r.router)
+app.include_router(site.robots_router)
 
 
 @app.get("/api/health")

@@ -1,8 +1,7 @@
-import { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { BookOpen, ChevronsUpDown, Feather, KeyRound, Library, LogOut, Menu, Moon, Settings2, Sun, UserRound, X } from "lucide-react";
+import { ChevronsUpDown, Feather, KeyRound, Library, LogOut, Moon, Settings2, Sun, UserRound } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { SiteLogo, useDocumentMeta, useSite } from "@/lib/site";
 import { useTheme } from "@/lib/theme";
 import { cn, initials } from "@/lib/utils";
 import {
@@ -15,29 +14,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const nav = [
-  { to: "/", label: "Library", icon: Library, end: true },
+  { to: "/library", label: "Library", icon: Library, end: true },
   { to: "/profiles", label: "Author profiles", icon: Feather },
 ];
 
 function Brand() {
+  const site = useSite();
   return (
-    <NavLink to="/" className="flex items-center gap-2.5 px-2 py-1.5">
-      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
-        <BookOpen className="h-4 w-4" />
-      </span>
-      <span className="text-[15px] font-semibold tracking-tight">Paper Writer</span>
+    <NavLink to="/library" className="flex items-center gap-2.5 px-2 py-1.5">
+      <SiteLogo />
+      <span className="truncate text-[15px] font-semibold tracking-tight">{site.name}</span>
     </NavLink>
   );
 }
 
-function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarBody() {
   const { user, logout } = useAuth();
   const { resolved, setTheme } = useTheme();
   const navigate = useNavigate();
-  const go = (to: string) => {
-    onNavigate?.();
-    navigate(to);
-  };
+  const go = (to: string) => navigate(to);
   return (
     <>
       <Brand />
@@ -47,7 +42,6 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
               key={n.to}
               to={n.to}
               end={n.end}
-              onClick={onNavigate}
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
@@ -64,8 +58,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
               <div className="mt-5 mb-1 px-2.5 text-[11px] font-medium uppercase tracking-wide text-subtle">Workspace</div>
               <NavLink
                 to="/admin"
-                onClick={onNavigate}
-                className={({ isActive }) =>
+                  className={({ isActive }) =>
                   cn(
                     "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
                     isActive && "bg-muted text-foreground",
@@ -123,8 +116,15 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 export function AppShell() {
-  const [open, setOpen] = useState(false);
+  const { user } = useAuth();
+  useDocumentMeta();
   const location = useLocation();
+  const bottom = [
+    { to: "/library", label: "Library", icon: Library, end: true },
+    { to: "/profiles", label: "Authors", icon: Feather },
+    ...(user?.role === "admin" ? [{ to: "/admin", label: "Settings", icon: Settings2 }] : []),
+    { to: "/account", label: "Account", icon: UserRound },
+  ];
 
   return (
     <div className="flex min-h-screen">
@@ -132,30 +132,31 @@ export function AppShell() {
         <SidebarBody />
       </aside>
 
-      {/* Mobile: top bar with a drawer */}
-      <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
-        <DialogPrimitive.Portal>
-          <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40 md:hidden" />
-          <DialogPrimitive.Content className="fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col bg-card px-3 py-4 shadow-xl focus:outline-none md:hidden">
-            <DialogPrimitive.Title className="sr-only">Navigation</DialogPrimitive.Title>
-            <DialogPrimitive.Close className="absolute right-3 top-3 rounded-md p-1 text-muted-foreground hover:bg-muted" aria-label="Close menu">
-              <X className="h-4 w-4" />
-            </DialogPrimitive.Close>
-            <SidebarBody onNavigate={() => setOpen(false)} />
-          </DialogPrimitive.Content>
-        </DialogPrimitive.Portal>
-      </DialogPrimitive.Root>
-
       <main className="main-surface min-w-0 flex-1">
-        <div className="sticky top-0 z-40 flex items-center gap-2 border-b border-border bg-background/90 px-3 py-2 backdrop-blur md:hidden">
-          <button onClick={() => setOpen(true)} className="rounded-md p-2 hover:bg-muted" aria-label="Open menu">
-            <Menu className="h-5 w-5" />
-          </button>
+        <div className="sticky top-0 z-40 flex items-center border-b border-border bg-background/90 px-2 py-1.5 backdrop-blur md:hidden">
           <Brand />
         </div>
-        <div key={location.pathname} className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 md:px-8 md:py-8 xl:px-12">
-          <Outlet />
+        <div className="mx-auto w-full max-w-[1480px] px-0 pb-24 md:px-6 md:py-6 md:pb-8 xl:px-10">
+          <div key={location.pathname} className="min-h-[calc(100vh-4rem)] bg-card px-4 py-6 md:min-h-0 md:rounded-[var(--radius-lg)] md:border md:border-border md:px-8 md:py-8 md:shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <Outlet />
+          </div>
         </div>
+
+        <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-card/95 backdrop-blur md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+          {bottom.map((n) => (
+            <NavLink
+              key={n.to}
+              to={n.to}
+              end={n.end}
+              className={({ isActive }) =>
+                cn("flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium text-muted-foreground", isActive && "text-primary")
+              }
+            >
+              <n.icon className="h-5 w-5" />
+              {n.label}
+            </NavLink>
+          ))}
+        </nav>
       </main>
     </div>
   );

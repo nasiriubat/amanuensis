@@ -12,9 +12,10 @@ import { cn } from "@/lib/utils";
  * step uses. [NEEDS: ...] and [CITE: ...] become highlighted marks; [@key] citations
  * become chips, red when the key is not verified.
  */
-export function RichMarkdown({ source, badKeys, className }: { source: string; badKeys?: Set<string>; className?: string }) {
+export function RichMarkdown({ source, badKeys, className, figureBase }: { source: string; badKeys?: Set<string>; className?: string; figureBase?: string }) {
   const html = useMemo(() => {
     let s = source;
+    if (figureBase) s = s.replace(/\]\(figures\/([a-z0-9\-]+)\.[a-z]+\)(\{#fig:[a-z0-9\-]+\})?/g, (_m, name: string) => `](${figureBase}/${name}/file)`);
     s = s.replace(/\[NEEDS:\s*([^\]]+)\]/g, (_m, t: string) => `<mark class="ph ph-needs" title="Open item">NEEDS: ${escape(t.trim())}</mark>`);
     s = s.replace(/\[CITE:\s*([^\]]+)\]/g, (_m, t: string) => `<mark class="ph ph-cite" title="Needs a verified reference">CITE: ${escape(t.trim())}</mark>`);
     s = s.replace(/\[(@[^\]]+)\]/g, (_m, inner: string) => {
@@ -25,7 +26,7 @@ export function RichMarkdown({ source, badKeys, className }: { source: string; b
       return keys.map((k) => `<cite class="${badKeys?.has(k) ? "ck ck-bad" : "ck"}" title="${badKeys?.has(k) ? "Unverified reference" : "Verified reference"}">@${escape(k)}</cite>`).join(" ");
     });
     return s;
-  }, [source, badKeys]);
+  }, [source, badKeys, figureBase]);
 
   return (
     <div className={cn("prose-pw text-[14.5px]", className)}>

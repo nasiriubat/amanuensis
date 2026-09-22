@@ -1,0 +1,11 @@
+{
+  "name": "Springer LNCS",
+  "description": "Lecture Notes in Computer Science. Common for European software engineering conferences and workshops.",
+  "class": "llncs",
+  "bib_style": "splncs04",
+  "bib_engine": "bibtex",
+  "required_files": ["llncs.cls", "splncs04.bst"],
+  "page_limit_hint": "Usually 12 to 16 pages including references; check the call.",
+  "notes": "Springer distributes llncs.cls and splncs04.bst in the LNCS author package. Download it from Springer and upload the two files here; they are not on CTAN.",
+  "download_url": "https://www.springer.com/gp/computer-science/lncs/conference-proceedings-guidelines"
+}

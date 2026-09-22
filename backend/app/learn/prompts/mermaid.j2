@@ -1,0 +1,13 @@
+Draw a {{ diagram }} diagram in Mermaid syntax for the system described below. Show only components, data and steps the specification names; invent nothing. Use short labels (three words or fewer per node). Prefer left-to-right flow for architecture. Return only a fenced ```mermaid block, no prose.
+
+{% if diagram == "architecture" %}Use `flowchart LR` with subgraphs for major parts (for example inputs, processing, storage, interface).{% elif diagram == "sequence" %}Use `sequenceDiagram` with the main actor and the components the specification names.{% elif diagram == "flow" %}Use `flowchart TD` for the main workflow step by step.{% else %}Use the most suitable Mermaid diagram type.{% endif %}
+
+Request from the author: {{ request if request else "the overall architecture" }}
+
+=== SYSTEM SPECIFICATION ===
+{{ spec }}
+
+{% if facts.strip() %}
+=== FACTS ===
+{{ facts }}
+{% endif %}

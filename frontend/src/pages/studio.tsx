@@ -16,13 +16,14 @@ import {
   Lock,
   LockOpen,
   Quote,
+  Image as ImageIcon,
   PenLine,
   RotateCcw,
   Sparkles,
   Wand2,
 } from "lucide-react";
 import { api } from "@/lib/api";
-import type { ChecklistItem, JobInfo, LintFinding, Project, RefRecord, Section, SectionDetail, StudioState } from "@/lib/types";
+import type { ChecklistItem, Figure, JobInfo, LintFinding, Project, RefRecord, Section, SectionDetail, StudioState } from "@/lib/types";
 import { useJobs } from "@/lib/jobs";
 import { useTheme } from "@/lib/theme";
 import { diffLines } from "@/lib/diff";
@@ -35,6 +36,7 @@ import { EmptyState, PageHeader, Skeleton } from "@/components/ui/misc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Tooltip } from "@/components/ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { JobProgress } from "@/components/papers";
 import { ConfirmDialog } from "@/components/dialogs";
 import { RichMarkdown } from "@/components/rich-markdown";
@@ -47,6 +49,17 @@ const STATUS: Record<Section["status"], { label: string; variant: "neutral" | "p
   edited: { label: "Edited", variant: "success" },
   mine: { label: "Yours", variant: "success" },
 };
+
+function useMediaQuery(q: string): boolean {
+  const [match, setMatch] = useState(() => (typeof window !== "undefined" ? window.matchMedia(q).matches : true));
+  useEffect(() => {
+    const mq = window.matchMedia(q);
+    const fn = (e: MediaQueryListEvent) => setMatch(e.matches);
+    mq.addEventListener("change", fn);
+    return () => mq.removeEventListener("change", fn);
+  }, [q]);
+  return match;
+}
 
 function words(text: string): number {
   return (text.replace(/\[(NEEDS|CITE):[^\]]*\]/g, "").match(/[A-Za-z0-9][A-Za-z0-9'-]*/g) ?? []).length;
@@ -266,10 +279,12 @@ export function StudioPage() {
   const { slug = "" } = useParams();
   const qc = useQueryClient();
   const { resolved } = useTheme();
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const project = useQuery({ queryKey: ["project", slug], queryFn: () => api.get<Project>(`/api/projects/${slug}`) });
   const studio = useQuery({ queryKey: ["studio", slug], queryFn: () => api.get<StudioState>(`/api/projects/${slug}/studio`) });
   const checklist = useQuery({ queryKey: ["checklist", slug], queryFn: () => api.get<ChecklistItem[]>(`/api/projects/${slug}/checklist`) });
   const refs = useQuery({ queryKey: ["references", slug], queryFn: () => api.get<RefRecord[]>(`/api/projects/${slug}/references`) });
+  const figs = useQuery({ queryKey: ["figures", slug], queryFn: () => api.get<Figure[]>(`/api/projects/${slug}/figures`) });
   const [selected, setSelected] = useState<string | null>(null);
   const detail = useQuery({ queryKey: ["section", slug, selected], queryFn: () => api.get<SectionDetail>(`/api/projects/${slug}/sections/${selected}`), enabled: !!selected });
 
@@ -400,6 +415,17 @@ export function StudioPage() {
     onChange(view.state.doc.toString());
   };
 
+  const insertFigure = (f: Figure) => {
+    const view = viewRef.current;
+    if (!view) return;
+    const ext = f.kind === "mermaid" ? "svg" : (f.file ?? "x.png").split(".").pop();
+    const { from, to } = view.state.selection.main;
+    const text = `\n\n![${f.caption || f.name}](figures/${f.name}.${ext}){#fig:${f.name}}\n\n`;
+    view.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length } });
+    view.focus();
+    onChange(view.state.doc.toString());
+  };
+
   const jumpTo = (line: number) => {
     const view = viewRef.current;
     if (!view || line < 1 || line > view.state.doc.lines) return;
@@ -469,14 +495,28 @@ export function StudioPage() {
         />
       ) : (
         <div className="grid gap-4 lg:grid-cols-[230px_minmax(0,1fr)_320px]">
-          <aside className="lg:sticky lg:top-6 lg:self-start">
+          <aside className="hidden lg:sticky lg:top-6 lg:block lg:self-start">
             <SectionRail sections={sections} selected={selected} onSelect={setSelected} />
           </aside>
+          <div className="lg:hidden">
+            <Select value={selected ?? undefined} onValueChange={setSelected}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose a section" />
+              </SelectTrigger>
+              <SelectContent>
+                {sections.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.order}. {s.title} · {s.words ?? 0}/{s.target_words} words{s.open_items ? ` · ${s.open_items} open` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="min-w-0">
             {section ? (
               <Card className="overflow-hidden">
-                <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/40 px-3 py-2">
+                <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-muted/40 px-2 py-2 sm:gap-2 sm:px-3">
                   <div className="mr-auto flex min-w-0 items-center gap-2">
                     <h2 className="truncate text-[14px] font-semibold">
                       {section.order}. {section.title}
@@ -515,6 +555,24 @@ export function StudioPage() {
                       ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="sm" variant="secondary" disabled={!figs.data?.length} title={figs.data?.length ? "Insert a figure" : "Add figures first"}>
+                        <ImageIcon className="h-3.5 w-3.5" /> Figure
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="max-h-80 w-[320px] overflow-y-auto">
+                      <DropdownMenuLabel>Insert at cursor</DropdownMenuLabel>
+                      {(figs.data ?? []).map((f) => (
+                        <DropdownMenuItem key={f.name} onSelect={() => insertFigure(f)}>
+                          <span className="min-w-0">
+                            <span className="block truncate text-[12.5px]">{f.caption || f.name}</span>
+                            <span className="block font-mono text-[11px] text-subtle">figures/{f.name}</span>
+                          </span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <Tooltip content={section.status === "mine" ? "Unlock: allow regeneration without asking" : "Mark as yours: regeneration will ask first"}>
                     <Button size="sm" variant="ghost" onClick={() => lock.mutate(section.status !== "mine")} disabled={section.status === "empty"}>
                       {section.status === "mine" ? <LockOpen className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
@@ -537,8 +595,8 @@ export function StudioPage() {
                     onChange={onChange}
                     theme={resolved === "dark" ? "dark" : "light"}
                     extensions={extensions}
-                    height="calc(100vh - 300px)"
-                    minHeight="480px"
+                    height={isDesktop ? "calc(100vh - 300px)" : "auto"}
+                    minHeight={isDesktop ? "480px" : "260px"}
                     basicSetup={{ lineNumbers: false, foldGutter: false, highlightActiveLine: false, highlightActiveLineGutter: false }}
                     onCreateEditor={(view) => {
                       viewRef.current = view;
@@ -572,10 +630,10 @@ export function StudioPage() {
                     Issues{findings.length ? <span className="ml-1 rounded-full bg-muted-foreground/30 px-1.5 text-[10px]">{findings.length}</span> : null}
                   </TabsTrigger>
                 </TabsList>
-                <TabsContent value="preview" className="max-h-[calc(100vh-320px)] overflow-y-auto">
-                  {text.trim() ? <RichMarkdown source={`## ${section?.title ?? ""}\n\n${text}`} badKeys={badKeys} /> : <p className="text-[13px] text-subtle">Nothing to preview yet.</p>}
+                <TabsContent value="preview" className="max-h-[60vh] overflow-y-auto lg:max-h-[calc(100vh-320px)]">
+                  {text.trim() ? <RichMarkdown source={`## ${section?.title ?? ""}\n\n${text}`} badKeys={badKeys} figureBase={`/api/projects/${slug}/figures`} /> : <p className="text-[13px] text-subtle">Nothing to preview yet.</p>}
                 </TabsContent>
-                <TabsContent value="outline" className="max-h-[calc(100vh-320px)] overflow-y-auto">
+                <TabsContent value="outline" className="max-h-[60vh] overflow-y-auto lg:max-h-[calc(100vh-320px)]">
                   <p className="mb-2 text-[12px] text-muted-foreground">One paragraph per line. The draft follows these in order.</p>
                   <ol className="flex flex-col gap-2 text-[13px]">
                     {(section?.lines ?? []).map((l, i) => (
@@ -586,10 +644,10 @@ export function StudioPage() {
                     ))}
                   </ol>
                 </TabsContent>
-                <TabsContent value="checklist" className="max-h-[calc(100vh-320px)] overflow-y-auto">
+                <TabsContent value="checklist" className="max-h-[60vh] overflow-y-auto lg:max-h-[calc(100vh-320px)]">
                   <ChecklistPanel slug={slug} items={checklist.data ?? []} sectionTitle={section?.title ?? null} />
                 </TabsContent>
-                <TabsContent value="issues" className="max-h-[calc(100vh-320px)] overflow-y-auto">
+                <TabsContent value="issues" className="max-h-[60vh] overflow-y-auto lg:max-h-[calc(100vh-320px)]">
                   <IssuesPanel findings={findings} onJump={jumpTo} />
                 </TabsContent>
               </Tabs>

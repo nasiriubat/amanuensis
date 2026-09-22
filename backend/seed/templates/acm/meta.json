@@ -1,0 +1,11 @@
+{
+  "name": "ACM (acmart)",
+  "description": "ACM conference proceedings via the acmart class, sigconf format.",
+  "class": "acmart",
+  "bib_style": "ACM-Reference-Format",
+  "bib_engine": "bibtex",
+  "required_files": [],
+  "page_limit_hint": "Depends on the track; demo and tool tracks are often 4 to 6 pages plus references.",
+  "notes": "acmart and its bibliography style are on CTAN, so the compiler fetches them automatically.",
+  "download_url": "https://www.acm.org/publications/proceedings-template"
+}

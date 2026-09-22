@@ -130,7 +130,7 @@ function ChatPanel({ slug, onPinned }: { slug: string; onPinned: () => void }) {
   }, [chat.data?.length, send.isPending]);
 
   return (
-    <Card className="flex h-[calc(100vh-220px)] min-h-[480px] flex-col overflow-hidden lg:sticky lg:top-8">
+    <Card className="flex h-[70vh] min-h-[420px] flex-col overflow-hidden lg:sticky lg:top-8 lg:h-[calc(100vh-220px)]">
       <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
         <div className="flex items-center gap-2 text-[13px] font-semibold">
           <MessageSquareText className="h-4 w-4 text-primary" /> Think out loud

@@ -73,3 +73,30 @@ def test_user_crud_and_isolation(client):
     assert any(p["slug"] == slug for p in client.get("/api/projects").json())
     client.delete(f"/api/users/{bob_id}", headers=h)
     assert client.get(f"/api/projects/{slug}").status_code == 404
+
+
+def test_site_settings_and_pages(client):
+    client.cookies.clear()
+    s = client.get("/api/site").json()
+    assert s["name"] == "Paper Writer" and s["nav_pages"] == [] and s["logo_url"] is None
+    assert "Disallow: /api/" in client.get("/robots.txt").text
+    h = login(client)
+    r = client.put("/api/admin/site", headers=h, json={"name": "TUNI Papers", "tagline": "t", "seo": {"index": False}})
+    assert r.status_code == 200 and r.json()["name"] == "TUNI Papers"
+    assert client.get("/robots.txt").text.strip() == "User-agent: *\nDisallow: /"
+    r = client.post(
+        "/api/admin/pages",
+        headers=h,
+        json={"title": "About us", "content": "# About\n\nHello", "published": False, "show_in_nav": True},
+    )
+    assert r.status_code == 201 and r.json()["slug"] == "about-us"
+    pid = r.json()["id"]
+    assert client.get("/api/pages/about-us").status_code == 404  # unpublished
+    client.patch(f"/api/admin/pages/{pid}", headers=h, json={"published": True})
+    assert client.get("/api/pages/about-us").json()["content"].startswith("# About")
+    assert client.get("/api/site").json()["nav_pages"] == [{"slug": "about-us", "title": "About us"}]
+    assert client.put("/api/admin/site", headers=h, json={"name": "X", "homepage": "nope"}).status_code == 400
+    assert client.put("/api/admin/site", headers=h, json={"name": "X", "homepage": "about-us"}).status_code == 200
+    client.delete(f"/api/admin/pages/{pid}", headers=h)
+    assert client.get("/api/admin/site", headers=h).json()["homepage"] == "login"
+    client.put("/api/admin/site", headers=h, json={"name": "Paper Writer", "seo": {"index": True}})

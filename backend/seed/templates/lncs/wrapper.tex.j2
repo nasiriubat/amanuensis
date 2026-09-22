@@ -1,0 +1,39 @@
+\documentclass[runningheads]{llncs}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{longtable}
+\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\newcommand{\needs}[1]{\textcolor{red}{\textbf{[NEEDS: #1]}}}
+\newcommand{\citeneeded}[1]{\textcolor{red}{\textbf{[CITE: #1]}}}
+\renewcommand\UrlFont{\color{blue}\rmfamily}
+
+\begin{document}
+
+\title{ {{- title -}} }
+{% if subtitle %}\subtitle{ {{- subtitle -}} }{% endif %}
+\author{ {%- for a in authors -%}{{ a.name }}{% if a.orcid %}\orcidID{ {{- a.orcid -}} }{% endif %}{% if not loop.last %} \and {% endif %}{%- endfor -%} }
+\authorrunning{ {{- running_authors -}} }
+\institute{ {%- for inst in institutes -%}{{ inst }}{% if not loop.last %} \and {% endif %}{%- endfor -%} }
+
+\maketitle
+
+{% if abstract %}
+\begin{abstract}
+{{ abstract }}
+{% if keywords_lncs %}\keywords{ {{- keywords_lncs -}} }{% endif %}
+\end{abstract}
+{% endif %}
+
+{{ body }}
+
+{% if has_bib %}
+\bibliographystyle{splncs04}
+\bibliography{refs}
+{% endif %}
+
+\end{document}

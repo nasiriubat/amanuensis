@@ -213,3 +213,4 @@
 .cm-editor .cm-lintRange-warning { background-image: none; border-bottom: 2px solid var(--warning); }
 .cm-editor .cm-lintRange-info { background-image: none; border-bottom: 1px dotted var(--subtle); }
 .cm-editor .cm-tooltip { background: var(--card); color: var(--foreground); border: 1px solid var(--border); border-radius: 8px; font-family: var(--font-sans); font-size: 12.5px; }
+.prose-pw img { max-width: 100%; border-radius: 8px; background: white; border: 1px solid var(--border); }

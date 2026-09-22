@@ -77,6 +77,15 @@ def _cite_requests(root: Path) -> int:
     return sum(len(re.findall(r"\[CITE:", f.read_text(encoding="utf-8", errors="ignore"))) for f in d.glob("*.md"))
 
 
+def _json_len(p: Path) -> int:
+    if not p.exists():
+        return 0
+    try:
+        return len(json.loads(p.read_text(encoding="utf-8")))
+    except (json.JSONDecodeError, TypeError):
+        return 0
+
+
 def _counts(slug: str) -> dict:
     root = storage.project_dir(slug)
 
@@ -96,7 +105,8 @@ def _counts(slug: str) -> dict:
         "checklist_open": _checklist_open(root),
         "references": len(list((root / "references").glob("*.json"))) if (root / "references").exists() else 0,
         "cite_requests": _cite_requests(root),
-        "figures": count("figures"),
+        "figures": _json_len(root / "figures" / "index.json"),
+        "exports": len([d for d in (root / "exports").iterdir() if d.is_dir()]) if (root / "exports").exists() else 0,
         "playbook_files": playbook_filled,
         "has_plan": (root / "inputs" / "research-plan.md").exists()
         and (root / "inputs" / "research-plan.md").stat().st_size > 0,

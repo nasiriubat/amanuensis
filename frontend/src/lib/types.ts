@@ -84,6 +84,7 @@ export interface ProjectCounts {
   sections_drafted: number;
   checklist_open: number;
   cite_requests: number;
+  exports: number;
   interview_rounds: { rounds: number; answered: number; open: number; done: boolean };
 }
 
@@ -304,4 +305,47 @@ export interface RefRequest {
   section_id: string;
   text: string;
   query: string;
+}
+
+export interface Figure {
+  name: string;
+  kind: "mermaid" | "image";
+  caption: string;
+  file: string | null;
+  source_file: string | null;
+  png_file: string | null;
+  source?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface TemplateInfo {
+  slug: string;
+  name: string;
+  description: string;
+  class: string;
+  bib_style: string;
+  required_files: string[];
+  missing_files: string[];
+  ready: boolean;
+  files: string[];
+  page_limit_hint?: string;
+  notes?: string;
+  download_url?: string;
+  custom?: boolean;
+}
+
+export interface PaperMeta {
+  authors: Array<{ name: string; affiliation: string; email: string; country: string; orcid: string }>;
+  keywords: string[];
+  subtitle: string;
+}
+
+export interface ExportResult {
+  stamp: string;
+  template: string;
+  files: string[];
+  warnings: string[];
+  compile_error?: string;
+  tools: { pandoc: boolean; tectonic: boolean };
 }

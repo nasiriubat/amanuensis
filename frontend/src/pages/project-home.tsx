@@ -127,7 +127,7 @@ export function ProjectHomePage() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["projects"] });
       toast.success("Project deleted");
-      navigate("/");
+      navigate("/library");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -146,7 +146,7 @@ export function ProjectHomePage() {
 
   return (
     <div className="animate-in">
-      <Link to="/" className="mb-4 inline-flex items-center gap-1 text-[12.5px] font-medium text-muted-foreground hover:text-foreground">
+      <Link to="/library" className="mb-4 inline-flex items-center gap-1 text-[12.5px] font-medium text-muted-foreground hover:text-foreground">
         <ChevronLeft className="h-3.5 w-3.5" /> Library
       </Link>
       <PageHeader
