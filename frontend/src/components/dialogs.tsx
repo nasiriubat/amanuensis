@@ -11,8 +11,6 @@ import { Field, Input, Textarea } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
-const NONE = "__none__";
-
 const ENTRIES: Array<{ value: ProjectEntry; label: string; icon: typeof FileText; next: string }> = [
   { value: "built", label: "I built something", icon: FileText, next: "You start by describing the system; the interview fills what a reviewer would ask." },
   { value: "idea", label: "I have an idea", icon: Lightbulb, next: "You start with research design: refine or explore the idea and get a study plan first." },
@@ -22,12 +20,9 @@ const ENTRIES: Array<{ value: ProjectEntry; label: string; icon: typeof FileText
 export function NewProjectDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpenChange: (o: boolean) => void; onCreated: (p: Project) => void }) {
   const qc = useQueryClient();
   const kinds = useQuery({ queryKey: ["kinds"], queryFn: () => api.get<KindSummary[]>("/api/kinds"), enabled: open });
-  const profiles = useQuery({ queryKey: ["profiles"], queryFn: () => api.get<Profile[]>("/api/profiles"), enabled: open });
   const [title, setTitle] = useState("");
   const [kind, setKind] = useState("tool-paper");
   const [entry, setEntry] = useState<ProjectEntry>("built");
-  const [profileId, setProfileId] = useState(NONE);
-  const [venue, setVenue] = useState("");
 
   const create = useMutation({
     mutationFn: () =>
@@ -35,14 +30,11 @@ export function NewProjectDialog({ open, onOpenChange, onCreated }: { open: bool
         title: title.trim(),
         kind,
         entry,
-        profile_id: profileId === NONE ? null : profileId,
-        venue: venue.trim() || null,
       }),
     onSuccess: (p) => {
       void qc.invalidateQueries({ queryKey: ["projects"] });
       onOpenChange(false);
       setTitle("");
-      setVenue("");
       onCreated(p);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -97,26 +89,7 @@ export function NewProjectDialog({ open, onOpenChange, onCreated }: { open: bool
               </SelectContent>
             </Select>
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Author voice (optional)" hint="Learned from one author's own papers so drafts sound like them. Not needed to start.">
-              <Select value={profileId} onValueChange={setProfileId}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>House style</SelectItem>
-                  {(profiles.data ?? []).map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Target venue" hint="Optional. Can be suggested later.">
-              <Input value={venue} onChange={(e) => setVenue(e.target.value)} placeholder="e.g. ICSE 2027 Demo" />
-            </Field>
-          </div>
+          <p className="text-[12px] text-muted-foreground">Drafts follow the house style. An author voice and a target venue can be set later in Project settings; the Review step suggests venues.</p>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel

@@ -1,10 +1,11 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, Sparkles } from "lucide-react";
+import { BookOpen, ChevronLeft, Sparkles } from "lucide-react";
 import { api } from "@/lib/api";
 import type { Project } from "@/lib/types";
 import { useJobs } from "@/lib/jobs";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { PageHeader, SectionTitle, Skeleton } from "@/components/ui/misc";
 import { AddPapers, JobProgress, PaperList } from "@/components/papers";
 import { NextStepBar } from "@/components/flow";
@@ -35,6 +36,17 @@ export function SourcesPage() {
           </Button>
         }
       />
+      {p.counts.exemplars > 0 && p.counts.exemplars < 5 ? (
+        <Card className="mb-4 flex flex-wrap items-center gap-3 border-primary/30 bg-primary-soft/30 px-4 py-3 text-[13px]">
+          <BookOpen className="h-4 w-4 shrink-0 text-primary" />
+          <div className="min-w-0 flex-1">
+            <span className="font-medium">
+              {p.counts.exemplars} exemplar{p.counts.exemplars === 1 ? "" : "s"} so far. Aim for five to ten.
+            </span>{" "}
+            <span className="text-muted-foreground">In our own test, a playbook from three papers barely changed the drafts; one from ten was visibly richer in quotes, counts and verbs. The scan below finds candidates from your idea.</span>
+          </div>
+        </Card>
+      ) : null}
       <div className="mb-6">
         <LiteratureScan slug={slug} projectId={p.id} />
       </div>

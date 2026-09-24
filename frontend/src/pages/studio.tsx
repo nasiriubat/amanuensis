@@ -11,6 +11,7 @@ import {
   Check,
   ChevronLeft,
   CircleDashed,
+  Feather,
   History,
   ListChecks,
   Lock,
@@ -25,7 +26,7 @@ import {
   Wand2,
 } from "lucide-react";
 import { api } from "@/lib/api";
-import type { ChecklistItem, Figure, FixProposal, JobInfo, LintFinding, Project, RefRecord, Section, SectionDetail, StudioState } from "@/lib/types";
+import type { ChecklistItem, Figure, FixProposal, JobInfo, LintFinding, Profile, Project, RefRecord, Section, SectionDetail, StudioState } from "@/lib/types";
 import { useJobs } from "@/lib/jobs";
 import { useTheme } from "@/lib/theme";
 import { diffLines, diffWords } from "@/lib/diff";
@@ -374,6 +375,23 @@ export function StudioPage() {
   const checklist = useQuery({ queryKey: ["checklist", slug], queryFn: () => api.get<ChecklistItem[]>(`/api/projects/${slug}/checklist`) });
   const refs = useQuery({ queryKey: ["references", slug], queryFn: () => api.get<RefRecord[]>(`/api/projects/${slug}/references`) });
   const figs = useQuery({ queryKey: ["figures", slug], queryFn: () => api.get<Figure[]>(`/api/projects/${slug}/figures`) });
+  const profiles = useQuery({ queryKey: ["profiles"], queryFn: () => api.get<Profile[]>("/api/profiles") });
+  const voiceKey = `pw.voiceHint.${slug}`;
+  const [voiceHintHidden, setVoiceHintHidden] = useState(() => {
+    try {
+      return localStorage.getItem(voiceKey) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const hideVoiceHint = () => {
+    setVoiceHintHidden(true);
+    try {
+      localStorage.setItem(voiceKey, "1");
+    } catch {
+      /* private mode: the hint simply returns next visit */
+    }
+  };
   const [selected, setSelected] = useState<string | null>(null);
   const detail = useQuery({ queryKey: ["section", slug, selected], queryFn: () => api.get<SectionDetail>(`/api/projects/${slug}/sections/${selected}`), enabled: !!selected });
 
@@ -607,6 +625,24 @@ export function StudioPage() {
       />
 
       <JobProgress jobs={jobs} onDismiss={dismiss} />
+
+      {studio.data.initialized && !p.profile_id && !voiceHintHidden && (profiles.data ?? []).some((pr) => pr.status === "ready") ? (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-[var(--radius-sm)] border border-border bg-muted/40 px-4 py-2.5 text-[13px]">
+          <Feather className="h-4 w-4 shrink-0 text-primary" />
+          <span className="min-w-0 flex-1">
+            <span className="font-medium">Draft in a learned voice?</span>{" "}
+            <span className="text-muted-foreground">
+              {(profiles.data ?? []).filter((pr) => pr.status === "ready").map((pr) => pr.name).join(", ")} {(profiles.data ?? []).filter((pr) => pr.status === "ready").length === 1 ? "is" : "are"} ready. Drafts currently follow the house style only.
+            </span>
+          </span>
+          <Link to={`/projects/${slug}`} className="text-[12.5px] font-medium text-primary hover:underline">
+            Choose in Project settings
+          </Link>
+          <button onClick={hideVoiceHint} className="text-[12.5px] text-subtle hover:text-foreground">
+            Keep house style
+          </button>
+        </div>
+      ) : null}
 
       {studio.data.initialized && missing.length ? (
         <Card className="mb-4 flex flex-wrap items-center gap-2 border-warning/40 bg-warning-soft/30 px-4 py-3">

@@ -40,9 +40,12 @@ export function BudgetPicker({ value, onChange, disabled }: { value: number; onC
         >
           <div className="flex items-center justify-between">
             <span className="text-[13px] font-semibold">{b.label}</span>
-            <span className="font-mono text-[11px] text-subtle">{(b.value / 1000).toFixed(0)}k chars</span>
+            {b.value === 40_000 ? <span className="text-[10.5px] font-medium uppercase tracking-wide text-primary">Recommended</span> : null}
           </div>
           <div className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{b.hint}</div>
+          <div className="mt-1 text-[11px] tabular-nums text-subtle">
+            about {b.tokens}k tokens per paper · {b.minutes} min for ten papers
+          </div>
         </button>
       ))}
     </div>

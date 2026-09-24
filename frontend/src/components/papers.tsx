@@ -272,7 +272,7 @@ export function PaperList({ listUrl, itemUrl, citeUrl, emptyTitle, emptyText }: 
 }
 
 export const BUDGETS = [
-  { value: 15_000, label: "Small", hint: "~4k tokens per paper. Good for a first look and cheap experiments." },
-  { value: 40_000, label: "Standard", hint: "~10k tokens per paper. Enough to see every section in some depth." },
-  { value: 90_000, label: "Full", hint: "~22k tokens per paper. Nearly the whole paper for most conference papers." },
+  { value: 15_000, label: "Quick look", tokens: 4, minutes: "1 to 2", hint: "A first impression. Fine for trying the tool." },
+  { value: 40_000, label: "Standard", tokens: 10, minutes: "2 to 4", hint: "Every section in some depth. The right choice for most papers." },
+  { value: 90_000, label: "Thorough", tokens: 22, minutes: "4 to 8", hint: "Nearly the whole paper. For the final playbook before drafting." },
 ];

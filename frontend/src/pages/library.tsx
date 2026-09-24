@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Feather, FileText, Plus } from "lucide-react";
+import { ArrowRight, CheckCircle2, Circle, Feather, FileText, Plus } from "lucide-react";
 import { api } from "@/lib/api";
-import type { Profile, Project } from "@/lib/types";
+import type { Profile, Project, Provider, PurposeAssignment, User } from "@/lib/types";
 import { timeAgo } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -76,6 +76,71 @@ export function ProfileCard({ p }: { p: Profile }) {
   );
 }
 
+/** Shown to admins until the workspace can actually run: a provider with a key, a model per
+ *  purpose, and at least one other member. Each line links to where it is fixed. */
+function FirstRunChecklist() {
+  const providers = useQuery({ queryKey: ["providers"], queryFn: () => api.get<Provider[]>("/api/providers") });
+  const purposes = useQuery({ queryKey: ["purposes"], queryFn: () => api.get<PurposeAssignment[]>("/api/purposes") });
+  const users = useQuery({ queryKey: ["users"], queryFn: () => api.get<User[]>("/api/users") });
+  const [alone, setAlone] = useState(() => {
+    try {
+      return localStorage.getItem("pw.firstRun.alone") === "1";
+    } catch {
+      return false;
+    }
+  });
+  if (!providers.data || !purposes.data || !users.data) return null;
+  const hasProvider = providers.data.some((p) => p.enabled && p.has_key);
+  const unassigned = purposes.data.filter((p) => !p.model);
+  const hasMembers = alone || users.data.filter((u) => u.is_active).length >= 2;
+  const items = [
+    { done: hasProvider, label: hasProvider ? "A model provider is connected" : "Connect a model provider and add its API key", to: "/admin/providers" },
+    { done: unassigned.length === 0, label: unassigned.length === 0 ? "Every purpose has a model" : `Pick a model for ${unassigned.length} purpose${unassigned.length === 1 ? "" : "s"} (${unassigned.map((p) => p.purpose).join(", ")})`, to: "/admin/models" },
+    { done: hasMembers, label: hasMembers ? "Colleagues invited" : "Invite a colleague, or skip this if you work alone", to: "/admin/users" },
+  ];
+  if (items.every((i) => i.done)) return null;
+  const doneCount = items.filter((i) => i.done).length;
+  return (
+    <Card className="mb-6 p-4">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-[14px] font-semibold">Set up the workspace</h3>
+          <p className="text-[12.5px] text-muted-foreground">Nobody can draft until the first two are done. This card disappears by itself.</p>
+        </div>
+        <span className="text-[12px] tabular-nums text-subtle">
+          {doneCount} of {items.length}
+        </span>
+      </div>
+      <ol className="flex flex-col gap-1">
+        {items.map((it) => (
+          <li key={it.to}>
+            <Link to={it.to} className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] hover:bg-muted">
+              {it.done ? <CheckCircle2 className="h-4 w-4 shrink-0 text-success" /> : <Circle className="h-4 w-4 shrink-0 text-border-strong" />}
+              <span className={it.done ? "text-muted-foreground line-through" : ""}>{it.label}</span>
+              {!it.done ? <ArrowRight className="ml-auto h-3.5 w-3.5 text-subtle" /> : null}
+            </Link>
+          </li>
+        ))}
+      </ol>
+      {!hasMembers && hasProvider && unassigned.length === 0 ? (
+        <button
+          onClick={() => {
+            setAlone(true);
+            try {
+              localStorage.setItem("pw.firstRun.alone", "1");
+            } catch {
+              /* fine without storage */
+            }
+          }}
+          className="mt-2 px-2 text-[12.5px] font-medium text-primary hover:underline"
+        >
+          I work alone, hide this
+        </button>
+      ) : null}
+    </Card>
+  );
+}
+
 export function LibraryPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -103,6 +168,8 @@ export function LibraryPage() {
           </>
         }
       />
+
+      {user?.role === "admin" ? <FirstRunChecklist /> : null}
 
       <SectionTitle>Projects</SectionTitle>
       {projects.isLoading ? (
