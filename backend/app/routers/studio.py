@@ -83,6 +83,26 @@ def init_studio(slug: str, user: User = Depends(current_user), db: Session = Dep
     return _views(root)
 
 
+class ImportIn(BaseModel):
+    markdown: str = Field(min_length=1, max_length=400_000)
+
+
+@router.post("/studio/import")
+def import_draft(slug: str, body: ImportIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """An author who already has a draft pastes it; headings become sections marked as theirs."""
+    p, root = _root(db, user, slug)
+    if svc.load_index(root)["sections"]:
+        raise HTTPException(400, "This project already has sections. Paste text into a section in the Studio instead.")
+    try:
+        result = svc.import_draft(root, body.markdown, p.title)
+        svc.seed_kind_checklist(root, p.kind, svc.parse_outline(storage.read_text(root / "outline.md")))
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    p.stage = "drafting"
+    db.commit()
+    return {**_views(root), "imported": result}
+
+
 @router.get("/sections/{section_id}")
 def get_section(slug: str, section_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
     _, root = _root(db, user, slug)

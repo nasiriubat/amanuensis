@@ -133,3 +133,23 @@ def read_paper(root: Path, paper_id: str) -> tuple[dict, str] | None:
         return None
     md = (folder / "extracted.md").read_text(encoding="utf-8") if (folder / "extracted.md").exists() else ""
     return meta, md
+
+
+async def ingest_pdf_url(root: Path, url: str, ctx: JobContext, title: str = "") -> dict:
+    """Download an open-access PDF and ingest it like an upload. Used when the literature scan
+    finds a paper that is not on arXiv but has a public PDF."""
+    import httpx
+
+    ctx.progress(3, f"Downloading {url[:80]}")
+    async with httpx.AsyncClient(
+        follow_redirects=True, timeout=60, headers={"User-Agent": "paper-writer/0.1"}
+    ) as client:
+        r = await client.get(url)
+    r.raise_for_status()
+    data = r.content
+    if len(data) > 40 * 1024 * 1024:
+        raise ValueError("PDF larger than 40 MB")
+    if data[:5] != b"%PDF-":
+        raise ValueError("The link did not return a PDF; the publisher may require a login. Upload the file instead.")
+    name = re.sub(r"[^A-Za-z0-9]+", "-", title or url.rsplit("/", 1)[-1])[:60].strip("-") or "paper"
+    return await ingest_pdf(root, data, f"{name}.pdf", ctx)

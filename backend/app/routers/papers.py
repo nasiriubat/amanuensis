@@ -78,6 +78,16 @@ def start_exemplar_ingest(db: Session, user: User, project, arxiv_id: str) -> di
     return job_dict(job)
 
 
+def start_exemplar_pdf_ingest(db: Session, user: User, project, url: str, title: str = "") -> dict:
+    """Queue an open-access PDF as a project exemplar."""
+    root = storage.project_dir(project.slug) / "exemplars"
+    job = create_job(
+        db, user_id=user.id, type="ingest_pdf", project_id=project.id, message=f"Queued {title or url}"[:200]
+    )
+    start_job(job, lambda ctx: ingest.ingest_pdf_url(root, url, ctx, title))
+    return job_dict(job)
+
+
 @router.post("/projects/{slug}/exemplars/arxiv", status_code=202)
 async def add_exemplar_arxiv(
     slug: str, body: ArxivIn, user: User = Depends(current_user), db: Session = Depends(get_db)

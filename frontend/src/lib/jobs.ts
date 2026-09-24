@@ -3,6 +3,25 @@ import { useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";
 import type { JobInfo } from "./types";
 
+/** Human names for background job types, shared by every progress list. */
+export const JOB_LABELS: Record<string, string> = {
+  ingest_arxiv: "Fetching from arXiv",
+  ingest_pdf: "Extracting PDF",
+  learn_playbook: "Learning the playbook",
+  learn_profile: "Learning the voice",
+  research_plan: "Designing the study",
+  interview_round: "Preparing interview questions",
+  outline: "Extracting facts and outlining",
+  draft_section: "Drafting a section",
+  scan: "Scanning the literature",
+  critique: "Reviewing the draft",
+  export: "Exporting",
+};
+
+export function jobLabel(type: string): string {
+  return JOB_LABELS[type] ?? type.replace(/_/g, " ");
+}
+
 /**
  * Tracks background jobs for one project or profile. Loads active jobs on mount, streams
  * progress over SSE, and keeps finished jobs visible until dismissed.

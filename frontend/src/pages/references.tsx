@@ -297,7 +297,31 @@ export function ReferencesPage() {
               className="py-10"
             />
           ) : results.length === 0 ? (
-            <EmptyState icon={<Search />} title="Nothing found" description="Try fewer, more specific words, or the exact title." className="py-10" />
+            <EmptyState
+              icon={<Search />}
+              title={errors.length >= 3 ? "The indexes did not answer" : "Nothing found"}
+              description={
+                errors.length >= 3
+                  ? "All three academic indexes are throttling this server right now. You can still add the reference by hand or import a .bib file; both count as verified because you vouch for them."
+                  : "Try fewer, more specific words, or the exact title. If you know the paper, add it by hand."
+              }
+              action={
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => setManual(true)}>
+                    <Plus className="h-3.5 w-3.5" /> Add by hand
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()}>
+                    <Upload className="h-3.5 w-3.5" /> Import .bib
+                  </Button>
+                  {q.trim() ? (
+                    <Button size="sm" variant="ghost" onClick={() => runSearch(q)}>
+                      Try again
+                    </Button>
+                  ) : null}
+                </div>
+              }
+              className="py-10"
+            />
           ) : (
             <div className="flex flex-col gap-2.5">
               {results.map((c, i) => (

@@ -30,6 +30,7 @@ class Candidate:
     doi: str | None = None
     url: str | None = None
     arxiv_id: str | None = None
+    pdf_url: str | None = None  # open-access PDF when the index knows one
     abstract: str | None = None
     citation_count: int | None = None
     source: str = ""
@@ -111,11 +112,12 @@ def _openalex_abstract(inv: dict | None) -> str | None:
 
 
 async def openalex(client: httpx.AsyncClient, q: str, limit: int) -> list[Candidate]:
-    r = await client.get(
-        "https://api.openalex.org/works",
-        params={"search": q, "per-page": limit, "mailto": "paper-writer@example.org"},
-        timeout=12,
-    )
+    params = {"search": q, "per-page": limit, "mailto": "paper-writer@example.org"}
+    r = await client.get("https://api.openalex.org/works", params=params, timeout=12)
+    if r.status_code == 429:
+        # OpenAlex's polite pool allows ~10 requests/s; a burst from the scan can trip it.
+        await asyncio.sleep(2.5)
+        r = await client.get("https://api.openalex.org/works", params=params, timeout=12)
     r.raise_for_status()
     out = []
     for i, w in enumerate(r.json().get("results", [])):
@@ -126,10 +128,17 @@ async def openalex(client: httpx.AsyncClient, q: str, limit: int) -> list[Candid
         wtype = w.get("type") or ""
         bibtype = "article" if wtype == "article" else "inproceedings" if "proceedings" in wtype else "misc"
         arxiv = None
-        for lid in (loc.get("landing_page_url") or "", ids.get("openalex") or ""):
-            m = re.search(r"arxiv\.org/abs/([\w.\-/]+)", lid)
-            if m:
-                arxiv = m.group(1)
+        pdf_url = None
+        locations = [loc, w.get("best_oa_location") or {}, *(w.get("locations") or [])]
+        for cand in locations:
+            for lid in (cand.get("landing_page_url") or "", cand.get("pdf_url") or ""):
+                m = re.search(r"arxiv\.org/(?:abs|pdf)/([\w.\-]+?)(?:v\d+)?(?:\.pdf)?$", lid)
+                if m and not arxiv:
+                    arxiv = m.group(1)
+            if not pdf_url and cand.get("pdf_url") and cand.get("is_oa", True):
+                pdf_url = cand["pdf_url"]
+        if not pdf_url:
+            pdf_url = (w.get("open_access") or {}).get("oa_url") or None
         out.append(
             Candidate(
                 title=w.get("display_name") or w.get("title") or "",
@@ -139,6 +148,7 @@ async def openalex(client: httpx.AsyncClient, q: str, limit: int) -> list[Candid
                 doi=doi,
                 url=loc.get("landing_page_url") or ids.get("openalex"),
                 arxiv_id=arxiv,
+                pdf_url=pdf_url,
                 abstract=_openalex_abstract(w.get("abstract_inverted_index")),
                 citation_count=w.get("cited_by_count"),
                 source="openalex",
@@ -234,7 +244,21 @@ async def search(q: str, limit: int = 12) -> tuple[list[Candidate], list[str]]:
     lists: list[list[Candidate]] = []
     for name, r in zip(("Semantic Scholar", "OpenAlex", "arXiv"), results, strict=True):
         if isinstance(r, Exception):
-            errors.append(f"{name}: {type(r).__name__}: {str(r)[:120]}")
+            errors.append(friendly_index_error(name, r))
         else:
             lists.append(r)
     return merge(lists)[:limit], errors
+
+
+def friendly_index_error(index: str, e: Exception) -> str:
+    """What the author can do about it, not the HTTP trace."""
+    text = str(e)
+    if "429" in text:
+        if index == "Semantic Scholar":
+            return "Semantic Scholar is rate-limiting this server. A free API key lifts the limit (see README)."
+        return f"{index} is rate-limiting this server right now. Try again in a minute."
+    if "406" in text and index == "arXiv":
+        return "arXiv refused the request (406). It throttles by address; try again in a few minutes."
+    if "timed out" in text.lower() or "timeout" in text.lower():
+        return f"{index} did not answer in time."
+    return f"{index} could not be reached ({type(e).__name__})."

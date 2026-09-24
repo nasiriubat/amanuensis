@@ -50,7 +50,7 @@ export function DesignPage() {
         <ChevronLeft className="h-3.5 w-3.5" /> {p.title}
       </Link>
       <PageHeader
-        eyebrow={p.counts.has_plan ? <Badge variant="success">Plan written</Badge> : <Badge>Optional stage</Badge>}
+        eyebrow={p.counts.has_plan ? <Badge variant="success">Plan written</Badge> : p.entry === "idea" ? <Badge variant="primary">Start here</Badge> : <Badge>Optional stage</Badge>}
         title="Research design"
         description="From an idea to a study that reviewers of this kind of paper would accept. The plan works backwards from the evidence checklist and never contains results."
       />

@@ -27,7 +27,11 @@ export function MarkdownEditor({ value, onSave, placeholder, minHeight = 320, re
   const ref = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    setDraft(value);
+    setDraft((prev) => {
+      // Content arriving from a background job (plan, outline) lands in preview, not raw Markdown.
+      if (!prev.trim() && value.trim()) setMode("preview");
+      return value;
+    });
   }, [value]);
 
   const dirty = draft !== value;

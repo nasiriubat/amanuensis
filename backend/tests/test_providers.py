@@ -84,3 +84,14 @@ def test_resolve_override_chain(client, admin):
 def test_message_dataclass():
     m = Message("user", "hi")
     assert m.role == "user"
+
+
+def test_provider_errors_are_humanised():
+    from app.routers.providers import friendly_provider_error
+
+    msg = friendly_provider_error(Exception("Error code: 401 - {'error': {'message': 'Incorrect API key provided'}}"))
+    assert msg.startswith("The provider rejected the API key")
+    assert "429" in friendly_provider_error(Exception("HTTP 429 rate limit exceeded"))
+    assert "did not answer" in friendly_provider_error(TimeoutError("Read timed out"))
+    plain = friendly_provider_error(RuntimeError("Something odd\nsecond line"))
+    assert plain.startswith("Something odd") and "second line" not in plain

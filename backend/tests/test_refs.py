@@ -289,3 +289,41 @@ def test_cite_exemplar_and_entry_update(client, admin):
     assert client.patch(f"/api/projects/{slug}", json={"entry": "draft"}, headers=admin).json()["entry"] == "draft"
     assert client.patch(f"/api/projects/{slug}", json={"entry": "other"}, headers=admin).status_code == 422
     client.delete(f"/api/projects/{slug}", headers=admin)
+
+
+def test_openalex_arxiv_id_and_pdf_from_locations(monkeypatch):
+    import asyncio
+
+    from app.refs import providers
+
+    work = {
+        "display_name": "A Paper",
+        "publication_year": 2024,
+        "authorships": [{"author": {"display_name": "A. B."}}],
+        "primary_location": {"landing_page_url": "https://doi.org/10.1/x", "source": {"display_name": "Venue"}},
+        "best_oa_location": {
+            "landing_page_url": "https://arxiv.org/abs/2401.00001v2",
+            "pdf_url": "https://arxiv.org/pdf/2401.00001v2",
+            "is_oa": True,
+        },
+        "locations": [],
+        "doi": "https://doi.org/10.1/x",
+        "type": "article",
+        "cited_by_count": 3,
+    }
+
+    class FakeResp:
+        status_code = 200
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"results": [work]}
+
+    class FakeClient:
+        async def get(self, *a, **k):
+            return FakeResp()
+
+    cands = asyncio.run(providers.openalex(FakeClient(), "q", 5))
+    assert cands[0].arxiv_id == "2401.00001" and cands[0].pdf_url == "https://arxiv.org/pdf/2401.00001v2"

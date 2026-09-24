@@ -3,6 +3,7 @@ import { Link, matchPath, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, CheckCircle2, ChevronRight, CircleHelp, Loader2, LogOut, Moon, Settings2, Sun, UserRound } from "lucide-react";
 import { api } from "@/lib/api";
+import { jobLabel } from "@/lib/jobs";
 import { useAuth } from "@/lib/auth";
 import { STEPS, titleFor } from "@/lib/flow";
 import type { JobInfo, Profile, Project } from "@/lib/types";
@@ -29,17 +30,6 @@ const ADMIN_LABELS: Record<string, string> = {
   pages: "Pages",
   usage: "Usage",
   storage: "Storage",
-};
-
-const JOB_LABEL: Record<string, string> = {
-  ingest_arxiv: "Fetching from arXiv",
-  ingest_pdf: "Extracting PDF",
-  learn_playbook: "Learning playbook",
-  learn_profile: "Learning voice",
-  draft_section: "Drafting section",
-  critique: "Reviewing",
-  export: "Exporting",
-  scan: "Scanning the literature",
 };
 
 interface Crumb {
@@ -146,7 +136,7 @@ function JobsIndicator() {
             )}
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
-                <span className="truncate font-medium">{JOB_LABEL[j.type] ?? j.type.replace(/_/g, " ")}</span>
+                <span className="truncate font-medium">{jobLabel(j.type)}</span>
                 <span className="shrink-0 text-[11px] text-subtle">{timeAgo(j.updated_at)}</span>
               </div>
               <div className="truncate text-muted-foreground">{j.error ?? j.message}</div>

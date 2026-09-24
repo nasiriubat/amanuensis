@@ -33,10 +33,21 @@ export function Field({
   children: React.ReactNode;
   className?: string;
 }) {
+  // Link the label to the control so screen readers and click-to-focus work. A single child
+  // element without its own id receives a generated one; anything else is left alone.
+  const generated = React.useId();
+  let control = children;
+  let htmlFor: string | undefined;
+  if (React.isValidElement(children)) {
+    const props = children.props as { id?: string };
+    htmlFor = props.id ?? generated;
+    if (!props.id && typeof children.type === "string") control = React.cloneElement(children, { id: generated } as object);
+    else if (!props.id) control = React.cloneElement(children, { id: generated } as object);
+  }
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      {label ? <Label>{label}</Label> : null}
-      {children}
+      {label ? <Label htmlFor={htmlFor}>{label}</Label> : null}
+      {control}
       {error ? (
         <p className="text-[12.5px] text-destructive">{error}</p>
       ) : hint ? (

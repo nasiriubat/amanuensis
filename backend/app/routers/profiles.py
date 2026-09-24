@@ -15,7 +15,8 @@ router = APIRouter(prefix="/api/profiles", tags=["profiles"])
 
 def _out(p: AuthorProfile) -> ProfileOut:
     sources = storage.profile_dir(p.slug) / "sources"
-    count = len([f for f in sources.iterdir() if f.is_file()]) if sources.exists() else 0
+    # each source paper is a folder (extracted.md, meta.json, ...); ignore stray files and dot dirs
+    count = len([f for f in sources.iterdir() if f.is_dir() and not f.name.startswith(".")]) if sources.exists() else 0
     return ProfileOut(
         id=p.id,
         slug=p.slug,

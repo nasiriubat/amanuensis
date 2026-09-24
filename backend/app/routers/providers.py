@@ -63,11 +63,28 @@ async def _refresh_models(p: Provider) -> None:
         models = await build_adapter(p).list_models()
         p.models_cache = [{"id": m.id, "name": m.name, "context_window": m.context_window} for m in models]
         p.models_error = None
-    except LLMError as e:
-        p.models_error = str(e)[:1000]
-    except Exception as e:  # network, auth, timeouts
-        p.models_error = f"{type(e).__name__}: {e}"[:1000]
+    except Exception as e:  # LLMError, network, auth, timeouts
+        p.models_error = friendly_provider_error(e)
     p.models_fetched_at = now()
+
+
+def friendly_provider_error(e: Exception) -> str:
+    """One sentence an administrator can act on, instead of the SDK's raw payload."""
+    text = str(e)
+    low = text.lower()
+    if "401" in text or "invalid_api_key" in low or "incorrect api key" in low or "authentication" in low:
+        return "The provider rejected the API key (401). Check the key and save again."
+    if "403" in text or "permission" in low:
+        return "The key is valid but may not list models (403). Check its permissions or type the model name by hand."
+    if "429" in text or "rate limit" in low or "quota" in low:
+        return "The provider is rate-limiting this key (429). Wait a minute and refresh the models."
+    if "404" in text:
+        return "The endpoint was not found (404). Check the base URL; most OpenAI-compatible servers end in /v1."
+    if "timed out" in low or "timeout" in low:
+        return "The endpoint did not answer in time. Check the base URL and that it is reachable from this machine."
+    if "connect" in low or "name or service not known" in low or "nodename" in low:
+        return "Could not connect to the endpoint. Check the base URL and network access from this machine."
+    return (text.split("\n", 1)[0][:160] or type(e).__name__) + " (see server log for details)"
 
 
 @router.get("/providers/presets")

@@ -20,8 +20,9 @@ venue. All seven build phases from SPEC.md are done; what remains is feedback-dr
 
 Three starting points are offered when a project is created. "I built something" opens with
 the specification. "I have an idea" opens with research design and the specification grows out
-of the plan. "I have a draft" makes exemplars optional and sends you to the Studio to paste your
-sections as your own. A literature scan on the Sources and References pages turns the idea, plan
+of the plan. "I have a draft" makes exemplars optional and opens the Studio, where you paste the whole
+draft once: every heading becomes a section marked as yours and its paragraphs become the
+outline, so lint, references, the reviewer and export work on your text from the first minute. A literature scan on the Sources and References pages turns the idea, plan
 and specification into search queries, asks Semantic Scholar, OpenAlex and arXiv, ranks what comes
 back, and lets you adopt papers as verified references or as exemplars in one click. Any exemplar
 can be made citable with one click as well. Author profiles stay optional: without one, drafts

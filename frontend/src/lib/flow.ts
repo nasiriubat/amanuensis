@@ -86,7 +86,12 @@ export const STEPS: Step[] = [
     key: "studio",
     title: "Draft the paper",
     to: (s) => `/projects/${s}/studio`,
-    state: (p) => (p.counts.sections > 0 && p.counts.sections_drafted === p.counts.sections ? "done" : approvedStages.includes(p.stage) ? "todo" : "locked"),
+    state: (p) =>
+      p.counts.sections > 0 && p.counts.sections_drafted === p.counts.sections
+        ? "done"
+        : approvedStages.includes(p.stage) || p.entry === "draft"
+          ? "todo"
+          : "locked",
     summary: (p) =>
       p.counts.sections
         ? `${p.counts.sections_drafted} of ${p.counts.sections} sections drafted${p.counts.checklist_open ? `, ${p.counts.checklist_open} open item${p.counts.checklist_open === 1 ? "" : "s"}` : ""}.`

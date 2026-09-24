@@ -339,6 +339,16 @@ export function StudioPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+  const [importText, setImportText] = useState("");
+  const importDraft = useMutation({
+    mutationFn: () => api.post<StudioState & { imported: { sections: number; with_text: number; words: number } }>(`/api/projects/${slug}/studio/import`, { markdown: importText }),
+    onSuccess: (r) => {
+      refresh();
+      setImportText("");
+      toast.success(`Imported ${r.imported.sections} section${r.imported.sections === 1 ? "" : "s"} as yours`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const save = useMutation({
     mutationFn: () => api.put<SectionDetail>(`/api/projects/${slug}/sections/${selected}`, { content: text }),
     onSuccess: (d) => {
@@ -407,9 +417,16 @@ export function StudioPage() {
   const insertCitation = (key: string) => {
     const view = viewRef.current;
     if (!view) return;
-    const { from, to } = view.state.selection.main;
+    let { from, to } = view.state.selection.main;
+    if (from === to && from === 0 && view.state.doc.length > 0) {
+      // Nobody cites at the very start of a section: with no caret placed, cite the first sentence.
+      const firstLine = view.state.doc.line(1).text;
+      const end = firstLine.search(/[.!?](\s|$)/);
+      from = to = end >= 0 ? end : firstLine.length;
+    }
     const before = view.state.doc.sliceString(Math.max(0, from - 1), from);
-    const text = `${before && before !== " " ? " " : ""}[@${key}]`;
+    const after = view.state.doc.sliceString(to, to + 1);
+    const text = `${before && !/\s/.test(before) ? " " : ""}[@${key}]${after && !/[\s.,;:!?)]/.test(after) ? " " : ""}`;
     view.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length } });
     view.focus();
     onChange(view.state.doc.toString());
@@ -473,26 +490,48 @@ export function StudioPage() {
       <JobProgress jobs={jobs} onDismiss={dismiss} />
 
       {!studio.data.initialized ? (
-        <EmptyState
-          icon={<PenLine />}
-          title={approved ? "Create the sections from your outline" : "Approve the outline first"}
-          description={
-            approved
-              ? "Each ## heading in the approved outline becomes a section file. Its bullet lines become the paragraphs the draft must follow, and every [NEEDS] item lands on the checklist."
-              : "The Studio drafts from an approved outline so the paper follows a plan you agreed to."
-          }
-          action={
-            approved ? (
-              <Button onClick={() => init.mutate()} loading={init.isPending}>
-                <ListChecks className="h-4 w-4" /> Create sections
+        <div className={cn("grid gap-4", "lg:grid-cols-2")}>
+          <Card className={cn("flex flex-col gap-3 p-5", p.entry === "draft" && "border-primary/40 lg:order-first")}>
+            <div>
+              <h3 className="text-[15px] font-semibold">Already have a draft? Paste it here</h3>
+              <p className="mt-1 text-[13px] text-muted-foreground">
+                Every <code className="font-mono text-[12px]">##</code> heading becomes a section marked as yours, and its paragraphs become the outline. Nothing is rewritten; lint, references, the reviewer and export work on your text.
+              </p>
+            </div>
+            <Textarea
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              placeholder={"# Title\n\n## Introduction\nYour first paragraph...\n\n## Approach\n..."}
+              className="min-h-[220px] font-mono text-[12.5px]"
+            />
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[12px] text-subtle">{importText.trim() ? `${importText.trim().split(/\s+/).length.toLocaleString()} words` : "Markdown or plain text with headings"}</span>
+              <Button onClick={() => importDraft.mutate()} loading={importDraft.isPending} disabled={!importText.trim()}>
+                <PenLine className="h-4 w-4" /> Import as my sections
               </Button>
-            ) : (
-              <Link to={`/projects/${slug}/outline`}>
-                <Button variant="secondary">Go to the outline</Button>
-              </Link>
-            )
-          }
-        />
+            </div>
+          </Card>
+          <EmptyState
+            icon={<ListChecks />}
+            title={approved ? "Or create empty sections from your outline" : "Or plan first: approve an outline"}
+            description={
+              approved
+                ? "Each ## heading in the approved outline becomes a section file. Its bullet lines become the paragraphs the draft must follow, and every [NEEDS] item lands on the checklist."
+                : "The model drafts from an approved outline so the paper follows a plan you agreed to. Starting from scratch? Go through the interview and outline first."
+            }
+            action={
+              approved ? (
+                <Button variant="secondary" onClick={() => init.mutate()} loading={init.isPending}>
+                  <ListChecks className="h-4 w-4" /> Create sections
+                </Button>
+              ) : (
+                <Link to={`/projects/${slug}/outline`}>
+                  <Button variant="secondary">Go to the outline</Button>
+                </Link>
+              )
+            }
+          />
+        </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[230px_minmax(0,1fr)_320px]">
           <aside className="hidden lg:sticky lg:top-6 lg:block lg:self-start">
@@ -616,7 +655,7 @@ export function StudioPage() {
           <aside className="min-w-0 lg:sticky lg:top-6 lg:self-start">
             <Card className="p-3">
               <Tabs value={tab} onValueChange={setTab}>
-                <TabsList className="w-full">
+                <TabsList className="h-auto w-full flex-wrap">
                   <TabsTrigger value="preview" className="flex-1">
                     Preview
                   </TabsTrigger>

@@ -174,8 +174,15 @@ export function ExportPage() {
       <PageHeader
         eyebrow={
           <span className="flex gap-2">
-            <Badge variant={tools?.pandoc ? "success" : "warning"}>Pandoc {tools?.pandoc ? "ready" : "missing"}</Badge>
-            <Badge variant={tools?.tectonic ? "success" : "warning"}>Tectonic {tools?.tectonic ? "ready" : "missing"}</Badge>
+            {tools ? (
+
+              <>
+              <Badge variant={tools?.pandoc ? "success" : "warning"}>Pandoc {tools?.pandoc ? "ready" : "missing"}</Badge>
+              <Badge variant={tools?.tectonic ? "success" : "warning"}>Tectonic {tools?.tectonic ? "ready" : "missing"}</Badge>
+
+              </>
+
+            ) : null}
           </span>
         }
         title="Export"

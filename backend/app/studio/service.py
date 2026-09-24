@@ -191,6 +191,62 @@ def init_sections(root: Path) -> dict:
     return index
 
 
+def import_draft(root: Path, markdown: str, title: str) -> dict:
+    """Turn an author's existing draft into an outline and sections marked as theirs.
+
+    Every `#`/`##` heading becomes a section; its paragraphs' opening sentences become the
+    outline lines so the plan reflects what was actually written. Nothing is rewritten.
+    """
+    text = markdown.replace("\r\n", "\n").strip()
+    if not text:
+        raise ValueError("Paste the draft first")
+    parts: list[tuple[str, str]] = []
+    current_title, buf = None, []
+    for line in text.split("\n"):
+        m = re.match(r"^#{1,3}\s+(.+?)\s*#*\s*$", line)
+        if m:
+            if current_title is not None or "".join(buf).strip():
+                parts.append((current_title or "Introduction", "\n".join(buf).strip()))
+            current_title, buf = m.group(1).strip(), []
+        else:
+            buf.append(line)
+    parts.append((current_title or "Draft", "\n".join(buf).strip()))
+    parts = [(t, b) for t, b in parts if b or t]
+    # a lone leading title line with no body is the paper title, not a section
+    if len(parts) > 1 and not parts[0][1].strip():
+        parts = parts[1:]
+    if not parts:
+        raise ValueError("No sections found. Use ## headings or paste at least one paragraph.")
+
+    outline = [f"# Outline: {title}", ""]
+    for i, (sec_title, body) in enumerate(parts, start=1):
+        words = _word_count(body)
+        outline.append(f"## {i}. {sec_title} (≈ {max(words, 50)} words)")
+        paras = [p.strip() for p in re.split(r"\n\s*\n", body) if p.strip() and not p.strip().startswith("![")]
+        for para in paras[:8]:
+            first = re.split(r"(?<=[.!?])\s+", para, maxsplit=1)[0]
+            outline.append(f"- {first[:160]}")
+        if not paras:
+            outline.append("- [NEEDS: this section has a heading but no text yet]")
+        outline.append("")
+    outline.append("## Open items")
+    outline.append("")
+    outline.append("- Imported from the author's draft; review each section against the paper kind's checklist.")
+    storage.write_text(root / "outline.md", "\n".join(outline).strip() + "\n")
+
+    index = init_sections(root)
+    by_slug = {s["slug"]: s for s in index["sections"]}
+    kept = 0
+    for sec_title, body in parts:
+        sec = by_slug.get(_slug(sec_title))
+        if sec and body:
+            save_section_text(root, sec, body, by_user=True)
+            update_section_meta(root, sec["id"], status="mine")
+            kept += 1
+    storage.git_commit(root, f"Imported author's draft: {len(parts)} sections")
+    return {"sections": len(parts), "with_text": kept, "words": _word_count(text)}
+
+
 def get_section(root: Path, section_id: str) -> dict:
     for s in load_index(root)["sections"]:
         if s["id"] == section_id:
@@ -364,7 +420,12 @@ def _ref_key_lines(root: Path) -> str:
     lines = []
     for r in sorted(refs.list_records(root), key=lambda x: x["key"]):
         who = (r.get("authors") or ["?"])[0].split(",")[0]
-        lines.append(f"[@{r['key']}] {who} {r.get('year') or ''}: {r.get('title', '')[:90]}")
+        lines.append(f"[@{r['key']}] {who} {r.get('year') or ''}: {r.get('title', '')[:120]}")
+        abstract = re.sub(r"\s+", " ", (r.get("abstract") or "").strip())
+        if abstract:
+            lines.append(f"    what it says: {abstract[:420]}")
+        else:
+            lines.append("    what it says: (no abstract on record; cite it only for its title's topic)")
     return "\n".join(lines)
 
 

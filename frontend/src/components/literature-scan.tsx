@@ -91,7 +91,7 @@ export function LiteratureScan({ slug, projectId, compact }: { slug: string; pro
       const next = { ...prev };
       data.candidates.forEach((c, i) => {
         if (c.relevance !== level) return;
-        if (field === "exemplar" && (!c.arxiv_id || c.adopted_exemplar)) return;
+        if (field === "exemplar" && ((!c.arxiv_id && !c.pdf_url) || c.adopted_exemplar)) return;
         if (field === "cite" && c.adopted_reference) return;
         const cur: Pick = next[i] ?? { cite: false, exemplar: false };
         next[i] = { ...cur, [field]: true };
@@ -218,17 +218,23 @@ function CandidateRow({ c, pick, onToggle }: { c: ScanCandidate; pick?: Pick; on
               {s}
             </Badge>
           ))}
-          {c.arxiv_id ? <Badge variant="outline">arXiv {c.arxiv_id}</Badge> : null}
+          {c.arxiv_id ? <Badge variant="outline">arXiv {c.arxiv_id}</Badge> : c.pdf_url ? <Badge variant="outline">open PDF</Badge> : null}
         </div>
       </div>
       <div className="flex shrink-0 gap-2 sm:flex-col sm:items-end">
         <PickToggle checked={citeDone || !!pick?.cite} done={citeDone} label={citeDone ? `Cited as ${c.adopted_reference}` : "Cite"} icon={Quote} onClick={() => onToggle("cite")} />
-        {c.arxiv_id ? (
-          <PickToggle checked={exDone || !!pick?.exemplar} done={exDone} label={exDone ? "Exemplar added" : "Use as exemplar"} icon={BookOpenCheck} onClick={() => onToggle("exemplar")} />
+        {c.arxiv_id || c.pdf_url ? (
+          <PickToggle
+            checked={exDone || !!pick?.exemplar}
+            done={exDone}
+            label={exDone ? "Exemplar added" : c.arxiv_id ? "Use as exemplar" : "Use as exemplar (open PDF)"}
+            icon={BookOpenCheck}
+            onClick={() => onToggle("exemplar")}
+          />
         ) : (
-          <Tooltip content="Only arXiv papers can be fetched as exemplars. Upload the PDF in Sources instead.">
+          <Tooltip content="No arXiv source or open-access PDF is known for this paper. Upload the PDF in Sources instead.">
             <span className="inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-sm)] border border-dashed border-border px-2.5 text-[12.5px] text-subtle">
-              <BookOpenCheck className="h-3.5 w-3.5" /> No arXiv source
+              <BookOpenCheck className="h-3.5 w-3.5" /> No open copy
             </span>
           </Tooltip>
         )}

@@ -392,6 +392,7 @@ export interface ScanCandidate {
   doi: string | null;
   url: string | null;
   arxiv_id: string | null;
+  pdf_url: string | null;
   abstract: string | null;
   citation_count: number | null;
   sources: string[];

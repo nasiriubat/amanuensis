@@ -72,7 +72,7 @@ async def run_scan(slug: str, user: User = Depends(current_user), db: Session = 
 @router.post("/scan/adopt")
 async def adopt(slug: str, body: AdoptIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
     """Turn chosen scan candidates into references and/or queue them as exemplars."""
-    from .papers import start_exemplar_ingest
+    from .papers import start_exemplar_ingest, start_exemplar_pdf_ingest
 
     p, root = _root(db, user, slug)
     data = scan_svc.load_scan(root)
@@ -90,10 +90,13 @@ async def adopt(slug: str, body: AdoptIn, user: User = Depends(current_user), db
             c = data["candidates"][i]
             if c.get("adopted_exemplar") or c.get("already_exemplar"):
                 continue
-            if not c.get("arxiv_id"):
+            if c.get("arxiv_id"):
+                jobs.append(start_exemplar_ingest(db, user, p, c["arxiv_id"]))
+            elif c.get("pdf_url"):
+                jobs.append(start_exemplar_pdf_ingest(db, user, p, c["pdf_url"], c.get("title") or ""))
+            else:
                 skipped.append(c.get("title") or f"#{i}")
                 continue
-            jobs.append(start_exemplar_ingest(db, user, p, c["arxiv_id"]))
             scan_svc.mark_exemplar(root, i)
     if added:
         storage.git_commit(root, f"Adopt {len(added)} reference(s) from literature scan")

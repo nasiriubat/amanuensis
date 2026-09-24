@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertCircle, CheckCircle2, ExternalLink, FileText, Loader2, Plus, Quote, Trash2, Upload, X } from "lucide-react";
 import { api } from "@/lib/api";
+import { jobLabel } from "@/lib/jobs";
 import type { JobInfo, Paper, PaperDetail } from "@/lib/types";
 import { cn, formatNumber } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -13,17 +14,6 @@ import { EmptyState, Skeleton } from "@/components/ui/misc";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Markdown } from "@/components/markdown";
 import { ConfirmDialog } from "@/components/dialogs";
-
-const JOB_LABEL: Record<string, string> = {
-  ingest_arxiv: "Fetching from arXiv",
-  ingest_pdf: "Extracting PDF",
-  learn_playbook: "Learning playbook",
-  learn_profile: "Learning voice",
-  scan: "Scanning the literature",
-  draft_section: "Drafting section",
-  critique: "Reviewing",
-  export: "Exporting",
-};
 
 export function JobProgress({ jobs, onDismiss }: { jobs: JobInfo[]; onDismiss: (id: string) => void }) {
   if (jobs.length === 0) return null;
@@ -49,7 +39,7 @@ export function JobProgress({ jobs, onDismiss }: { jobs: JobInfo[]; onDismiss: (
             )}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="font-medium">{JOB_LABEL[j.type] ?? j.type}</span>
+                <span className="font-medium">{jobLabel(j.type)}</span>
                 <span className="truncate text-muted-foreground">{j.error ?? j.message}</span>
               </div>
               {running ? (

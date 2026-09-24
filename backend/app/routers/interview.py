@@ -111,8 +111,16 @@ def approve_outline(slug: str, user: User = Depends(current_user), db: Session =
         raise HTTPException(400, "There is no outline to approve")
     p.stage = "outline"
     db.commit()
-    storage.git_commit(storage.project_dir(p.slug), "Outline approved")
-    return {"stage": p.stage}
+    root = storage.project_dir(p.slug)
+    storage.git_commit(root, "Outline approved")
+    # Approval is the decision; creating the section files is bookkeeping the user should not have to do.
+    from ..studio import service as studio
+
+    try:
+        sections = len(studio.init_sections(root)["sections"])
+    except ValueError:
+        sections = 0
+    return {"stage": p.stage, "sections": sections}
 
 
 # ------------------------------------------------------------------ side chat

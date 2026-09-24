@@ -181,3 +181,39 @@ def test_overlap_lint_flags_copied_runs():
     # wired into lint()
     kinds = {f["kind"] for f in lint(own, "", set(), {"Some Exemplar Paper": exemplar})}
     assert "overlap" in kinds
+
+
+def test_import_draft_makes_outline_and_owned_sections(client, admin):
+    from app import storage
+    from app.studio import service as studio
+
+    r = client.post(
+        "/api/projects", json={"title": "Imported Draft", "kind": "tool-paper", "entry": "draft"}, headers=admin
+    )
+    slug = r.json()["slug"]
+    md = (
+        "# LogLens\n\n## Introduction\nCI logs are long. Developers skim them.\n\nWe built LogLens to help.\n\n"
+        "## Approach\nIt groups failing steps and highlights the first cause.\n\n## Evaluation\n"
+    )
+    res = client.post(f"/api/projects/{slug}/studio/import", json={"markdown": md}, headers=admin)
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["imported"]["sections"] == 3 and body["imported"]["with_text"] == 2
+    slugs = [s["slug"] for s in body["sections"]]
+    assert slugs == ["introduction", "approach", "evaluation"]
+    statuses = {s["slug"]: s["status"] for s in body["sections"]}
+    assert statuses["introduction"] == "mine" and statuses["evaluation"] == "empty"
+    outline = storage.read_text(storage.project_dir(slug) / "outline.md")
+    assert (
+        "## 1. Introduction" in outline
+        and "- CI logs are long." in outline
+        and "[NEEDS: this section has a heading" in outline
+    )
+    intro = next(s for s in body["sections"] if s["slug"] == "introduction")
+    text = client.get(f"/api/projects/{slug}/sections/{intro['id']}", headers=admin).json()["content"]
+    assert text.startswith("CI logs are long.")
+    assert client.get(f"/api/projects/{slug}", headers=admin).json()["stage"] == "drafting"
+    # a second import is refused rather than overwriting the author's text
+    assert client.post(f"/api/projects/{slug}/studio/import", json={"markdown": md}, headers=admin).status_code == 400
+    assert studio.import_draft.__doc__
+    client.delete(f"/api/projects/{slug}", headers=admin)
