@@ -128,3 +128,27 @@ def describe(changes: list[Change]) -> str:
     names = {"dash": "dash", "semicolon": "semicolon", "exclamation": "exclamation mark", "spacing": "spacing fix"}
     parts = [f"{c.count} {names[c.kind]}{'' if c.count == 1 else 's' if c.kind != 'dash' else 'es'}" for c in changes]
     return ", ".join(parts)
+
+
+_VOICE_CONFLICTS = re.compile(
+    r"\b(em[\s-]?dash|en[\s-]?dash|dashes|semicolon|exclamation|rhetorical question)", re.IGNORECASE
+)
+
+VOICE_OVERRIDE = (
+    "House style overrides the voice on hygiene: no dashes as sentence punctuation, no semicolons "
+    "joining clauses, no exclamation marks, no rhetorical questions, none of the banned words, even "
+    "if this author uses them. Keep the voice's rhythm, openers, hedging and vocabulary otherwise."
+)
+
+
+def filter_voice(profile: str) -> str:
+    """Drop bullet lines in a voice profile that recommend a construction the house style bans,
+    and state the precedence once at the end. Empty input stays empty."""
+    if not profile.strip():
+        return profile
+    kept = [
+        line
+        for line in profile.splitlines()
+        if not (line.lstrip().startswith(("-", "*", "•")) and _VOICE_CONFLICTS.search(line))
+    ]
+    return "\n".join(kept).rstrip() + "\n\n" + VOICE_OVERRIDE + "\n"

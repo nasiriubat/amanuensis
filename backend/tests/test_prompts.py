@@ -41,3 +41,29 @@ def test_draft_system_forbids_invented_example_particulars():
         "draft_system.j2", kind_name="Tool paper", profile="", house_style="", playbook="", facts="", ref_keys=""
     )
     assert "illustrative material" in out and "Never state a particular and then ask for it" in out
+
+
+def test_interview_round_uses_scan_when_present():
+    from app.learn.context import render
+
+    base = dict(kind_name="Empirical study", spec="S", plan="", kind_rounds="R", playbook="", previous="")
+    without = render("interview_round.j2", scan="", **base)
+    assert "LITERATURE SCAN" not in without and "From the scan" not in without
+    with_scan = render(
+        "interview_round.j2", scan="- “Robots Are Here” (Prather, 2023)\n  abstract: novices and Copilot", **base
+    )
+    assert "LITERATURE SCAN" in with_scan and "Robots Are Here" in with_scan
+    assert "From the scan (confirm before relying on it)" in with_scan
+    chat = render("chat_system.j2", kind_name="k", title="t", spec="", plan="", interview="", scan="")
+    assert "Sources page" in chat and "no scan yet" in chat
+
+
+def test_voice_filter_drops_conflicting_advice_and_states_precedence():
+    from app.studio import hygiene
+
+    profile = "# Voice: X\n\n## Sentences\n- Uses em dashes for asides.\n- Long, layered sentences.\n"
+    profile += "- Likes semicolons; a lot.\n"
+    out = hygiene.filter_voice(profile)
+    assert "em dashes" not in out and "semicolons" not in out.split("House style overrides")[0]
+    assert "Long, layered sentences." in out and "House style overrides the voice on hygiene" in out
+    assert hygiene.filter_voice("") == ""

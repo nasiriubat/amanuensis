@@ -23,6 +23,7 @@ from ..learn.context import budget_markdown, render
 from ..llm.base import Message
 from ..llm.registry import complete
 from ..models import AuthorProfile, Project
+from . import hygiene
 from . import lint as lint_mod
 
 _HEAD = re.compile(r"^##\s+(?:(\d+)\.\s*)?(.+?)\s*(?:\(≈?\s*(\d[\d,]*)\s*words?\))?\s*$")
@@ -534,7 +535,7 @@ async def draft_section(
     system = render(
         "draft_system.j2",
         kind_name=kname,
-        profile=budget_markdown(_profile_text(project), 5000),
+        profile=hygiene.filter_voice(budget_markdown(_profile_text(project), 5000)),
         house_style=storage.read_text(storage.house_style_path()),
         playbook=playbook,
         facts=storage.read_text(inputs / "facts.md")[:6000],
@@ -572,8 +573,14 @@ async def draft_section(
     text = re.sub(r"^```[a-z]*\n|\n```$", "", text).strip()
     # drop a leading heading if the model added one anyway
     text = re.sub(r"^#{1,3}\s+.*\n+", "", text, count=1) if text.startswith("#") else text
+    # house style wins on hygiene: dashes, semicolons and exclamation marks are fixed before saving
+    text, _changes = hygiene.mechanical_pass(text)
     words = _word_count(text)
     needs = len(_NEEDS.findall(text))
+    issues = lint_mod.lint(
+        text, storage.read_text(storage.house_style_path()), known_ref_keys(root), exemplar_texts(root)
+    )
+    issue_count = len([f for f in issues if f["kind"] not in ("needs",)])
     if dry_run:
         return {
             "section_id": sec["id"],
@@ -585,7 +592,8 @@ async def draft_section(
             "cached_tokens": result.usage.cached_tokens,
         }
     sec = save_section_text(root, sec, text, by_user=False)
-    ctx.progress(100, f"Drafted “{sec['title']}”: {words} words, {needs} open item(s)")
+    tail = f", {issue_count} style issue(s)" if issue_count else ""
+    ctx.progress(100, f"Drafted “{sec['title']}”: {words} words, {needs} open item(s){tail}")
     with SessionLocal() as db:
         p = db.get(Project, project_id)
         if p and p.stage in ("outline", "interview", "playbook", "sources", "setup"):
@@ -595,6 +603,7 @@ async def draft_section(
         "section_id": sec["id"],
         "words": words,
         "open_items": needs,
+        "issues": issue_count,
         "tokens_in": result.usage.input_tokens,
         "tokens_out": result.usage.output_tokens,
         "cached_tokens": result.usage.cached_tokens,

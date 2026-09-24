@@ -26,6 +26,7 @@ from ..learn.context import budget_markdown, render
 from ..llm.base import Message
 from ..llm.registry import complete
 from ..models import Project
+from ..refs.scan import load_scan
 
 MAX_ROUNDS = 8
 
@@ -146,6 +147,24 @@ def _previous_rounds_text(state: dict) -> str:
     return "\n".join(parts)
 
 
+def scan_summary(root: Path, limit: int = 8) -> str:
+    """Top scan candidates as short lines for prompts. Empty when no scan has run."""
+    data = load_scan(root)
+    if not data or not data.get("candidates"):
+        return ""
+    lines = []
+    for c in data["candidates"][:limit]:
+        who = ", ".join(c.get("authors") or [])[:80]
+        why = (c.get("why") or "").strip()
+        abstract = (c.get("abstract") or "").strip().replace("\n", " ")[:300]
+        lines.append(f"- “{c.get('title', '').strip()}” ({who}{', ' if who else ''}{c.get('year') or 'n.d.'})")
+        if why:
+            lines.append(f"  why it may matter: {why}")
+        if abstract:
+            lines.append(f"  abstract: {abstract}")
+    return "\n".join(lines)
+
+
 async def generate_round(project_id: str, ctx: JobContext) -> dict:
     project, root = _proj(project_id)
     state = load_interview(root)
@@ -166,6 +185,7 @@ async def generate_round(project_id: str, ctx: JobContext) -> dict:
         kind_rounds=kfiles.get("interview.md", "(no rounds defined for this kind)"),
         playbook=budget_markdown(playbook, 7_000),
         previous=_previous_rounds_text(state)[:12_000],
+        scan=scan_summary(root),
     )
     ctx.progress(30, "Asking the model for the next round")
     with SessionLocal() as db:
@@ -363,6 +383,7 @@ async def chat_reply(project_id: str, user_id: str, text: str) -> dict:
         spec=budget_markdown(storage.read_text(inputs / "system-spec.md"), 8_000),
         plan=budget_markdown(storage.read_text(inputs / "research-plan.md"), 4_000),
         interview=storage.read_text(inputs / "interview.md")[:8_000],
+        scan=scan_summary(root, limit=12),
     )
     msgs = [Message("system", system)] + [Message(m["role"], m["content"]) for m in history[-12:]]
     with SessionLocal() as db:
