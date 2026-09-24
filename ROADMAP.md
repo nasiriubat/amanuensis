@@ -8,6 +8,23 @@ interview answers about prior work cite the scan's candidates by title.
 Guiding rule for every item: smooth usability without compromising quality. Fewer decisions
 for the user, no silent changes to their text, nothing invented.
 
+## Status (24 September 2026)
+
+Days 1 to 5 and 7 are implemented, tested (77 backend tests) and pushed. Day 6 (deploy and
+re-test on a server) and the user study itself wait on the items listed under "Needed from the
+workspace owner". Day 8's paper change is done: the Evaluation section of the Paper Writer
+paper now describes the study design and carries one placeholder for its results.
+
+Delivered: Fix issues (redline, accept or discard, ≈2.8k tokens on a 680-word section, ten
+findings to three placeholders); hygiene post-pass on every draft; voice profile filtered by
+the house style; interview and chat read the literature scan; Search this claim from the
+Studio; missing kind sections with one-click add; Review after the Studio for draft-first
+projects; pinned notes carried as unverified; Quick look / Standard / Thorough budgets with
+tokens and minutes; creation dialog trimmed to start, title and kind; admin first-run
+checklist; exemplar nudge under five; one-time voice hint; SMTP settings with test message;
+emailed invitations and resets; forgot-password links; opt-in usage events with a Study admin
+page, CSV and JSON export, and the four study documents.
+
 ## Milestones
 
 | Day | Milestone | Items |

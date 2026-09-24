@@ -490,3 +490,15 @@ Each phase leaves a usable product.
   rather than describing the genre.
 - Plagiarism guard: done. `exemplar_overlap` in `studio/lint.py` flags any run of nine
   words shared verbatim with an exemplar as an error in the Studio.
+- **Fixation round after the field test (2026-09-24, see ROADMAP.md).** Fix issues in the
+  Studio (deterministic hygiene pass, then the utility model under a guard that keeps
+  citations, placeholders, structure and length; the author accepts a redline). The same
+  hygiene pass runs on every draft, and a voice profile is filtered so the house style wins
+  on hygiene. Interview rounds and the side chat receive the scan's top candidates and cite
+  them by title as unverified suggestions. `[CITE]` findings carry a Search button into
+  References. Draft-first projects see which kind sections are missing and add them in one
+  click; Review follows the Studio for them. SMTP mail (invitations, admin resets,
+  forgot-password links) and an opt-in usage-event log with a study kit (consent,
+  questionnaire, interview guide, participant guide) exist for the planned five-person study.
+- Still open: deploy behind HTTPS with the Semantic Scholar key and re-run the newcomer
+  persona there; run the user study and put its results into the Paper Writer paper.
