@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertCircle, BookMarked, Check, ChevronLeft, Copy, Download, ExternalLink, Plus, Quote, Search, Telescope, Trash2, Upload } from "lucide-react";
 import { api } from "@/lib/api";
+import { track } from "@/lib/events";
 import type { Project, RefCandidate, RefRecord, RefRequest } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -165,6 +166,7 @@ export function ReferencesPage() {
       void qc.invalidateQueries({ queryKey: ["references", slug] });
       void qc.invalidateQueries({ queryKey: ["project", slug] });
       toast.success(`Added as [@${r.key}]`);
+      track("reference_added", { slug, meta: { source: "search" } });
     },
     onError: (e: Error) => toast.error(e.message),
   });

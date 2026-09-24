@@ -25,6 +25,8 @@ export interface SiteInfo {
   landing: LandingContent;
   /** True when an SMTP server is configured, so "Forgot password?" can be offered. */
   password_reset: boolean;
+  /** True while an admin runs the user study; the frontend then sends usage events. */
+  study_enabled: boolean;
 }
 
 export const EMPTY_LANDING: LandingContent = {
@@ -49,6 +51,7 @@ const FALLBACK: SiteInfo = {
   nav_pages: [],
   landing: EMPTY_LANDING,
   password_reset: false,
+  study_enabled: false,
 };
 
 export function useSite(): SiteInfo {

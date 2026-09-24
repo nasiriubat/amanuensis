@@ -30,6 +30,7 @@ import type { ChecklistItem, Figure, FixProposal, JobInfo, LintFinding, Profile,
 import { useJobs } from "@/lib/jobs";
 import { useTheme } from "@/lib/theme";
 import { diffLines, diffWords } from "@/lib/diff";
+import { track } from "@/lib/events";
 import { cn, timeAgo } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -434,7 +435,10 @@ export function StudioPage() {
   }, [qc, slug]);
 
   const { jobs, active, watch, dismiss } = useJobs({ project_id: project.data?.id }, (j) => {
-    if (j.type === "draft_section") refresh();
+    if (j.type === "draft_section") {
+      refresh();
+      if (j.status === "done") track("section_drafted", { slug, meta: { words: Number(j.result?.words ?? 0), issues: Number(j.result?.issues ?? 0) } });
+    }
   });
   const draftingIds = new Set(jobs.filter((j) => j.status === "queued" || j.status === "running").map((j) => (j.result?.section_id as string) ?? j.message?.replace("Queued: ", "")));
 
@@ -462,6 +466,7 @@ export function StudioPage() {
       qc.setQueryData(["section", slug, selected], d);
       setText(d.content);
       setFindings(d.lint);
+      track("section_saved", { slug, meta: { words: words(d.content), issues: d.lint.length } });
       void qc.invalidateQueries({ queryKey: ["studio", slug] });
       void qc.invalidateQueries({ queryKey: ["checklist", slug] });
       void qc.invalidateQueries({ queryKey: ["project", slug] });
@@ -488,6 +493,7 @@ export function StudioPage() {
     if (!fixProposal) return;
     save.mutate(fixProposal.text, {
       onSuccess: (d) => {
+        track("fix_accepted", { slug, meta: { before: fixProposal.before_count, after: d.lint.length, model: fixProposal.model_used } });
         setFixProposal(null);
         toast.success(d.lint.length ? `Saved. ${d.lint.length} finding${d.lint.length === 1 ? "" : "s"} left for you.` : "Saved. No issues left.");
       },
@@ -498,6 +504,7 @@ export function StudioPage() {
     onSuccess: (r) => {
       refresh();
       setSelected(r.section.id);
+      track("section_added", { slug, meta: { title: r.section.title.slice(0, 60) } });
       toast.success(`Added “${r.section.title}”. Draft it or write it yourself.`);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -902,7 +909,18 @@ export function StudioPage() {
         busy={draft.isPending}
       />
 
-      {fixProposal ? <FixDialog proposal={fixProposal} current={text} onAccept={acceptFix} onClose={() => setFixProposal(null)} saving={save.isPending} /> : null}
+      {fixProposal ? (
+        <FixDialog
+          proposal={fixProposal}
+          current={text}
+          onAccept={acceptFix}
+          onClose={() => {
+            if (fixProposal.changed) track("fix_discarded", { slug, meta: { before: fixProposal.before_count, after: fixProposal.after.length } });
+            setFixProposal(null);
+          }}
+          saving={save.isPending}
+        />
+      ) : null}
 
       {historyOpen && section ? (
         <HistoryDialog

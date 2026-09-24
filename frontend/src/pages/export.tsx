@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertCircle, ChevronLeft, Download, FileDown, Plus, Trash2, Upload } from "lucide-react";
 import { api } from "@/lib/api";
+import { track } from "@/lib/events";
 import type { ExportResult, JobInfo, PaperMeta, Project, TemplateInfo } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { useJobs } from "@/lib/jobs";
@@ -239,7 +240,7 @@ export function ExportPage() {
                     {e.files
                       .filter((f) => /\.(pdf|docx|zip)$/.test(f))
                       .map((f) => (
-                        <a key={f} href={`/api/projects/${slug}/exports/${e.stamp}/${f}`} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[12.5px] font-medium hover:bg-muted">
+                        <a key={f} href={`/api/projects/${slug}/exports/${e.stamp}/${f}`} onClick={() => track("export_downloaded", { slug, meta: { file: f.split(".").pop() ?? "" } })} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[12.5px] font-medium hover:bg-muted">
                           <Download className="h-3.5 w-3.5" /> {f}
                         </a>
                       ))}

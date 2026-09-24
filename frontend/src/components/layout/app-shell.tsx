@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { SiteLogo, useDocumentMeta, useSite } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { TopBar } from "@/components/layout/top-bar";
+import { usePageTracking } from "@/lib/events";
 
 const nav = [
   { to: "/library", label: "Library", icon: Library, end: true },
@@ -69,6 +70,7 @@ function Sidebar() {
 export function AppShell() {
   const { user } = useAuth();
   useDocumentMeta();
+  usePageTracking();
   const location = useLocation();
   const bottom = [
     { to: "/library", label: "Library", icon: Library, end: true },

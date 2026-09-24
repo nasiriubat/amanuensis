@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { BookOpenCheck, Check, ExternalLink, Quote, Telescope } from "lucide-react";
 import { api } from "@/lib/api";
+import { track } from "@/lib/events";
 import type { JobInfo, ScanCandidate, ScanState } from "@/lib/types";
 import { useJobs } from "@/lib/jobs";
 import { cn, formatNumber, timeAgo } from "@/lib/utils";
@@ -38,7 +39,10 @@ export function LiteratureScan({ slug, projectId, compact }: { slug: string; pro
   const scanning = scanJobs.some((j) => j.status === "queued" || j.status === "running");
 
   const run = useMutation({
-    mutationFn: () => api.post<JobInfo>(`/api/projects/${slug}/references/scan`),
+    mutationFn: () => {
+      track("scan_run", { slug });
+      return api.post<JobInfo>(`/api/projects/${slug}/references/scan`);
+    },
     onSuccess: (job) => watch(job),
     onError: (e: Error) => toast.error(e.message),
   });

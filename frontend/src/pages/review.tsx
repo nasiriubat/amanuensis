@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertCircle, Check, ChevronLeft, Compass, ShieldCheck, Sparkles, ThumbsUp } from "lucide-react";
 import { api } from "@/lib/api";
+import { track } from "@/lib/events";
 import type { JobInfo, Project, ReviewState, VenueSuggestions } from "@/lib/types";
 import { useJobs } from "@/lib/jobs";
 import { cn, timeAgo } from "@/lib/utils";
@@ -35,7 +36,10 @@ export function ReviewPage() {
   });
   const run = useMutation({
     mutationFn: () => api.post<JobInfo>(`/api/projects/${slug}/review`),
-    onSuccess: (job) => watch(job),
+    onSuccess: (job) => {
+      watch(job);
+      track("critique_run", { slug });
+    },
     onError: (e: Error) => toast.error(e.message),
   });
   const suggest = useMutation({

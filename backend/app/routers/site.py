@@ -73,6 +73,11 @@ def _branding_dir() -> Path:
     return d
 
 
+def study_enabled(db: Session) -> bool:
+    row = db.get(SiteSetting, "study")
+    return bool(row and row.value and row.value.get("enabled"))
+
+
 def load_site(db: Session) -> dict:
     row = db.get(SiteSetting, "site")
     data = dict(DEFAULTS)
@@ -176,6 +181,7 @@ def _public_site(db: Session) -> dict:
         "nav_pages": [{"slug": p.slug, "title": p.title} for p in pages],
         "landing": s["landing"],
         "password_reset": mail.is_configured(db),
+        "study_enabled": study_enabled(db),
     }
 
 

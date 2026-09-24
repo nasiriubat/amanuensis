@@ -27,6 +27,7 @@ import { UsersPage } from "@/pages/admin/users";
 import { UsagePage } from "@/pages/admin/usage";
 import { PagesPage, SiteTab } from "@/pages/admin/site";
 import { StoragePage } from "@/pages/admin/storage";
+import { StudyPage } from "@/pages/admin/study";
 import { PublicPageView } from "@/pages/public-page";
 import { LandingPage } from "@/pages/landing";
 import { useSite } from "@/lib/site";
@@ -116,6 +117,7 @@ const router = createBrowserRouter([
               { path: "users", element: <UsersPage /> },
               { path: "usage", element: <UsagePage /> },
               { path: "storage", element: <StoragePage /> },
+              { path: "study", element: <StudyPage /> },
               { path: "site", element: <SiteTab /> },
               { path: "pages", element: <PagesPage /> },
             ],
