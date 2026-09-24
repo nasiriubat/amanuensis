@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, PlainTextResponse
@@ -11,6 +12,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .. import mail
 from ..config import get_settings
 from ..db import get_db
 from ..deps import require_admin
@@ -173,6 +175,7 @@ def _public_site(db: Session) -> dict:
         "logo_url": f"/api/site/logo?v={re.sub(r'[^a-z0-9]', '', s['logo'] or '')}" if s.get("logo") else None,
         "nav_pages": [{"slug": p.slug, "title": p.title} for p in pages],
         "landing": s["landing"],
+        "password_reset": mail.is_configured(db),
     }
 
 
@@ -253,6 +256,45 @@ def delete_logo(_: User = Depends(require_admin), db: Session = Depends(get_db))
     site = load_site(db)
     site["logo"] = None
     save_site(db, site)
+
+
+# ------------------------------------------------------------------ admin: mail
+
+
+class MailIn(BaseModel):
+    enabled: bool = False
+    host: str = Field(default="", max_length=255)
+    port: int = Field(default=587, ge=1, le=65535)
+    security: Literal["starttls", "ssl", "none"] = "starttls"
+    username: str = Field(default="", max_length=255)
+    password: str | None = Field(default=None, max_length=512)  # None keeps the stored one; "" clears it
+    from_addr: str = Field(default="", max_length=255)
+    from_name: str = Field(default="", max_length=120)
+
+
+@router.get("/admin/mail")
+def admin_mail(_: User = Depends(require_admin), db: Session = Depends(get_db)):
+    return mail.public_view(mail.load_mail(db))
+
+
+@router.put("/admin/mail")
+def put_mail(body: MailIn, _: User = Depends(require_admin), db: Session = Depends(get_db)):
+    if body.enabled and (not body.host.strip() or not body.from_addr.strip()):
+        raise HTTPException(400, "Host and sender address are needed before email can be switched on")
+    patch = body.model_dump(exclude={"password"})
+    patch["host"] = patch["host"].strip()
+    patch["from_addr"] = patch["from_addr"].strip()
+    return mail.public_view(mail.update(db, patch, body.password))
+
+
+@router.post("/admin/mail/test")
+def test_mail(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    name = load_site(db)["name"]
+    try:
+        mail.send(db, admin.email, f"{name}: test message", f"Email from {name} works. Nothing else to do.\n")
+    except mail.MailError as e:
+        raise HTTPException(400, str(e)) from e
+    return {"sent_to": admin.email}
 
 
 # ------------------------------------------------------------------ admin: pages

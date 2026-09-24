@@ -257,6 +257,130 @@ export function SitePage() {
   );
 }
 
+export function SiteTab() {
+  return (
+    <div className="flex flex-col gap-5">
+      <SitePage />
+      <MailCard />
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------ Email
+
+interface MailAdmin {
+  enabled: boolean;
+  host: string;
+  port: number;
+  security: "starttls" | "ssl" | "none";
+  username: string;
+  from_addr: string;
+  from_name: string;
+  has_password: boolean;
+  password_hint: string | null;
+}
+
+function MailCard() {
+  const qc = useQueryClient();
+  const mail = useQuery({ queryKey: ["admin-mail"], queryFn: () => api.get<MailAdmin>("/api/admin/mail") });
+  const [form, setForm] = useState<MailAdmin | null>(null);
+  const [password, setPassword] = useState("");
+  useEffect(() => {
+    if (mail.data && !form) setForm(mail.data);
+  }, [mail.data, form]);
+  const save = useMutation({
+    mutationFn: () => api.put<MailAdmin>("/api/admin/mail", { ...form, password: password || null }),
+    onSuccess: (m) => {
+      setForm(m);
+      setPassword("");
+      void qc.invalidateQueries({ queryKey: ["admin-mail"] });
+      void qc.invalidateQueries({ queryKey: ["site"] });
+      toast.success(m.enabled ? "Email settings saved. Send a test to be sure." : "Email switched off");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const test = useMutation({
+    mutationFn: () => api.post<{ sent_to: string }>("/api/admin/mail/test"),
+    onSuccess: (r) => toast.success(`Test message sent to ${r.sent_to}`),
+    onError: (e: Error) => toast.error(e.message),
+  });
+  if (!form) return <Skeleton className="h-64" />;
+  const set = (patch: Partial<MailAdmin>) => setForm({ ...form, ...patch });
+  const dirty = JSON.stringify(form) !== JSON.stringify(mail.data) || password !== "";
+  const ready = form.enabled && form.host.trim() && form.from_addr.trim();
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        save.mutate();
+      }}
+    >
+      <Card>
+        <CardHeader>
+          <CardTitle>Email</CardTitle>
+          <CardDescription>
+            With an SMTP server, invitations carry the sign-in details and members can reset a forgotten password themselves. Without one, you share temporary passwords by hand. The password is stored encrypted.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <label className="flex items-center justify-between gap-4 rounded-[var(--radius-sm)] border border-border px-3 py-2.5">
+            <span>
+              <span className="block text-[13px] font-medium">Send email</span>
+              <span className="block text-[12px] text-muted-foreground">Off keeps every setting but sends nothing.</span>
+            </span>
+            <Switch checked={form.enabled} onCheckedChange={(v) => set({ enabled: v })} />
+          </label>
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_120px_160px]">
+            <Field label="SMTP host">
+              <Input value={form.host} onChange={(e) => set({ host: e.target.value })} placeholder="smtp.example.org" className="font-mono text-[12.5px]" />
+            </Field>
+            <Field label="Port">
+              <Input type="number" min={1} max={65535} value={form.port} onChange={(e) => set({ port: Number(e.target.value) || 587 })} className="font-mono text-[12.5px]" />
+            </Field>
+            <Field label="Security">
+              <Select value={form.security} onValueChange={(v) => set({ security: v as MailAdmin["security"] })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="starttls">STARTTLS (587)</SelectItem>
+                  <SelectItem value="ssl">SSL/TLS (465)</SelectItem>
+                  <SelectItem value="none">None (local relay)</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Username" hint="Leave empty for a relay that needs no login.">
+              <Input value={form.username} onChange={(e) => set({ username: e.target.value })} autoComplete="off" className="font-mono text-[12.5px]" />
+            </Field>
+            <Field label="Password" hint={form.has_password ? `Stored, ends in ${form.password_hint}. Type to replace.` : "Stored encrypted."}>
+              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" placeholder={form.has_password ? "••••••••" : ""} className="font-mono text-[12.5px]" />
+            </Field>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Sender address" hint="Many providers require this to match the account.">
+              <Input type="email" value={form.from_addr} onChange={(e) => set({ from_addr: e.target.value })} placeholder="paper-writer@example.org" className="font-mono text-[12.5px]" />
+            </Field>
+            <Field label="Sender name">
+              <Input value={form.from_name} onChange={(e) => set({ from_name: e.target.value })} placeholder="Paper Writer" />
+            </Field>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="submit" loading={save.isPending} disabled={!dirty}>
+              Save email settings
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => test.mutate()} loading={test.isPending} disabled={dirty || !ready} title={dirty ? "Save first" : !ready ? "Switch email on and fill host and sender" : "Sends a message to your own address"}>
+              Send a test to me
+            </Button>
+            {dirty ? <span className="text-[12.5px] text-warning">Unsaved changes</span> : null}
+          </div>
+        </CardContent>
+      </Card>
+    </form>
+  );
+}
+
 // ------------------------------------------------------------------ Pages
 
 function PageEditor({ page, onClose }: { page: PageRow; onClose: () => void }) {

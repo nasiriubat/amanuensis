@@ -37,6 +37,17 @@ class User(Base):
     sessions: Mapped[list[AuthSession]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
 
+class PasswordReset(Base):
+    """One-hour tokens for "Forgot password". Stored by hash like sessions."""
+
+    __tablename__ = "password_resets"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)  # sha256 of the token in the link
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class AuthSession(Base):
     __tablename__ = "sessions"
 

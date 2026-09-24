@@ -23,6 +23,8 @@ export interface SiteInfo {
   logo_url: string | null;
   nav_pages: Array<{ slug: string; title: string }>;
   landing: LandingContent;
+  /** True when an SMTP server is configured, so "Forgot password?" can be offered. */
+  password_reset: boolean;
 }
 
 export const EMPTY_LANDING: LandingContent = {
@@ -46,6 +48,7 @@ const FALLBACK: SiteInfo = {
   logo_url: null,
   nav_pages: [],
   landing: EMPTY_LANDING,
+  password_reset: false,
 };
 
 export function useSite(): SiteInfo {

@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import logging
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from .. import mail
 from ..config import get_settings
 from ..db import get_db
 from ..deps import current_user, get_session
-from ..models import AuthSession, User
-from ..schemas import ChangePasswordIn, LoginIn, UpdateMeIn, UserOut
+from ..models import AuthSession, PasswordReset, User, now
+from ..schemas import ChangePasswordIn, ForgotIn, LoginIn, ResetIn, UpdateMeIn, UserOut
 from ..security import (
     CSRF_COOKIE,
     SESSION_COOKIE,
@@ -21,6 +25,8 @@ from ..security import (
 )
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+log = logging.getLogger("paperwriter.auth")
+RESET_TTL = timedelta(hours=1)
 
 
 def _set_cookies(response: Response, token: str, csrf: str) -> None:
@@ -100,5 +106,51 @@ def change_password(body: ChangePasswordIn, user: User = Depends(current_user), 
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "New password must differ from the current one")
     user.password_hash = hash_password(body.new_password)
     user.must_change_password = False
+    db.commit()
+    return user
+
+
+# ------------------------------------------------------------------ forgot / reset
+
+
+@router.post("/forgot", status_code=202)
+def forgot_password(body: ForgotIn, request: Request, db: Session = Depends(get_db)):
+    """Always answers the same way, so the form cannot be used to probe for accounts."""
+    client = request.client.host if request.client else "unknown"
+    if not login_limiter.allow(f"forgot:{client}"):
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many attempts. Try again in a few minutes.")
+    if not mail.is_configured(db):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Password reset by email is not set up. Ask an administrator.")
+    user = db.scalar(select(User).where(User.email == body.email.lower()))
+    if user and user.is_active:
+        db.execute(delete(PasswordReset).where(PasswordReset.user_id == user.id))
+        token = new_token()
+        db.add(PasswordReset(id=token_id(token), user_id=user.id, expires_at=now() + RESET_TTL))
+        db.commit()
+        subject, text = mail.reset_link(db, display_name=user.display_name, token=token)
+        try:
+            mail.send(db, user.email, subject, text)
+        except mail.MailError as e:  # the user still sees the neutral answer
+            log.warning("password reset mail failed for %s: %s", user.email, e)
+    return {"ok": True}
+
+
+@router.post("/reset", response_model=UserOut)
+def reset_password(body: ResetIn, db: Session = Depends(get_db)):
+    row = db.get(PasswordReset, token_id(body.token))
+    if not row:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This link is not valid. Ask for a new one.")
+    expires = row.expires_at if row.expires_at.tzinfo else row.expires_at.replace(tzinfo=now().tzinfo)
+    if expires < now():
+        db.delete(row)
+        db.commit()
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This link has expired. Ask for a new one.")
+    user = db.get(User, row.user_id)
+    if not user or not user.is_active:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This link is not valid. Ask for a new one.")
+    user.password_hash = hash_password(body.new_password)
+    user.must_change_password = False
+    db.execute(delete(AuthSession).where(AuthSession.user_id == user.id))  # sign out everywhere
+    db.execute(delete(PasswordReset).where(PasswordReset.user_id == user.id))
     db.commit()
     return user

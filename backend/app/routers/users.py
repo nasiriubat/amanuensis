@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .. import mail
 from ..db import get_db
 from ..deps import require_admin
 from ..models import User
@@ -18,8 +19,21 @@ def list_users(db: Session = Depends(get_db)):
     return db.scalars(select(User).order_by(User.created_at)).all()
 
 
-@router.post("", response_model=UserOut, status_code=201)
-def create_user(body: UserCreate, db: Session = Depends(get_db)):
+def _out(user: User, **extra) -> dict:
+    return {**UserOut.model_validate(user, from_attributes=True).model_dump(mode="json"), **extra}
+
+
+def _try_send(db: Session, to: str, subject: str, body: str) -> tuple[bool, str | None]:
+    """Invitations must never fail because mail did: report the problem, keep the account."""
+    try:
+        mail.send(db, to, subject, body)
+        return True, None
+    except mail.MailError as e:
+        return False, str(e)
+
+
+@router.post("", status_code=201)
+def create_user(body: UserCreate, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     if db.scalar(select(User).where(User.email == body.email.lower())):
         raise HTTPException(status.HTTP_409_CONFLICT, "A user with that email already exists")
     user = User(
@@ -31,10 +45,16 @@ def create_user(body: UserCreate, db: Session = Depends(get_db)):
     )
     db.add(user)
     db.commit()
-    return user
+    emailed, error = False, None
+    if body.send_email:
+        subject, text = mail.invitation(
+            db, display_name=user.display_name, email=user.email, password=body.password, invited_by=admin.display_name
+        )
+        emailed, error = _try_send(db, user.email, subject, text)
+    return _out(user, emailed=emailed, email_error=error)
 
 
-@router.patch("/{user_id}", response_model=UserOut)
+@router.patch("/{user_id}")
 def update_user(user_id: str, body: UserUpdate, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     user = db.get(User, user_id)
     if not user:
@@ -53,7 +73,11 @@ def update_user(user_id: str, body: UserUpdate, admin: User = Depends(require_ad
         user.password_hash = hash_password(body.password)
         user.must_change_password = True
     db.commit()
-    return user
+    emailed, error = False, None
+    if body.password and body.send_email:
+        subject, text = mail.new_password(db, display_name=user.display_name, password=body.password)
+        emailed, error = _try_send(db, user.email, subject, text)
+    return _out(user, emailed=emailed, email_error=error)
 
 
 @router.delete("/{user_id}", status_code=204)

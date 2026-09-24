@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { SectionTitle, Skeleton } from "@/components/ui/misc";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/input";
@@ -29,13 +30,23 @@ function NewUserDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
   const [name, setName] = useState("");
   const [role, setRole] = useState<Role>("user");
   const [password, setPassword] = useState(randomPassword);
-  const [created, setCreated] = useState<{ email: string; password: string } | null>(null);
+  const [created, setCreated] = useState<{ email: string; password: string; emailed: boolean; error: string | null } | null>(null);
+  const mail = useQuery({ queryKey: ["admin-mail"], queryFn: () => api.get<{ enabled: boolean; host: string; from_addr: string }>("/api/admin/mail"), enabled: open });
+  const mailReady = !!(mail.data?.enabled && mail.data.host && mail.data.from_addr);
+  const [sendEmail, setSendEmail] = useState(true);
 
   const create = useMutation({
-    mutationFn: () => api.post<User>("/api/users", { email: email.trim(), display_name: name.trim(), role, password }),
+    mutationFn: () =>
+      api.post<User & { emailed: boolean; email_error: string | null }>("/api/users", {
+        email: email.trim(),
+        display_name: name.trim(),
+        role,
+        password,
+        send_email: mailReady && sendEmail,
+      }),
     onSuccess: (u) => {
       void qc.invalidateQueries({ queryKey: ["users"] });
-      setCreated({ email: u.email, password });
+      setCreated({ email: u.email, password, emailed: u.emailed, error: u.email_error });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -53,9 +64,19 @@ function NewUserDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
 
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(o) : close())}>
-      <DialogContent title={created ? "Account created" : "Invite a member"} description={created ? "Share these once. The password is not shown again." : "They must change the temporary password on first sign-in."}>
+      <DialogContent
+        title={created ? (created.emailed ? "Invitation sent" : "Account created") : "Invite a member"}
+        description={
+          created
+            ? created.emailed
+              ? `${created.email} received the sign-in details by email. Keep a copy in case it lands in spam.`
+              : "Share these once. The password is not shown again."
+            : "They must change the temporary password on first sign-in."
+        }
+      >
         {created ? (
           <div className="flex flex-col gap-3">
+            {created.error ? <p className="rounded-[var(--radius-sm)] bg-warning-soft/50 px-3 py-2 text-[12.5px] text-warning">The account exists, but the email did not go out: {created.error} Share the details below instead.</p> : null}
             <div className="rounded-[var(--radius-sm)] border border-border bg-muted/50 p-3 font-mono text-[13px]">
               <div>
                 <span className="text-subtle">email </span>
@@ -109,12 +130,23 @@ function NewUserDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
             <Field label="Temporary password" hint="Generated for you. Edit if you prefer.">
               <Input value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} className="font-mono text-[12.5px]" required />
             </Field>
+            {mailReady ? (
+              <label className="flex items-center justify-between gap-4 rounded-[var(--radius-sm)] border border-border px-3 py-2.5">
+                <span>
+                  <span className="block text-[13px] font-medium">Email the invitation</span>
+                  <span className="block text-[12px] text-muted-foreground">Sign-in link and temporary password go to {email.trim() || "their address"}.</span>
+                </span>
+                <Switch checked={sendEmail} onCheckedChange={setSendEmail} />
+              </label>
+            ) : (
+              <p className="text-[12px] text-muted-foreground">Email is not set up, so you will share the password yourself. An SMTP server can be added under Settings → Site.</p>
+            )}
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={close}>
                 Cancel
               </Button>
               <Button type="submit" loading={create.isPending} disabled={!email.trim() || !name.trim() || password.length < 8}>
-                Create account
+                {mailReady && sendEmail ? "Create and send" : "Create account"}
               </Button>
             </DialogFooter>
           </form>
@@ -145,9 +177,23 @@ function UserRow({ u }: { u: User }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const mail = useQuery({ queryKey: ["admin-mail"], queryFn: () => api.get<{ enabled: boolean; host: string; from_addr: string }>("/api/admin/mail") });
+  const mailReady = !!(mail.data?.enabled && mail.data.host && mail.data.from_addr);
   const doReset = () => {
     const pw = randomPassword();
-    patch.mutate({ password: pw }, { onSuccess: () => setResetPw(pw) });
+    patch.mutate(
+      { password: pw, send_email: mailReady },
+      {
+        onSuccess: (r) => {
+          const res = r as User & { emailed?: boolean; email_error?: string | null };
+          if (res.emailed) toast.success(`New temporary password emailed to ${u.email}`);
+          else {
+            if (res.email_error) toast.error(`Email failed: ${res.email_error}`);
+            setResetPw(pw);
+          }
+        },
+      },
+    );
   };
 
   return (

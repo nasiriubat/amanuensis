@@ -72,17 +72,22 @@ group of up to a few dozen people. What to do before you hand the URL to colleag
 2. **Generate a real secret.** `APP_SECRET_KEY` encrypts every provider API key at rest. Losing
    it means re-entering the keys; changing it after the fact makes stored keys unreadable.
 3. **Sign in once as the seeded admin and change the password**, then add providers, assign a
-   model to each purpose, and invite members from Settings → Users. Members get a temporary
-   password and must change it on first sign-in.
-4. **Set `SEMANTIC_SCHOLAR_API_KEY`.** Without it, reference search and the literature scan
+   model to each purpose, and invite members from Settings → Users. The Library shows a
+   set-up checklist until those are done. Members get a temporary password and must change
+   it on first sign-in.
+4. **Add an SMTP server (optional) under Settings → Site → Email.** With it, invitations and
+   admin resets are emailed and members get "Forgot your password?" on the sign-in page (one-hour
+   links). Without it, you share temporary passwords yourself. The SMTP password is stored
+   encrypted with `APP_SECRET_KEY`; "Send a test to me" confirms the connection.
+5. **Set `SEMANTIC_SCHOLAR_API_KEY`.** Without it, reference search and the literature scan
    share the public quota and are throttled within seconds. The key is free.
-5. **Back up the volume.** Settings → Storage → Download backup produces one zip with a
+6. **Back up the volume.** Settings → Storage → Download backup produces one zip with a
    consistent database snapshot and every file. For unattended backups, call
    `GET /api/admin/storage/backup` with an admin session from a cron job, or snapshot the
    `paper_data` volume. Restore by unzipping into an empty volume.
-6. **Watch disk and tokens.** Settings → Storage shows disk use per project and runs cleanups;
+7. **Watch disk and tokens.** Settings → Storage shows disk use per project and runs cleanups;
    Settings → Usage shows tokens per user, purpose and model. Every model call is logged.
-7. **Size the host.** Two vCPUs and 4 GB of RAM are enough for a group. PDF extraction with
+8. **Size the host.** Two vCPUs and 4 GB of RAM are enough for a group. PDF extraction with
    Docling is the only CPU-heavy step and runs as a background job. The image is about 8 GB.
 
 Known limits: the app runs as a single process, so run exactly one replica. Background jobs

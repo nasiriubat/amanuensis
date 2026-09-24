@@ -2,6 +2,7 @@ import { Navigate, Outlet, RouterProvider, createBrowserRouter, useLocation } fr
 import { useAuth } from "@/lib/auth";
 import { AppShell } from "@/components/layout/app-shell";
 import { LoginPage } from "@/pages/login";
+import { ResetPasswordPage } from "@/pages/reset-password";
 import { LibraryPage, ProfilesPage } from "@/pages/library";
 import { ProjectHomePage } from "@/pages/project-home";
 import { SourcesPage } from "@/pages/sources";
@@ -24,7 +25,7 @@ import { KindsPage } from "@/pages/admin/kinds";
 import { HouseStylePage } from "@/pages/admin/house-style";
 import { UsersPage } from "@/pages/admin/users";
 import { UsagePage } from "@/pages/admin/usage";
-import { PagesPage, SitePage } from "@/pages/admin/site";
+import { PagesPage, SiteTab } from "@/pages/admin/site";
 import { StoragePage } from "@/pages/admin/storage";
 import { PublicPageView } from "@/pages/public-page";
 import { LandingPage } from "@/pages/landing";
@@ -76,7 +77,10 @@ const router = createBrowserRouter([
   { path: "/p/:slug", element: <PublicPageView /> },
   {
     element: <PublicOnly />,
-    children: [{ path: "/login", element: <LoginPage /> }],
+    children: [
+      { path: "/login", element: <LoginPage /> },
+      { path: "/reset-password", element: <ResetPasswordPage /> },
+    ],
   },
   {
     element: <RequireAuth />,
@@ -112,7 +116,7 @@ const router = createBrowserRouter([
               { path: "users", element: <UsersPage /> },
               { path: "usage", element: <UsagePage /> },
               { path: "storage", element: <StoragePage /> },
-              { path: "site", element: <SitePage /> },
+              { path: "site", element: <SiteTab /> },
               { path: "pages", element: <PagesPage /> },
             ],
           },
