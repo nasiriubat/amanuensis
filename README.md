@@ -25,7 +25,11 @@ draft once: every heading becomes a section marked as yours and its paragraphs b
 outline, so lint, references, the reviewer and export work on your text from the first minute. A literature scan on the Sources and References pages turns the idea, plan
 and specification into search queries, asks Semantic Scholar, OpenAlex and arXiv, ranks what comes
 back, and lets you adopt papers as verified references or as exemplars in one click. Any exemplar
-can be made citable with one click as well. Author profiles stay optional: without one, drafts
+can be made citable with one click as well. Papers you read for the work go in as *background
+reading*: read in full once, summarised into a reading card (question, method, result,
+limitation, relation to your work), and citable at once; drafts may attribute to them what the
+card says, and Related Work is written from the cards. Twenty to forty readings per project is
+normal; they never touch the playbook. Author profiles stay optional: without one, drafts
 follow the house style.
 
 Around the pipeline: a public landing page whose copy the admin edits (steps and entry points

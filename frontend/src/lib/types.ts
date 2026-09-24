@@ -74,6 +74,7 @@ export interface Profile {
 
 export interface ProjectCounts {
   exemplars: number;
+  readings: number;
   sections: number;
   references: number;
   figures: number;
@@ -174,12 +175,28 @@ export interface Paper {
   status: "pending" | "ready" | "failed";
   error?: string;
   abstract?: string;
+  /** Background readings only: the card written from the full text, and the reference key. */
+  card?: ReadingCard | null;
+  ref_key?: string | null;
+}
+
+export interface ReadingCard {
+  question: string;
+  method: string;
+  result: string;
+  limitation: string;
+  relation: string;
+  cite_for: string;
+  ref_key?: string;
+  tokens_in?: number;
+  tokens_out?: number;
 }
 
 export interface PaperDetail {
   meta: Paper & { sections?: Array<{ level: number; title: string; words: number }> };
   markdown: string;
   summary: string | null;
+  card?: ReadingCard | null;
 }
 
 export interface JobInfo {
@@ -317,6 +334,8 @@ export interface RefRecord {
   verified_at: string;
   added_at: string;
   uses: number;
+  card?: ReadingCard | null;
+  reading_id?: string | null;
 }
 
 export interface RefRequest {
@@ -418,6 +437,7 @@ export interface ScanCandidate {
   already_exemplar: boolean;
   adopted_reference: string | null;
   adopted_exemplar: boolean;
+  adopted_reading?: boolean;
 }
 
 export interface ScanState {

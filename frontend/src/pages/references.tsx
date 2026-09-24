@@ -149,6 +149,7 @@ export function ReferencesPage() {
   const [manual, setManual] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   const [del, setDel] = useState<RefRecord | null>(null);
+  const [openCard, setOpenCard] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const search = useMutation({
@@ -392,10 +393,34 @@ export function ReferencesPage() {
                         {r.year ? ` · ${r.year}` : ""}
                         {r.venue ? ` · ${r.venue}` : ""}
                       </div>
-                      <div className="mt-1 flex items-center gap-2 text-[11px] text-subtle">
-                        <span>{r.source === "semanticscholar" ? "Semantic Scholar" : r.source === "openalex" ? "OpenAlex" : r.source === "arxiv" ? "arXiv" : r.source === "bib" ? ".bib" : "manual"}</span>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-subtle">
+                        <span>{r.source === "semanticscholar" ? "Semantic Scholar" : r.source === "openalex" ? "OpenAlex" : r.source === "arxiv" ? "arXiv" : r.source === "bib" ? ".bib" : r.source === "reading" ? "read in full" : r.source === "exemplar" ? "exemplar" : "manual"}</span>
                         <span>· cited {r.uses} time{r.uses === 1 ? "" : "s"}</span>
+                        {r.card ? (
+                          <Badge variant="success" className="cursor-pointer" onClick={() => setOpenCard(openCard === r.key ? null : r.key)}>
+                            reading card {openCard === r.key ? "▴" : "▾"}
+                          </Badge>
+                        ) : null}
                       </div>
+                      {r.card && openCard === r.key ? (
+                        <dl className="mt-2 grid gap-1.5 rounded-[var(--radius-sm)] bg-muted/40 p-3 text-[12.5px] leading-relaxed">
+                          {(
+                            [
+                              ["Question", r.card.question],
+                              ["Method", r.card.method],
+                              ["Result", r.card.result],
+                              ["Limitation", r.card.limitation],
+                              ["Relation", r.card.relation],
+                              ["Cite for", r.card.cite_for],
+                            ] as Array<[string, string]>
+                          ).map(([k, v]) => (
+                            <div key={k}>
+                              <span className="font-semibold text-subtle">{k}: </span>
+                              {v || "not stated"}
+                            </div>
+                          ))}
+                        </dl>
+                      ) : null}
                     </div>
                     <button onClick={() => setDel(r)} className="rounded p-1.5 text-subtle hover:bg-destructive-soft hover:text-destructive" aria-label="Remove">
                       <Trash2 className="h-3.5 w-3.5" />

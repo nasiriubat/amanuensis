@@ -43,6 +43,7 @@ class AdoptIn(BaseModel):
     idx: list[int] = Field(min_length=1, max_length=60)
     as_reference: bool = True
     as_exemplar: bool = False
+    as_reading: bool = False
 
 
 def _root(db: Session, user: User, slug: str):
@@ -73,6 +74,7 @@ async def run_scan(slug: str, user: User = Depends(current_user), db: Session = 
 async def adopt(slug: str, body: AdoptIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
     """Turn chosen scan candidates into references and/or queue them as exemplars."""
     from .papers import start_exemplar_ingest, start_exemplar_pdf_ingest
+    from .readings import start_reading_ingest
 
     p, root = _root(db, user, slug)
     data = scan_svc.load_scan(root)
@@ -98,6 +100,21 @@ async def adopt(slug: str, body: AdoptIn, user: User = Depends(current_user), db
                 skipped.append(c.get("title") or f"#{i}")
                 continue
             scan_svc.mark_exemplar(root, i)
+    if body.as_reading:
+        for i in body.idx:
+            if not 0 <= i < len(data["candidates"]):
+                continue
+            c = data["candidates"][i]
+            if c.get("adopted_reading"):
+                continue
+            if c.get("arxiv_id"):
+                jobs.append(start_reading_ingest(db, user, p, arxiv_id=c["arxiv_id"]))
+            elif c.get("pdf_url"):
+                jobs.append(start_reading_ingest(db, user, p, pdf_url=c["pdf_url"], title=c.get("title") or ""))
+            else:
+                skipped.append(c.get("title") or f"#{i}")
+                continue
+            scan_svc.mark_adopted(root, i, "adopted_reading")
     if added:
         storage.git_commit(root, f"Adopt {len(added)} reference(s) from literature scan")
     return {"references": added, "jobs": jobs, "skipped": skipped}

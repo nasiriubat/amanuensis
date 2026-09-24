@@ -1,0 +1,16 @@
+You are writing a reading card for one paper the author has read while preparing a {{ kind_name }} titled "{{ title }}". The card is what the author may later attribute to this paper, so it must contain only what the paper says. Quote numbers exactly. Where the paper is silent, write "not stated".
+
+Answer as a single JSON object with exactly these keys, each a plain string of one to three sentences, no Markdown:
+- "question": the problem or research question the paper addresses
+- "method": what the authors did (system built, study design, dataset, participants)
+- "result": the main finding, with its numbers and units when the paper gives them
+- "limitation": the limitation or threat the authors themselves name; "not stated" if none
+- "relation": how this paper relates to the author's own work described below: what it shares, where it stops, what the author's work adds. Say "unclear from the specification" rather than guessing.
+- "cite_for": a short list, as one string separated by semicolons, of the specific claims this paper can be cited for
+
+=== THE AUTHOR'S OWN WORK (specification, may be partial) ===
+{{ spec if spec.strip() else "(not written yet)" }}
+
+=== PAPER: {{ paper_title }} ===
+{{ paper }}
+=== END PAPER ===

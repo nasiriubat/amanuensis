@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { BookOpenCheck, Check, ExternalLink, Quote, Telescope } from "lucide-react";
+import { BookOpen, BookOpenCheck, Check, ExternalLink, Quote, Telescope } from "lucide-react";
 import { api } from "@/lib/api";
 import { track } from "@/lib/events";
 import type { JobInfo, ScanCandidate, ScanState } from "@/lib/types";
@@ -19,7 +19,7 @@ const GROUPS: Array<{ level: 3 | 2 | 1; label: string; hint: string }> = [
   { level: 1, label: "Maybe", hint: "Tangential. Only if space allows." },
 ];
 
-type Pick = { cite: boolean; exemplar: boolean };
+type Pick = { cite: boolean; exemplar: boolean; read: boolean };
 
 /**
  * Finds papers for the project from its idea, plan and spec. The scan proposes; the author adopts,
@@ -50,7 +50,8 @@ export function LiteratureScan({ slug, projectId, compact }: { slug: string; pro
     mutationFn: async () => {
       const cite = Object.entries(picks).filter(([, v]) => v.cite).map(([k]) => Number(k));
       const ex = Object.entries(picks).filter(([, v]) => v.exemplar).map(([k]) => Number(k));
-      const out = { references: [] as string[], jobs: [] as JobInfo[], skipped: [] as string[] };
+      const rd = Object.entries(picks).filter(([, v]) => v.read).map(([k]) => Number(k));
+      const out = { references: [] as string[], jobs: [] as JobInfo[], skipped: [] as string[], readJobs: 0 };
       if (cite.length) {
         const r = await api.post<typeof out>(`/api/projects/${slug}/references/scan/adopt`, { idx: cite, as_reference: true, as_exemplar: false });
         out.references = r.references;
@@ -59,6 +60,12 @@ export function LiteratureScan({ slug, projectId, compact }: { slug: string; pro
         const r = await api.post<typeof out>(`/api/projects/${slug}/references/scan/adopt`, { idx: ex, as_reference: false, as_exemplar: true });
         out.jobs = r.jobs;
         out.skipped = r.skipped;
+      }
+      if (rd.length) {
+        const r = await api.post<typeof out>(`/api/projects/${slug}/references/scan/adopt`, { idx: rd, as_reference: false, as_reading: true });
+        out.jobs = [...out.jobs, ...r.jobs];
+        out.readJobs = r.jobs.length;
+        out.skipped = [...out.skipped, ...r.skipped];
       }
       return out;
     },
@@ -71,7 +78,9 @@ export function LiteratureScan({ slug, projectId, compact }: { slug: string; pro
       setPicks({});
       const parts = [];
       if (r.references.length) parts.push(`${r.references.length} reference${r.references.length === 1 ? "" : "s"} added`);
-      if (r.jobs.length) parts.push(`${r.jobs.length} exemplar${r.jobs.length === 1 ? "" : "s"} queued`);
+      const exJobs = r.jobs.length - r.readJobs;
+      if (exJobs) parts.push(`${exJobs} exemplar${exJobs === 1 ? "" : "s"} queued`);
+      if (r.readJobs) parts.push(`${r.readJobs} reading${r.readJobs === 1 ? "" : "s"} queued`);
       if (r.skipped.length) parts.push(`${r.skipped.length} without arXiv source skipped`);
       toast.success(parts.join(" · ") || "Nothing to add");
     },
@@ -82,11 +91,12 @@ export function LiteratureScan({ slug, projectId, compact }: { slug: string; pro
   const counts = useMemo(() => {
     const cite = Object.values(picks).filter((v) => v.cite).length;
     const ex = Object.values(picks).filter((v) => v.exemplar).length;
-    return { cite, ex };
+    const rd = Object.values(picks).filter((v) => v.read).length;
+    return { cite, ex, rd };
   }, [picks]);
   const toggle = (i: number, field: keyof Pick) =>
     setPicks((prev) => {
-      const cur: Pick = prev[i] ?? { cite: false, exemplar: false };
+      const cur: Pick = prev[i] ?? { cite: false, exemplar: false, read: false };
       return { ...prev, [i]: { ...cur, [field]: !cur[field] } };
     });
   const selectAll = (level: number, field: keyof Pick) => {
@@ -96,8 +106,9 @@ export function LiteratureScan({ slug, projectId, compact }: { slug: string; pro
       data.candidates.forEach((c, i) => {
         if (c.relevance !== level) return;
         if (field === "exemplar" && ((!c.arxiv_id && !c.pdf_url) || c.adopted_exemplar)) return;
+        if (field === "read" && ((!c.arxiv_id && !c.pdf_url) || c.adopted_reading)) return;
         if (field === "cite" && c.adopted_reference) return;
-        const cur: Pick = next[i] ?? { cite: false, exemplar: false };
+        const cur: Pick = next[i] ?? { cite: false, exemplar: false, read: false };
         next[i] = { ...cur, [field]: true };
       });
       return next;
@@ -156,6 +167,9 @@ export function LiteratureScan({ slug, projectId, compact }: { slug: string; pro
                     <Button size="sm" variant="ghost" onClick={() => selectAll(g.level, "cite")}>
                       Cite all
                     </Button>
+                    <Button size="sm" variant="ghost" onClick={() => selectAll(g.level, "read")}>
+                      Read all
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={() => selectAll(g.level, "exemplar")}>
                       Exemplar all
                     </Button>
@@ -172,11 +186,11 @@ export function LiteratureScan({ slug, projectId, compact }: { slug: string; pro
         </div>
       ) : null}
 
-      {counts.cite || counts.ex ? (
+      {counts.cite || counts.ex || counts.rd ? (
         <div className="sticky bottom-[76px] z-30 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius)] border border-primary/40 bg-card px-4 py-3 shadow-[0_8px_24px_-12px_rgba(16,24,40,0.25)] md:bottom-4">
           <div className="text-[13px]">
-            <span className="font-semibold">{counts.cite}</span> to cite · <span className="font-semibold">{counts.ex}</span> as exemplar{counts.ex === 1 ? "" : "s"}
-            <span className="text-muted-foreground"> · references are verified records; exemplars are fetched from arXiv and take a minute.</span>
+            <span className="font-semibold">{counts.cite}</span> to cite · <span className="font-semibold">{counts.rd}</span> to read in full · <span className="font-semibold">{counts.ex}</span> as exemplar{counts.ex === 1 ? "" : "s"}
+            <span className="text-muted-foreground"> · citing is instant; reading and exemplars fetch the paper and take a minute each, in the background.</span>
           </div>
           <div className="flex gap-2">
             <Button variant="ghost" size="sm" onClick={() => setPicks({})}>
@@ -227,6 +241,15 @@ function CandidateRow({ c, pick, onToggle }: { c: ScanCandidate; pick?: Pick; on
       </div>
       <div className="flex shrink-0 gap-2 sm:flex-col sm:items-end">
         <PickToggle checked={citeDone || !!pick?.cite} done={citeDone} label={citeDone ? `Cited as ${c.adopted_reference}` : "Cite"} icon={Quote} onClick={() => onToggle("cite")} />
+        {c.arxiv_id || c.pdf_url ? (
+          <PickToggle
+            checked={!!c.adopted_reading || !!pick?.read}
+            done={!!c.adopted_reading}
+            label={c.adopted_reading ? "Reading" : "Read in full"}
+            icon={BookOpen}
+            onClick={() => onToggle("read")}
+          />
+        ) : null}
         {c.arxiv_id || c.pdf_url ? (
           <PickToggle
             checked={exDone || !!pick?.exemplar}

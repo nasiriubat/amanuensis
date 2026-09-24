@@ -100,6 +100,7 @@ def _counts(slug: str) -> dict:
     )
     return {
         "exemplars": count("exemplars"),
+        "readings": count("readings"),
         "sections": len(list((root / "sections").glob("*.md"))) if (root / "sections").exists() else 0,
         "sections_drafted": _sections_drafted(root),
         "checklist_open": _checklist_open(root),

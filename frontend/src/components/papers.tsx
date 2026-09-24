@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertCircle, CheckCircle2, ExternalLink, FileText, Loader2, Plus, Quote, Trash2, Upload, X } from "lucide-react";
@@ -164,8 +164,10 @@ function PaperCard({ p, onOpen, onDelete, onCite, citing }: { p: Paper; onOpen: 
           {p.source ? <Badge variant="outline">{p.source === "arxiv-latex" ? "arXiv LaTeX" : p.source === "arxiv-pdf" ? "arXiv PDF" : "PDF"}</Badge> : null}
           {p.word_count ? <span className="text-subtle">{formatNumber(p.word_count)} words</span> : null}
           {p.figures?.length ? <span className="text-subtle">{p.figures.length} figures/tables</span> : null}
+          {p.ref_key ? <Badge variant="success">citable as @{p.ref_key}</Badge> : null}
           {p.error ? <span className="text-destructive">{p.error}</span> : null}
         </div>
+        {p.card?.relation ? <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-snug text-muted-foreground">{p.card.relation}</p> : null}
       </div>
       <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
         {onCite && p.status === "ready" ? (
@@ -188,8 +190,11 @@ function PaperCard({ p, onOpen, onDelete, onCite, citing }: { p: Paper; onOpen: 
 
 function PaperDialog({ url, onClose }: { url: string | null; onClose: () => void }) {
   const q = useQuery({ queryKey: ["paper", url], queryFn: () => api.get<PaperDetail>(url!), enabled: !!url });
-  const [tab, setTab] = useState<"text" | "summary">("text");
+  const [tab, setTab] = useState<"text" | "summary" | "card">("text");
   const d = q.data;
+  useEffect(() => {
+    if (d?.card) setTab("card");
+  }, [d?.card]);
   return (
     <Dialog open={!!url} onOpenChange={(o) => !o && onClose()}>
       <DialogContent title={d?.meta.title ?? "Paper"} description={d ? `${d.meta.word_count ?? 0} words · extracted with ${d.meta.extraction}` : undefined} className="max-w-3xl">
@@ -199,13 +204,38 @@ function PaperDialog({ url, onClose }: { url: string | null; onClose: () => void
               <Button size="sm" variant={tab === "text" ? "secondary" : "ghost"} onClick={() => setTab("text")}>
                 Extracted text
               </Button>
-              <Button size="sm" variant={tab === "summary" ? "secondary" : "ghost"} onClick={() => setTab("summary")} disabled={!d.summary}>
-                Learned summary
-              </Button>
+              {d.card ? (
+                <Button size="sm" variant={tab === "card" ? "secondary" : "ghost"} onClick={() => setTab("card")}>
+                  Reading card
+                </Button>
+              ) : (
+                <Button size="sm" variant={tab === "summary" ? "secondary" : "ghost"} onClick={() => setTab("summary")} disabled={!d.summary}>
+                  Learned summary
+                </Button>
+              )}
             </div>
             <div className="max-h-[60vh] overflow-y-auto rounded-[var(--radius-sm)] border border-border bg-muted/30 p-4">
               {tab === "text" ? (
                 <Markdown source={d.markdown.slice(0, 60_000)} />
+              ) : tab === "card" && d.card ? (
+                <dl className="grid gap-3 text-[13.5px] leading-relaxed">
+                  {(
+                    [
+                      ["Question", d.card.question],
+                      ["Method", d.card.method],
+                      ["Result", d.card.result],
+                      ["Limitation", d.card.limitation],
+                      ["Relation to your work", d.card.relation],
+                      ["Cite it for", d.card.cite_for],
+                    ] as Array<[string, string]>
+                  ).map(([k, v]) => (
+                    <div key={k}>
+                      <dt className="text-[11.5px] font-semibold uppercase tracking-wide text-subtle">{k}</dt>
+                      <dd>{v || "not stated"}</dd>
+                    </div>
+                  ))}
+                  {d.card.ref_key ? <p className="text-[12px] text-muted-foreground">Cite as [@{d.card.ref_key}]. Drafts may attribute what this card says to the paper.</p> : null}
+                </dl>
               ) : (
                 <pre className="whitespace-pre-wrap font-mono text-[12px] leading-relaxed">{JSON.stringify(JSON.parse(d.summary ?? "{}"), null, 2)}</pre>
               )}

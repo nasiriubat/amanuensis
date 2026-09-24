@@ -21,6 +21,7 @@ export function SourcesPage() {
   if (!project.data) return <p className="text-muted-foreground">Project not found.</p>;
   const p = project.data;
   const base = `/api/projects/${slug}/exemplars`;
+  const readingsBase = `/api/projects/${slug}/readings`;
 
   return (
     <div className="animate-in">
@@ -50,10 +51,10 @@ export function SourcesPage() {
       <div className="mb-6">
         <LiteratureScan slug={slug} projectId={p.id} />
       </div>
-      <SectionTitle>Add papers you already know</SectionTitle>
+      <SectionTitle>Exemplars: papers to learn the genre from</SectionTitle>
+      <p className="mb-3 -mt-1 text-[13px] text-muted-foreground">Five to ten papers of the kind you are writing. The playbook is learned from these; each can also be cited with one click.</p>
       <AddPapers arxivUrl={`${base}/arxiv`} uploadUrl={`${base}/upload`} onJob={watch} />
-      <JobProgress jobs={jobs.filter((j) => j.type !== "scan")} onDismiss={dismiss} />
-      <SectionTitle>Exemplars</SectionTitle>
+      <JobProgress jobs={jobs.filter((j) => j.type !== "scan" && j.type !== "ingest_reading" && j.type !== "reading_card")} onDismiss={dismiss} />
       <PaperList
         listUrl={base}
         itemUrl={(id) => `${base}/${id}`}
@@ -61,6 +62,21 @@ export function SourcesPage() {
         emptyTitle="No exemplars yet"
         emptyText="Let the scan suggest papers, paste arXiv ids of papers you admire in this genre, or upload PDFs. The tool reads them and learns how they are built."
       />
+
+      <div className="mt-10">
+        <SectionTitle>Background reading: papers you read for this work</SectionTitle>
+        <p className="mb-3 -mt-1 text-[13px] text-muted-foreground">
+          As many as you read, twenty or forty is normal. Each is read in full once and gets a reading card (question, method, result, limitation, relation to your work), about 3k tokens. The paper becomes a verified reference at once, and drafts may attribute to it what the card says, not only its abstract. Related Work is written from these cards. They never touch the playbook.
+        </p>
+        <AddPapers arxivUrl={`${readingsBase}/arxiv`} uploadUrl={`${readingsBase}/upload`} onJob={watch} />
+        <JobProgress jobs={jobs.filter((j) => j.type === "ingest_reading" || j.type === "reading_card")} onDismiss={dismiss} />
+        <PaperList
+          listUrl={readingsBase}
+          itemUrl={(id) => `${readingsBase}/${id}`}
+          emptyTitle="Nothing read yet"
+          emptyText="Paste arXiv ids, upload the PDFs you have read, or tick “Read” on scan candidates above. Twenty papers take a few minutes in the background."
+        />
+      </div>
       <NextStepBar p={p} current="sources" />
     </div>
   );

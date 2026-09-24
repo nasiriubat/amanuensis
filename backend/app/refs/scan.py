@@ -241,9 +241,13 @@ def adopt_references(root: Path, idx: list[int]) -> list[str]:
 
 
 def mark_exemplar(root: Path, idx: int) -> None:
+    mark_adopted(root, idx, "adopted_exemplar")
+
+
+def mark_adopted(root: Path, idx: int, field: str) -> None:
     data = load_scan(root)
     if data and 0 <= idx < len(data["candidates"]):
-        data["candidates"][idx]["adopted_exemplar"] = True
+        data["candidates"][idx][field] = True
         save_scan(root, data)
 
 

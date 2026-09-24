@@ -51,7 +51,7 @@ export const STEPS: Step[] = [
     state: (p) => (p.counts.exemplars > 0 ? "done" : p.entry === "draft" ? "optional" : "todo"),
     summary: (p) =>
       p.counts.exemplars
-        ? `${p.counts.exemplars} exemplar${p.counts.exemplars === 1 ? "" : "s"} ingested.`
+        ? `${p.counts.exemplars} exemplar${p.counts.exemplars === 1 ? "" : "s"} ingested${p.counts.readings ? `, ${p.counts.readings} paper${p.counts.readings === 1 ? "" : "s"} read in full` : ""}.`
         : p.entry === "draft"
           ? "Optional for a draft you already wrote; exemplars still sharpen the reviewer pass."
           : "Paste five to ten papers of this kind, or let the literature scan suggest them.",

@@ -37,6 +37,7 @@ page, CSV and JSON export, and the four study documents.
 | 6 | Deploy and re-test | VPS with Semantic Scholar key; Docker rebuild; newcomer persona re-run; regression |
 | 7 | Study kit | Consent, questionnaire, participant guide page, step-timing instrumentation |
 | 8 | Buffer and paper | Slack for what days 1–7 surface; Paper Writer paper gets the study design |
+| 9 | Background reading | Reading list role: papers read in full get a card and become citable; Related Work drafts from the cards |
 | +2 weeks | User study | Five colleagues, one paper each; then one day of analysis |
 
 ## Items
@@ -120,6 +121,22 @@ page, CSV and JSON export, and the four study documents.
 - Data out: tokens per paper and step, time per step, reviewer verdicts over time, number of
   sections edited by hand, exports produced, questionnaire scores, interview themes.
 - Use: the Evaluation section of the Paper Writer paper, which currently holds a placeholder.
+
+### 11. Background reading (added 24 September, done the same day)
+- A third paper role beside exemplar and reference. Papers the author read for the study are
+  ingested in full under `readings/` (arXiv id, PDF upload, or "Read in full" on a scan
+  candidate) but never feed the playbook.
+- One utility call per paper writes a reading card: question, method, result with numbers,
+  limitation, relation to the author's work, and what the paper can be cited for. About 3k
+  tokens for a 5k-word paper (7k with the specification in the prompt), 20 to 40 papers per
+  project is normal.
+- The card is stored on the paper's reference record, so the paper is citable at once, and
+  drafting may attribute what the card says rather than only the abstract. For introduction,
+  background and related-work sections the full cards are in the prompt, with the instruction
+  to group them by what they share and position the paper against them.
+- Deleting a reading removes its text; the reference and card stay.
+- Acceptance: one arXiv paper read on the newcomer project produced a card whose result
+  carried the paper's own numbers and was citable as a verified key within one job.
 
 ## Needed from the workspace owner
 - VPS or server with a domain, and who administers it.

@@ -473,13 +473,20 @@ def add_checklist_item(root: Path, section: str, text: str) -> dict:
 # ------------------------------------------------------------------ context helpers
 
 
-def _ref_key_lines(root: Path) -> str:
+def _ref_key_lines(root: Path, full_cards: bool = False) -> str:
+    """One entry per verified reference. A reading card, when the author read the paper,
+    replaces the abstract as "what it says"; `full_cards` expands cards for related-work sections."""
+    from ..refs import readings
     from ..refs import service as refs
 
     lines = []
     for r in sorted(refs.list_records(root), key=lambda x: x["key"]):
         who = (r.get("authors") or ["?"])[0].split(",")[0]
-        lines.append(f"[@{r['key']}] {who} {r.get('year') or ''}: {r.get('title', '')[:120]}")
+        tag = " (read in full; card below)" if r.get("card") else ""
+        lines.append(f"[@{r['key']}] {who} {r.get('year') or ''}: {r.get('title', '')[:120]}{tag}")
+        if r.get("card"):
+            lines.append(f"    what it says: {readings.card_lines(r, full=full_cards)}")
+            continue
         abstract = re.sub(r"\s+", " ", (r.get("abstract") or "").strip())
         if abstract:
             lines.append(f"    what it says: {abstract[:420]}")
@@ -597,7 +604,7 @@ async def draft_section(
         house_style=storage.read_text(storage.house_style_path()),
         playbook=playbook,
         facts=storage.read_text(inputs / "facts.md")[:6000],
-        ref_keys=_ref_key_lines(root),
+        ref_keys=_ref_key_lines(root, full_cards=_bucket(sec["title"]) in ("related", "background", "introduction")),
     )
     user = render(
         "draft_section.j2",
