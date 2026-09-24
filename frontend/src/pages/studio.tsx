@@ -23,10 +23,10 @@ import {
   Wand2,
 } from "lucide-react";
 import { api } from "@/lib/api";
-import type { ChecklistItem, Figure, JobInfo, LintFinding, Project, RefRecord, Section, SectionDetail, StudioState } from "@/lib/types";
+import type { ChecklistItem, Figure, FixProposal, JobInfo, LintFinding, Project, RefRecord, Section, SectionDetail, StudioState } from "@/lib/types";
 import { useJobs } from "@/lib/jobs";
 import { useTheme } from "@/lib/theme";
-import { diffLines } from "@/lib/diff";
+import { diffLines, diffWords } from "@/lib/diff";
 import { cn, timeAgo } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -197,12 +197,39 @@ function ChecklistPanel({ slug, items, sectionTitle }: { slug: string; items: Ch
   );
 }
 
-function IssuesPanel({ findings, onJump }: { findings: LintFinding[]; onJump: (line: number) => void }) {
+const AUTO_FIXABLE = new Set(["banned", "dash", "semicolon", "long", "opener", "exclamation", "question", "overlap"]);
+const KIND_LABEL: Record<string, string> = {
+  needs: "open items",
+  citation: "citations to verify",
+  long: "long sentences",
+  banned: "banned phrases",
+  dash: "dashes",
+  semicolon: "semicolons",
+  opener: "repeated openers",
+  exclamation: "exclamation marks",
+  question: "rhetorical questions",
+  overlap: "overlap with an exemplar",
+};
+
+function IssuesPanel({ findings, onJump, onFix, fixing, disabled }: { findings: LintFinding[]; onJump: (line: number) => void; onFix: () => void; fixing: boolean; disabled: boolean }) {
   if (findings.length === 0) return <p className="text-[13px] text-subtle">No issues. The lint checks house-style rules, placeholders and citation keys.</p>;
   const order = { error: 0, warning: 1, info: 2 };
   const sorted = [...findings].sort((a, b) => order[a.severity] - order[b.severity] || a.line - b.line);
+  const fixable = findings.filter((f) => AUTO_FIXABLE.has(f.kind)).length;
+  const manual = findings.length - fixable;
   return (
     <div className="flex flex-col gap-1.5">
+      {fixable > 0 ? (
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-sm)] border border-border bg-muted/40 p-2.5">
+          <div className="text-[12.5px] text-muted-foreground">
+            {fixable} of {findings.length} can be fixed for you{manual ? `. ${manual} need${manual === 1 ? "s" : ""} your call.` : "."}
+            <span className="block text-[11.5px] text-subtle">You see every change before it is saved.</span>
+          </div>
+          <Button size="sm" onClick={onFix} loading={fixing} disabled={disabled}>
+            <Wand2 className="h-3.5 w-3.5" /> Fix issues
+          </Button>
+        </div>
+      ) : null}
       {sorted.map((f, i) => (
         <button
           key={i}
@@ -269,6 +296,53 @@ function HistoryDialog({ slug, section, current, onRestore, onClose }: { slug: s
           >
             <RotateCcw className="h-4 w-4" /> Load this version into the editor
           </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function FixDialog({ proposal, current, onAccept, onClose, saving }: { proposal: FixProposal; current: string; onAccept: () => void; onClose: () => void; saving: boolean }) {
+  const diff = useMemo(() => diffWords(current, proposal.text), [current, proposal.text]);
+  const remaining = proposal.after.length;
+  const fixed = Math.max(0, proposal.before_count - remaining);
+  const parts = [proposal.mechanical ? `Mechanical: ${proposal.mechanical}` : "", proposal.model_used ? `Wording by the model (${(proposal.tokens_in + proposal.tokens_out).toLocaleString()} tokens)` : ""].filter(Boolean);
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent
+        title={proposal.changed ? `${fixed} of ${proposal.before_count} issue${proposal.before_count === 1 ? "" : "s"} resolved` : "Nothing to fix automatically"}
+        description={proposal.changed ? "Red is removed, green is added. Citations and placeholders were kept as they were. Nothing is saved until you accept." : undefined}
+        className="max-w-3xl"
+      >
+        {parts.length ? <p className="mb-2 text-[12.5px] text-muted-foreground">{parts.join(" · ")}</p> : null}
+        {proposal.note ? <p className="mb-2 rounded-[var(--radius-sm)] bg-warning-soft/50 px-3 py-2 text-[12.5px] text-warning">{proposal.note}</p> : null}
+        {proposal.changed ? (
+          <div className="max-h-[55vh] overflow-y-auto rounded-[var(--radius-sm)] border border-border bg-muted/30 p-3 text-[13.5px] leading-[1.7]">
+            {diff.map((d, i) =>
+              d.text === "\n" ? (
+                <br key={i} />
+              ) : (
+                <span key={i} className={cn("whitespace-pre-wrap", d.type === "add" && "rounded-sm bg-success-soft text-success", d.type === "del" && "rounded-sm bg-destructive-soft text-destructive line-through decoration-destructive/60")}>
+                  {d.text}
+                </span>
+              ),
+            )}
+          </div>
+        ) : null}
+        {remaining > 0 && proposal.changed ? (
+          <p className="mt-2 text-[12px] text-subtle">
+            {remaining} finding{remaining === 1 ? "" : "s"} remain{remaining === 1 ? "s" : ""} for you: {Array.from(new Set(proposal.after.map((f) => KIND_LABEL[f.kind] ?? f.kind))).join(", ")}.
+          </p>
+        ) : null}
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            {proposal.changed ? "Discard" : "Close"}
+          </Button>
+          {proposal.changed ? (
+            <Button onClick={onAccept} loading={saving}>
+              <Check className="h-4 w-4" /> Accept and save
+            </Button>
+          ) : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -350,9 +424,10 @@ export function StudioPage() {
     onError: (e: Error) => toast.error(e.message),
   });
   const save = useMutation({
-    mutationFn: () => api.put<SectionDetail>(`/api/projects/${slug}/sections/${selected}`, { content: text }),
+    mutationFn: (content?: string) => api.put<SectionDetail>(`/api/projects/${slug}/sections/${selected}`, { content: content ?? text }),
     onSuccess: (d) => {
       qc.setQueryData(["section", slug, selected], d);
+      setText(d.content);
       setFindings(d.lint);
       void qc.invalidateQueries({ queryKey: ["studio", slug] });
       void qc.invalidateQueries({ queryKey: ["checklist", slug] });
@@ -370,6 +445,21 @@ export function StudioPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+  const [fixProposal, setFixProposal] = useState<FixProposal | null>(null);
+  const fix = useMutation({
+    mutationFn: () => api.post<FixProposal>(`/api/projects/${slug}/sections/${selected}/fix`, { text }),
+    onSuccess: (p) => setFixProposal(p),
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const acceptFix = () => {
+    if (!fixProposal) return;
+    save.mutate(fixProposal.text, {
+      onSuccess: (d) => {
+        setFixProposal(null);
+        toast.success(d.lint.length ? `Saved. ${d.lint.length} finding${d.lint.length === 1 ? "" : "s"} left for you.` : "Saved. No issues left.");
+      },
+    });
+  };
   const lock = useMutation({
     mutationFn: (mine: boolean) => api.post<Section>(`/api/projects/${slug}/sections/${selected}/lock`, { mine }),
     onSuccess: (s) => {
@@ -687,7 +777,7 @@ export function StudioPage() {
                   <ChecklistPanel slug={slug} items={checklist.data ?? []} sectionTitle={section?.title ?? null} />
                 </TabsContent>
                 <TabsContent value="issues" className="max-h-[60vh] overflow-y-auto lg:max-h-[calc(100vh-320px)]">
-                  <IssuesPanel findings={findings} onJump={jumpTo} />
+                  <IssuesPanel findings={findings} onJump={jumpTo} onFix={() => fix.mutate()} fixing={fix.isPending} disabled={!text.trim() || active || draftingIds.has(section?.id ?? "")} />
                 </TabsContent>
               </Tabs>
             </Card>
@@ -729,6 +819,8 @@ export function StudioPage() {
         }}
         busy={draft.isPending}
       />
+
+      {fixProposal ? <FixDialog proposal={fixProposal} current={text} onAccept={acceptFix} onClose={() => setFixProposal(null)} saving={save.isPending} /> : null}
 
       {historyOpen && section ? (
         <HistoryDialog

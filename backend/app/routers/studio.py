@@ -12,6 +12,7 @@ from ..deps import current_user
 from ..jobs import create_job, job_dict, start_job
 from ..models import User
 from ..security import llm_limiter
+from ..studio import fix as fix_mod
 from ..studio import lint as lint_mod
 from ..studio import service as svc
 from .projects import get_owned
@@ -176,6 +177,26 @@ async def draft_section(
         job, lambda ctx: svc.draft_section(p.id, section_id, ctx, instructions=body.instructions, force=body.force)
     )
     return job_dict(job)
+
+
+class FixIn(BaseModel):
+    text: str = Field(min_length=1, max_length=200_000)
+
+
+@router.post("/sections/{section_id}/fix")
+async def fix_section(
+    slug: str, section_id: str, body: FixIn, user: User = Depends(current_user), db: Session = Depends(get_db)
+):
+    """Propose a version with the lint findings resolved. Saves nothing; the Studio shows a diff."""
+    p, root = _root(db, user, slug)
+    if not llm_limiter.allow(user.id):
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Slow down")
+    try:
+        svc.get_section(root, section_id)
+    except ValueError as e:
+        raise HTTPException(404, str(e)) from e
+    db.expunge(p)
+    return await fix_mod.propose(p, body.text, svc.known_ref_keys(root), svc.exemplar_texts(root), user.id)
 
 
 @router.get("/sections/{section_id}/history")

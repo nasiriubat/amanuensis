@@ -263,6 +263,19 @@ export interface SectionDetail {
   lint: LintFinding[];
 }
 
+export interface FixProposal {
+  text: string;
+  changed: boolean;
+  mechanical: string;
+  model_used: boolean;
+  before: { errors: number; warnings: number; info: number };
+  before_count: number;
+  after: LintFinding[];
+  note: string;
+  tokens_in: number;
+  tokens_out: number;
+}
+
 export interface ChecklistItem {
   id: string;
   section: string;

@@ -217,3 +217,61 @@ def test_import_draft_makes_outline_and_owned_sections(client, admin):
     assert client.post(f"/api/projects/{slug}/studio/import", json={"markdown": md}, headers=admin).status_code == 400
     assert studio.import_draft.__doc__
     client.delete(f"/api/projects/{slug}", headers=admin)
+
+
+def test_mechanical_hygiene_pass_keeps_protected_spans():
+    from app.studio import hygiene
+
+    text = (
+        "## Heading — keep\n\n"
+        "The parser — a small module — rejects bad input; it logs the reason for each rejection [@smith2020].\n"
+        "We were surprised! See [NEEDS: the figure — with numbers] and `code; here`.\n"
+        "- a list item; untouched\n"
+    )
+    out, changes = hygiene.mechanical_pass(text)
+    assert "## Heading — keep" in out
+    assert "The parser, a small module, rejects bad input. It logs the reason" in out
+    assert "[@smith2020]" in out and "[NEEDS: the figure — with numbers]" in out and "`code; here`" in out
+    assert "surprised." in out and "- a list item; untouched" in out
+    kinds = {c.kind: c.count for c in changes}
+    assert kinds == {"dash": 2, "semicolon": 1, "exclamation": 1}
+    assert "dashes" in hygiene.describe(changes)
+
+
+def test_fix_guard_rejects_dropped_citations_and_length_drift():
+    from app.studio import fix
+
+    base = "Alpha beta [@a] gamma. [NEEDS: numbers] " + "word " * 60
+    assert fix.preserved(base, base) is None
+    assert fix.preserved(base, base.replace("[@a]", "")) == "the citations changed"
+    assert "placeholder" in fix.preserved(base, base.replace("[NEEDS: numbers]", "[NEEDS: figures]"))
+    assert "length" in fix.preserved(base, base + "word " * 40)
+    assert "Punctuation" in fix.hygiene_rules(HOUSE + "\n## Punctuation\n- none\n")
+
+
+def test_fix_endpoint_proposes_without_saving(client, admin, monkeypatch):
+    from app.llm.base import Completion, Usage
+    from app.studio import fix
+
+    async def fake_complete(db, purpose, messages, **kw):
+        assert purpose == "utility"
+        text = messages[0].content.split("=== SECTION TEXT ===\n", 1)[1]
+        return Completion(text=text.replace("delve into", "examine"), model="fake", usage=Usage(300, 120))
+
+    monkeypatch.setattr(fix, "complete", fake_complete)
+    r = client.post("/api/projects", json={"title": "Fix Me", "kind": "tool-paper", "entry": "draft"}, headers=admin)
+    slug = r.json()["slug"]
+    md = "## Introduction\nWe delve into logs — they are long; developers skim them and miss the cause.\n"
+    body = client.post(f"/api/projects/{slug}/studio/import", json={"markdown": md}, headers=admin).json()
+    sec = body["sections"][0]
+    content = client.get(f"/api/projects/{slug}/sections/{sec['id']}", headers=admin).json()["content"]
+    res = client.post(f"/api/projects/{slug}/sections/{sec['id']}/fix", json={"text": content}, headers=admin)
+    assert res.status_code == 200, res.text
+    out = res.json()
+    assert out["changed"] and out["model_used"]
+    assert "examine" in out["text"] and "—" not in out["text"] and ";" not in out["text"]
+    assert out["before_count"] >= 2 and len(out["after"]) < out["before_count"]
+    # nothing was written
+    again = client.get(f"/api/projects/{slug}/sections/{sec['id']}", headers=admin).json()["content"]
+    assert again == content
+    client.delete(f"/api/projects/{slug}", headers=admin)

@@ -1,0 +1,19 @@
+You are a copy editor applying a house style to one section of a research paper. Make the smallest edits that resolve the listed findings and change nothing else.
+
+Rules:
+1. Fix only what a finding names. Do not reorder, shorten, expand or "improve" other sentences.
+2. Keep every `[@key]` citation exactly where it is, with the same key. Keep every `[NEEDS: …]` and `[CITE: …]` placeholder verbatim. Keep headings, figure lines, tables and code untouched.
+3. Add no facts, numbers, names or claims. If a banned phrase carries meaning, replace it with the plainest concrete wording that says the same thing. If a sentence is too long, split it at a clause boundary without dropping content.
+4. For "overlap" findings, rewrite the flagged passage in different words with the same meaning; cite as before.
+5. Return the whole revised section text and nothing else: no preface, no fences, no notes.
+
+House style, hygiene rules only:
+{{ house_style }}
+
+Findings to resolve (line numbers refer to the text below):
+{% for f in findings %}
+- line {{ f.line }} [{{ f.kind }}]: {{ f.message }}{% if f.excerpt %} — “{{ f.excerpt }}”{% endif %}
+{% endfor %}
+
+=== SECTION TEXT ===
+{{ text }}
