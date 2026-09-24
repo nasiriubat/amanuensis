@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertCircle, BookMarked, Check, ChevronLeft, Copy, Download, ExternalLink, Plus, Quote, Search, Telescope, Trash2, Upload } from "lucide-react";
@@ -187,10 +187,24 @@ export function ReferencesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const resultsRef = useRef<HTMLDivElement>(null);
   const runSearch = (query: string) => {
     setQ(query);
-    if (query.trim().length >= 2) search.mutate(query.trim());
+    if (query.trim().length >= 2) {
+      search.mutate(query.trim());
+      window.setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    }
   };
+  // "Search this claim" from the Studio arrives as ?q=; run it once and drop it from the URL.
+  const [params, setParams] = useSearchParams();
+  const fromUrl = params.get("q");
+  useEffect(() => {
+    if (fromUrl) {
+      runSearch(fromUrl);
+      setParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromUrl]);
 
   if (project.isLoading) return <Skeleton className="h-64" />;
   if (!project.data) return <p className="text-muted-foreground">Project not found.</p>;
@@ -263,6 +277,7 @@ export function ReferencesPage() {
             </div>
           ) : null}
 
+          <div ref={resultsRef} className="scroll-mt-20" />
           <SectionTitle>Search</SectionTitle>
           <form
             onSubmit={(e) => {

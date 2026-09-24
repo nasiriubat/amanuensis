@@ -51,7 +51,7 @@ def _root(db: Session, user: User, slug: str):
     return p, storage.project_dir(p.slug)
 
 
-def _views(root) -> dict:
+def _views(root, kind: str = "") -> dict:
     index = svc.load_index(root)
     house = storage.read_text(storage.house_style_path())
     keys = svc.known_ref_keys(root)
@@ -59,13 +59,14 @@ def _views(root) -> dict:
     return {
         "initialized": index.get("initialized_at") is not None,
         "sections": [svc.section_view(root, s, house, keys, exemplars) for s in index["sections"]],
+        "missing": svc.missing_sections(root, kind) if kind else [],
     }
 
 
 @router.get("/studio")
 def get_studio(slug: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
-    _, root = _root(db, user, slug)
-    return _views(root)
+    p, root = _root(db, user, slug)
+    return _views(root, p.kind)
 
 
 @router.post("/studio/init")
@@ -81,7 +82,7 @@ def init_studio(slug: str, user: User = Depends(current_user), db: Session = Dep
     if p.stage == "outline":
         p.stage = "drafting"
         db.commit()
-    return _views(root)
+    return _views(root, p.kind)
 
 
 class ImportIn(BaseModel):
@@ -101,7 +102,25 @@ def import_draft(slug: str, body: ImportIn, user: User = Depends(current_user), 
         raise HTTPException(400, str(e)) from e
     p.stage = "drafting"
     db.commit()
-    return {**_views(root), "imported": result}
+    return {**_views(root, p.kind), "imported": result}
+
+
+class AddSectionIn(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+
+
+@router.post("/studio/sections", status_code=201)
+def add_section(slug: str, body: AddSectionIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Add a section the paper kind expects but the draft lacks. Appends to the outline, creates an empty file."""
+    p, root = _root(db, user, slug)
+    if not svc.load_index(root)["sections"]:
+        raise HTTPException(400, "Create or import sections first")
+    try:
+        sec = svc.add_section(root, body.title)
+        svc.seed_kind_checklist(root, p.kind, svc.parse_outline(storage.read_text(root / "outline.md")))
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    return {**_views(root, p.kind), "section": sec}
 
 
 @router.get("/sections/{section_id}")

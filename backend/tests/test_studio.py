@@ -275,3 +275,32 @@ def test_fix_endpoint_proposes_without_saving(client, admin, monkeypatch):
     again = client.get(f"/api/projects/{slug}/sections/{sec['id']}", headers=admin).json()["content"]
     assert again == content
     client.delete(f"/api/projects/{slug}", headers=admin)
+
+
+def test_missing_sections_and_add_section(client, admin):
+    from app import storage
+    from app.interview import service as interview
+
+    r = client.post("/api/projects", json={"title": "Gaps", "kind": "tool-paper", "entry": "draft"}, headers=admin)
+    slug = r.json()["slug"]
+    md = "## Introduction\nText.\n\n## Approach\nMore text.\n\n## Conclusion\nEnd.\n"
+    body = client.post(f"/api/projects/{slug}/studio/import", json={"markdown": md}, headers=admin).json()
+    assert "Related work" in body["missing"] and "Evaluation" in body["missing"]
+    assert "Introduction" not in body["missing"] and "Design" not in body["missing"]  # Approach covers Design
+    res = client.post(f"/api/projects/{slug}/studio/sections", json={"title": "Evaluation"}, headers=admin)
+    assert res.status_code == 201, res.text
+    out = res.json()
+    assert out["section"]["title"] == "Evaluation" and out["section"]["status"] == "empty"
+    assert "Evaluation" not in out["missing"] and len(out["sections"]) == 4
+    intro = next(s for s in out["sections"] if s["slug"] == "introduction")
+    assert intro["status"] == "mine"  # existing text and ownership untouched
+    outline = storage.read_text(storage.project_dir(slug) / "outline.md")
+    assert "## 4. Evaluation" in outline and outline.index("## 4. Evaluation") < outline.index("## Open items")
+    dup = client.post(f"/api/projects/{slug}/studio/sections", json={"title": "Evaluation"}, headers=admin)
+    assert dup.status_code == 400
+    # pinned notes are carried as unverified
+    root = storage.project_dir(slug)
+    st = interview.pin_note(root, "Everyone uses AI for debugging now")
+    assert st["notes"][-1]["unverified"] is True
+    assert "(unverified)" in interview.render_interview_md(st)
+    client.delete(f"/api/projects/{slug}", headers=admin)

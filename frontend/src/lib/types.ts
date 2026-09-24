@@ -216,7 +216,7 @@ export interface InterviewRound {
 
 export interface InterviewState {
   rounds: InterviewRound[];
-  notes: Array<{ id: string; text: string; at: string }>;
+  notes: Array<{ id: string; text: string; at: string; unverified?: boolean }>;
   done?: boolean;
   updated_at: string | null;
 }
@@ -255,6 +255,8 @@ export interface Section {
 export interface StudioState {
   initialized: boolean;
   sections: Section[];
+  /** Sections the paper kind expects that this project does not have yet. */
+  missing: string[];
 }
 
 export interface SectionDetail {

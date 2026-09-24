@@ -93,9 +93,9 @@ def render_interview_md(state: dict) -> str:
             elif q.get("answer", "").strip():
                 out.append(f"\n**Q:** {q['question']}\n\n**A:** {q['answer'].strip()}\n")
     if state.get("notes"):
-        out.append("\n## Notes pinned from chat\n")
+        out.append("\n## Notes pinned from chat (unverified: the author's thinking, not evidence)\n")
         for n in state["notes"]:
-            out.append(f"\n- {n['text']}\n")
+            out.append(f"\n- (unverified) {n['text']}\n")
     return "".join(out).strip() + "\n"
 
 
@@ -130,7 +130,8 @@ def apply_answers(root: Path, answers: list[dict]) -> dict:
 
 def pin_note(root: Path, text: str) -> dict:
     state = load_interview(root)
-    state.setdefault("notes", []).append({"id": secrets.token_hex(4), "text": text.strip()[:2000], "at": _now()})
+    note = {"id": secrets.token_hex(4), "text": text.strip()[:2000], "at": _now(), "unverified": True}
+    state.setdefault("notes", []).append(note)
     save_interview(root, state, "Interview: pin note from chat")
     return state
 
@@ -143,7 +144,7 @@ def _previous_rounds_text(state: dict) -> str:
             ans = "NOT APPLICABLE" if q.get("status") == "na" else (q.get("answer", "").strip() or "(unanswered)")
             parts.append(f"  Q: {q['question']}\n  A: {ans}")
     for n in state.get("notes", []):
-        parts.append(f"Pinned note: {n['text']}")
+        parts.append(f"Pinned note (unverified, from chat): {n['text']}")
     return "\n".join(parts)
 
 

@@ -67,11 +67,19 @@ export const STEPS: Step[] = [
     key: "interview",
     title: "Interview",
     to: (s) => `/projects/${s}/interview`,
-    state: (p) => (p.counts.interview_rounds.done || (p.counts.interview_rounds.rounds > 0 && p.counts.interview_rounds.open === 0) ? "done" : p.counts.has_spec ? "todo" : "locked"),
+    state: (p) =>
+      p.counts.interview_rounds.done || (p.counts.interview_rounds.rounds > 0 && p.counts.interview_rounds.open === 0)
+        ? "done"
+        : p.entry === "draft" && p.counts.sections > 0 && p.counts.interview_rounds.rounds === 0
+          ? "optional"
+          : p.counts.has_spec
+            ? "todo"
+            : "locked",
     summary: (p) => {
       const ir = p.counts.interview_rounds;
       if (ir.done) return `Complete: ${ir.answered} answers over ${ir.rounds} rounds.`;
       if (ir.rounds) return `${ir.answered} answered, ${ir.open} open, ${ir.rounds} round${ir.rounds === 1 ? "" : "s"}.`;
+      if (p.entry === "draft" && p.counts.sections > 0) return "Optional for an imported draft. Useful when the reviewer says a section lacks substance.";
       return "The model asks only what the paper still lacks.";
     },
   },
@@ -136,11 +144,20 @@ export const STEPS: Step[] = [
   },
 ];
 
-/** Steps in the order this project walks them. Idea-first projects design the study before describing it. */
+/** Steps in the order this project walks them. Idea-first projects design the study before
+ *  describing it; draft-first projects get the reviewer pass right after the Studio. */
 export function orderedSteps(p: Project): Step[] {
-  if (p.entry !== "idea") return STEPS;
-  const design = STEPS.find((s) => s.key === "design")!;
-  return [design, ...STEPS.filter((s) => s.key !== "design")];
+  if (p.entry === "idea") {
+    const design = STEPS.find((s) => s.key === "design")!;
+    return [design, ...STEPS.filter((s) => s.key !== "design")];
+  }
+  if (p.entry === "draft") {
+    const review = STEPS.find((s) => s.key === "review")!;
+    const rest = STEPS.filter((s) => s.key !== "review");
+    const i = rest.findIndex((s) => s.key === "studio");
+    return [...rest.slice(0, i + 1), review, ...rest.slice(i + 1)];
+  }
+  return STEPS;
 }
 
 /** Step title as this project should read it. */

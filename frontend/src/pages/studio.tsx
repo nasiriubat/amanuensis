@@ -18,7 +18,9 @@ import {
   Quote,
   Image as ImageIcon,
   PenLine,
+  Plus,
   RotateCcw,
+  Search as SearchIcon,
   Sparkles,
   Wand2,
 } from "lucide-react";
@@ -211,7 +213,12 @@ const KIND_LABEL: Record<string, string> = {
   overlap: "overlap with an exemplar",
 };
 
-function IssuesPanel({ findings, onJump, onFix, fixing, disabled }: { findings: LintFinding[]; onJump: (line: number) => void; onFix: () => void; fixing: boolean; disabled: boolean }) {
+function claimOf(f: LintFinding): string | null {
+  const m = f.excerpt.match(/^\[CITE:\s*([^\]]+)\]/);
+  return m ? m[1].trim() : null;
+}
+
+function IssuesPanel({ slug, findings, onJump, onFix, fixing, disabled }: { slug: string; findings: LintFinding[]; onJump: (line: number) => void; onFix: () => void; fixing: boolean; disabled: boolean }) {
   if (findings.length === 0) return <p className="text-[13px] text-subtle">No issues. The lint checks house-style rules, placeholders and citation keys.</p>;
   const order = { error: 0, warning: 1, info: 2 };
   const sorted = [...findings].sort((a, b) => order[a.severity] - order[b.severity] || a.line - b.line);
@@ -230,19 +237,27 @@ function IssuesPanel({ findings, onJump, onFix, fixing, disabled }: { findings: 
           </Button>
         </div>
       ) : null}
-      {sorted.map((f, i) => (
-        <button
-          key={i}
-          onClick={() => onJump(f.line)}
-          className="flex items-start gap-2 rounded-md px-2 py-1.5 text-left text-[12.5px] hover:bg-muted"
-        >
-          <span className={cn("mt-1 h-2 w-2 shrink-0 rounded-full", f.severity === "error" ? "bg-destructive" : f.severity === "warning" ? "bg-warning" : "bg-border-strong")} />
-          <span className="min-w-0 flex-1">
-            <span className="text-foreground">{f.message}</span>
-            <span className="ml-1 text-subtle">line {f.line}</span>
-          </span>
-        </button>
-      ))}
+      {sorted.map((f, i) => {
+        const claim = claimOf(f);
+        return (
+          <div key={i} className="flex items-start gap-1 rounded-md hover:bg-muted">
+            <button onClick={() => onJump(f.line)} className="flex min-w-0 flex-1 items-start gap-2 px-2 py-1.5 text-left text-[12.5px]">
+              <span className={cn("mt-1 h-2 w-2 shrink-0 rounded-full", f.severity === "error" ? "bg-destructive" : f.severity === "warning" ? "bg-warning" : "bg-border-strong")} />
+              <span className="min-w-0 flex-1">
+                <span className="text-foreground">{f.message}</span>
+                <span className="ml-1 text-subtle">line {f.line}</span>
+              </span>
+            </button>
+            {claim ? (
+              <Tooltip content="Search the three indexes for this claim">
+                <Link to={`/projects/${slug}/references?q=${encodeURIComponent(claim.slice(0, 200))}`} className="mr-1 mt-1 inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[11.5px] font-medium text-primary hover:bg-primary-soft">
+                  <SearchIcon className="h-3 w-3" /> Search
+                </Link>
+              </Tooltip>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -460,6 +475,15 @@ export function StudioPage() {
       },
     });
   };
+  const addSection = useMutation({
+    mutationFn: (title: string) => api.post<StudioState & { section: Section }>(`/api/projects/${slug}/studio/sections`, { title }),
+    onSuccess: (r) => {
+      refresh();
+      setSelected(r.section.id);
+      toast.success(`Added “${r.section.title}”. Draft it or write it yourself.`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const lock = useMutation({
     mutationFn: (mine: boolean) => api.post<Section>(`/api/projects/${slug}/sections/${selected}/lock`, { mine }),
     onSuccess: (s) => {
@@ -549,6 +573,8 @@ export function StudioPage() {
   const p = project.data;
   const approved = ["outline", "drafting", "review", "export"].includes(p.stage);
   const nextEmpty = sections.find((s) => s.status === "empty");
+  const missing = studio.data.missing ?? [];
+  const drafted = sections.filter((s) => s.status !== "empty").length;
   const openForSection = (checklist.data ?? []).filter((i) => i.status === "open" && section && (i.section === section.title || i.section === "Whole paper")).length;
 
   return (
@@ -559,9 +585,12 @@ export function StudioPage() {
       <PageHeader
         eyebrow={
           sections.length ? (
-            <Badge variant="primary">
-              {sections.filter((s) => s.status !== "empty").length} of {sections.length} sections drafted
-            </Badge>
+            <span className="inline-flex flex-wrap items-center gap-1.5">
+              <Badge variant="primary">
+                {drafted} of {sections.length} sections drafted
+              </Badge>
+              {missing.length ? <Badge variant="warning">{missing.length} the kind expects {missing.length === 1 ? "is" : "are"} missing</Badge> : null}
+            </span>
           ) : (
             <Badge>Not started</Badge>
           )
@@ -578,6 +607,23 @@ export function StudioPage() {
       />
 
       <JobProgress jobs={jobs} onDismiss={dismiss} />
+
+      {studio.data.initialized && missing.length ? (
+        <Card className="mb-4 flex flex-wrap items-center gap-2 border-warning/40 bg-warning-soft/30 px-4 py-3">
+          <div className="mr-auto min-w-0 text-[13px]">
+            <span className="font-medium">A {p.kind.replace(/-/g, " ")} usually also has:</span>{" "}
+            <span className="text-muted-foreground">{missing.join(", ")}.</span>
+            <span className="block text-[12px] text-subtle">Add the ones your paper needs. Each starts empty, with an outline line you can edit in the Plan tab.</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {missing.map((t) => (
+              <Button key={t} size="sm" variant="secondary" onClick={() => addSection.mutate(t)} disabled={addSection.isPending}>
+                <Plus className="h-3.5 w-3.5" /> {t}
+              </Button>
+            ))}
+          </div>
+        </Card>
+      ) : null}
 
       {!studio.data.initialized ? (
         <div className={cn("grid gap-4", "lg:grid-cols-2")}>
@@ -777,7 +823,7 @@ export function StudioPage() {
                   <ChecklistPanel slug={slug} items={checklist.data ?? []} sectionTitle={section?.title ?? null} />
                 </TabsContent>
                 <TabsContent value="issues" className="max-h-[60vh] overflow-y-auto lg:max-h-[calc(100vh-320px)]">
-                  <IssuesPanel findings={findings} onJump={jumpTo} onFix={() => fix.mutate()} fixing={fix.isPending} disabled={!text.trim() || active || draftingIds.has(section?.id ?? "")} />
+                  <IssuesPanel slug={slug} findings={findings} onJump={jumpTo} onFix={() => fix.mutate()} fixing={fix.isPending} disabled={!text.trim() || active || draftingIds.has(section?.id ?? "")} />
                 </TabsContent>
               </Tabs>
             </Card>

@@ -320,10 +320,15 @@ export function InterviewPage() {
                   <Card className="divide-y divide-border">
                     {st.notes.map((n) => (
                       <div key={n.id} className="flex items-start gap-2 px-4 py-2.5 text-[13px]">
-                        <Pin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" /> {n.text}
+                        <Pin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                        <span className="min-w-0 flex-1">{n.text}</span>
+                        <Badge variant="warning" className="shrink-0">
+                          Unverified
+                        </Badge>
                       </div>
                     ))}
                   </Card>
+                  <p className="mt-2 text-[12px] text-muted-foreground">Your thinking, not evidence. The outline turns claims that rest on a note into [CITE] or [NEEDS] placeholders.</p>
                 </section>
               ) : null}
             </div>

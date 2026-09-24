@@ -248,6 +248,64 @@ def import_draft(root: Path, markdown: str, title: str) -> dict:
     return {"sections": len(parts), "with_text": kept, "words": _word_count(text)}
 
 
+def kind_section_titles(kind: str) -> list[str]:
+    """Section titles from the kind's sections.md ("1. **Title** ...")."""
+    if not kind_exists(kind):
+        return []
+    text = read_kind(kind)["files"].get("sections.md", "")
+    return re.findall(r"^\d+\.\s+\*\*([^*]+)\*\*", text, re.MULTILINE)
+
+
+_SKIP_MISSING = ("appendix",)
+
+
+def missing_sections(root: Path, kind: str) -> list[str]:
+    """Kind sections with no counterpart among the project's sections (ROADMAP item 5).
+
+    Matching is by bucket where a bucket exists, else by a shared significant word."""
+    have = load_index(root)["sections"]
+    if not have:
+        return []
+    have_buckets = {_bucket(s["title"]) for s in have} - {None}
+    have_words = {w for s in have for w in re.findall(r"[a-z]{4,}", s["title"].lower())}
+    out = []
+    for title in kind_section_titles(kind):
+        low = title.lower()
+        if low.startswith(_SKIP_MISSING):
+            continue
+        b = _bucket(title)
+        if b:
+            if b in have_buckets:
+                continue
+        elif any(w in have_words for w in re.findall(r"[a-z]{4,}", low) if w not in ("statement",)):
+            continue
+        out.append(title)
+    return out
+
+
+def add_section(root: Path, title: str, target_words: int = 300) -> dict:
+    """Append a heading to the outline and create its empty section. Existing sections keep their text."""
+    title = re.sub(r"\s+", " ", title).strip(" #")
+    if not title:
+        raise ValueError("Give the section a title")
+    index = load_index(root)
+    if any(s["slug"] == _slug(title) for s in index["sections"]):
+        raise ValueError("A section with that title already exists")
+    outline = storage.read_text(root / "outline.md").rstrip() + "\n"
+    n = len(index["sections"]) + 1
+    hint = "[NEEDS: what this section should say; the draft follows these lines]"
+    block = f"## {n}. {title} (≈ {target_words} words)\n- {hint}\n\n"
+    if "\n## Open items" in outline:
+        head, tail = outline.split("\n## Open items", 1)
+        outline = head.rstrip() + "\n\n" + block + "## Open items" + tail
+    else:
+        outline = outline + "\n" + block
+    storage.write_text(root / "outline.md", outline)
+    index = init_sections(root)
+    storage.git_commit(root, f"Studio: added section {title}")
+    return next(s for s in index["sections"] if s["slug"] == _slug(title))
+
+
 def get_section(root: Path, section_id: str) -> dict:
     for s in load_index(root)["sections"]:
         if s["id"] == section_id:
