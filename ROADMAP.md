@@ -211,6 +211,23 @@ security items:** block private/loopback/link-local ranges in `ingest_pdf_url` (
 derive/​warn on `SECURE_COOKIES` from an https `APP_URL`. No IDOR was found; the auth,
 CSRF and key-encryption baseline is solid.
 
+### 14b. Hardening follow-up (25 September, done — branch fix/p1-hardening)
+
+The "next" and security items above are now shipped and merged via PR #1 plus this branch:
+- Studio decongestion, route code-splitting, the guided "Step N of M" flow, and the full
+  newcomer copy rename (exemplars -> example papers, playbook -> pattern, kind -> type).
+- Per-project job lock so concurrent jobs cannot lose each other's JSON metadata.
+- SSRF guard (`app/net.py`): index-supplied `pdf_url`s are refused if they resolve to a
+  private/loopback/link-local/metadata address, checked on every redirect hop. Tested.
+- Secure cookies derived from an https `APP_URL`.
+- Context-window guard: an oversized prompt is refused with a clear message instead of a
+  silent overflow.
+- 94 backend tests pass.
+
+Still deferred (enhancement, not a fix): **cost shown in currency** in the Usage dashboard.
+It needs a per-model `$/1M tokens` table, and provider prices drift, so it was left rather
+than shipped with stale numbers. Token counts per call/provider/project are already tracked.
+
 ## Needed from the workspace owner
 - VPS or server with a domain, and who administers it.
 - Semantic Scholar API key (free) and an SMTP account for the app's mail.

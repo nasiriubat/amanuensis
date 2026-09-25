@@ -22,6 +22,20 @@ log = logging.getLogger("coscribe.jobs")
 
 _tasks: dict[str, asyncio.Task] = {}
 
+# One lock per project so two jobs (e.g. drafting a section while an export runs, or two
+# browser tabs) never race on the same project's index.json / checklist.json. Jobs for
+# different projects still run concurrently. Grows by one entry per project ever touched,
+# which is negligible for a self-hosted workspace.
+_project_locks: dict[str, asyncio.Lock] = {}
+
+
+def _project_lock(project_id: str) -> asyncio.Lock:
+    lock = _project_locks.get(project_id)
+    if lock is None:
+        lock = asyncio.Lock()
+        _project_locks[project_id] = lock
+    return lock
+
 
 @dataclass
 class JobContext:
@@ -66,28 +80,40 @@ def create_job(
 
 def start_job(job: Job, fn: Callable[[JobContext], Awaitable[dict | None]]) -> None:
     ctx = JobContext(job_id=job.id, user_id=job.user_id)
+    job_id = job.id
+    project_id = job.project_id
 
-    async def runner():
+    async def execute():
+        # Marked running only once actually started, so a job waiting on the project lock
+        # still shows as queued in the UI.
         with SessionLocal() as db:
-            j = db.get(Job, job.id)
+            j = db.get(Job, job_id)
             if j:
                 j.status = "running"
                 j.updated_at = now()
                 db.commit()
+        result = await fn(ctx)
+        with SessionLocal() as db:
+            j = db.get(Job, job_id)
+            if j:
+                j.status = "done"
+                j.progress = 100
+                if result is not None:
+                    j.result = result
+                j.updated_at = now()
+                db.commit()
+
+    async def runner():
+        lock = _project_lock(project_id) if project_id else None
         try:
-            result = await fn(ctx)
-            with SessionLocal() as db:
-                j = db.get(Job, job.id)
-                if j:
-                    j.status = "done"
-                    j.progress = 100
-                    if result is not None:
-                        j.result = result
-                    j.updated_at = now()
-                    db.commit()
+            if lock:
+                async with lock:
+                    await execute()
+            else:
+                await execute()
         except asyncio.CancelledError:
             with SessionLocal() as db:
-                j = db.get(Job, job.id)
+                j = db.get(Job, job_id)
                 if j:
                     j.status = "failed"
                     j.error = "Cancelled"
@@ -95,18 +121,18 @@ def start_job(job: Job, fn: Callable[[JobContext], Awaitable[dict | None]]) -> N
                     db.commit()
             raise
         except Exception as e:
-            log.error("job %s failed: %s\n%s", job.id, e, traceback.format_exc())
+            log.error("job %s failed: %s\n%s", job_id, e, traceback.format_exc())
             with SessionLocal() as db:
-                j = db.get(Job, job.id)
+                j = db.get(Job, job_id)
                 if j:
                     j.status = "failed"
                     j.error = f"{type(e).__name__}: {e}"[:4000]
                     j.updated_at = now()
                     db.commit()
         finally:
-            _tasks.pop(job.id, None)
+            _tasks.pop(job_id, None)
 
-    _tasks[job.id] = asyncio.create_task(runner())
+    _tasks[job_id] = asyncio.create_task(runner())
 
 
 def cancel_job(job_id: str) -> bool:
