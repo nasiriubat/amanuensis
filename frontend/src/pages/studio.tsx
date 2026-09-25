@@ -66,6 +66,36 @@ function useMediaQuery(q: string): boolean {
   return match;
 }
 
+function ReviewSubTab({
+  active,
+  onClick,
+  label,
+  count,
+  tone = "muted",
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count: number;
+  tone?: "muted" | "warning";
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-md px-2.5 py-1 font-medium transition-colors",
+        active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {label}
+      {count ? (
+        <span className={cn("ml-1 rounded-full px-1.5 text-[10px]", tone === "warning" ? "bg-warning text-white" : "bg-muted-foreground/30")}>{count}</span>
+      ) : null}
+    </button>
+  );
+}
+
 function words(text: string): number {
   return (text.replace(/\[(NEEDS|CITE):[^\]]*\]/g, "").match(/[A-Za-z0-9][A-Za-z0-9'-]*/g) ?? []).length;
 }
@@ -405,6 +435,9 @@ export function StudioPage() {
   const [confirmForce, setConfirmForce] = useState<null | { instructions: string }>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [tab, setTab] = useState("preview");
+  // Review groups the three "what still needs attention" surfaces so a newcomer meets
+  // three tabs (Preview / Plan / Review), not five. reviewTab picks which one shows.
+  const [reviewTab, setReviewTab] = useState("checklist");
   const [citeFocus, setCiteFocus] = useState<string | null>(null);
   const viewRef = useRef<EditorView | null>(null);
   const lintTimer = useRef<number | null>(null);
@@ -655,6 +688,7 @@ export function StudioPage() {
   const missing = studio.data.missing ?? [];
   const drafted = sections.filter((s) => s.status !== "empty").length;
   const openForSection = (checklist.data ?? []).filter((i) => i.status === "open" && section && (i.section === section.title || i.section === "Whole paper")).length;
+  const reviewCount = openForSection + findings.length;
 
   return (
     <div className="animate-in">
@@ -903,21 +937,15 @@ export function StudioPage() {
           <aside className="min-w-0 lg:sticky lg:top-6 lg:self-start">
             <Card className="p-3">
               <Tabs value={tab} onValueChange={setTab}>
-                <TabsList className="h-auto w-full flex-wrap">
+                <TabsList className="h-auto w-full">
                   <TabsTrigger value="preview" className="flex-1">
                     Preview
                   </TabsTrigger>
-                  <TabsTrigger value="outline" className="flex-1">
+                  <TabsTrigger value="plan" className="flex-1">
                     Plan
                   </TabsTrigger>
-                  <TabsTrigger value="checklist" className="flex-1">
-                    Items{openForSection ? <span className="ml-1 rounded-full bg-warning px-1.5 text-[10px] text-white">{openForSection}</span> : null}
-                  </TabsTrigger>
-                  <TabsTrigger value="issues" className="flex-1">
-                    Issues{findings.length ? <span className="ml-1 rounded-full bg-muted-foreground/30 px-1.5 text-[10px]">{findings.length}</span> : null}
-                  </TabsTrigger>
-                  <TabsTrigger value="citations" className="flex-1">
-                    Citations{citeCount ? <span className="ml-1 rounded-full bg-muted-foreground/30 px-1.5 text-[10px]">{citeCount}</span> : null}
+                  <TabsTrigger value="review" className="flex-1">
+                    Review{reviewCount ? <span className="ml-1 rounded-full bg-warning px-1.5 text-[10px] text-white">{reviewCount}</span> : null}
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="preview" className="max-h-[60vh] overflow-y-auto lg:max-h-[calc(100vh-320px)]">
@@ -927,7 +955,8 @@ export function StudioPage() {
                         const cite = (e.target as HTMLElement).closest?.("cite");
                         if (!cite) return;
                         setCiteFocus(cite.textContent?.replace(/^@/, "") ?? null);
-                        setTab("citations");
+                        setTab("review");
+                        setReviewTab("citations");
                       }}
                       title="Click a citation to see what the paper says"
                       className="[&_cite]:cursor-pointer"
@@ -938,7 +967,7 @@ export function StudioPage() {
                     <p className="text-[13px] text-subtle">Nothing to preview yet.</p>
                   )}
                 </TabsContent>
-                <TabsContent value="outline" className="max-h-[60vh] overflow-y-auto lg:max-h-[calc(100vh-320px)]">
+                <TabsContent value="plan" className="max-h-[60vh] overflow-y-auto lg:max-h-[calc(100vh-320px)]">
                   <p className="mb-2 text-[12px] text-muted-foreground">One paragraph per line. The draft follows these in order.</p>
                   <ol className="flex flex-col gap-2 text-[13px]">
                     {(section?.lines ?? []).map((l, i) => (
@@ -949,14 +978,19 @@ export function StudioPage() {
                     ))}
                   </ol>
                 </TabsContent>
-                <TabsContent value="checklist" className="max-h-[60vh] overflow-y-auto lg:max-h-[calc(100vh-320px)]">
-                  <ChecklistPanel slug={slug} items={checklist.data ?? []} sectionTitle={section?.title ?? null} />
-                </TabsContent>
-                <TabsContent value="citations" className="max-h-[60vh] overflow-y-auto lg:max-h-[calc(100vh-320px)]">
-                  <CitationsPanel slug={slug} text={text} focusKey={citeFocus} getSentence={getSentence} onCite={citeAt} onReplace={replaceRange} />
-                </TabsContent>
-                <TabsContent value="issues" className="max-h-[60vh] overflow-y-auto lg:max-h-[calc(100vh-320px)]">
-                  <IssuesPanel slug={slug} findings={findings} onJump={jumpTo} onFix={() => fix.mutate()} fixing={fix.isPending} disabled={!text.trim() || active || draftingIds.has(section?.id ?? "")} />
+                <TabsContent value="review" className="max-h-[60vh] overflow-y-auto lg:max-h-[calc(100vh-320px)]">
+                  <div className="mb-3 inline-flex rounded-lg border border-border bg-muted/40 p-0.5 text-[12.5px]">
+                    <ReviewSubTab active={reviewTab === "checklist"} onClick={() => setReviewTab("checklist")} label="Items" count={openForSection} tone="warning" />
+                    <ReviewSubTab active={reviewTab === "issues"} onClick={() => setReviewTab("issues")} label="Issues" count={findings.length} />
+                    <ReviewSubTab active={reviewTab === "citations"} onClick={() => setReviewTab("citations")} label="Citations" count={citeCount} />
+                  </div>
+                  {reviewTab === "checklist" ? (
+                    <ChecklistPanel slug={slug} items={checklist.data ?? []} sectionTitle={section?.title ?? null} />
+                  ) : reviewTab === "issues" ? (
+                    <IssuesPanel slug={slug} findings={findings} onJump={jumpTo} onFix={() => fix.mutate()} fixing={fix.isPending} disabled={!text.trim() || active || draftingIds.has(section?.id ?? "")} />
+                  ) : (
+                    <CitationsPanel slug={slug} text={text} focusKey={citeFocus} getSentence={getSentence} onCite={citeAt} onReplace={replaceRange} />
+                  )}
                 </TabsContent>
               </Tabs>
             </Card>
