@@ -23,3 +23,7 @@ data/
 .DS_Store
 .idea/
 .vscode/
+
+# browser test artefacts and build caches
+.playwright-mcp/
+*.tsbuildinfo

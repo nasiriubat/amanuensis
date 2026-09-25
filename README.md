@@ -45,6 +45,16 @@ raw paper sources, git history compaction, finished jobs, old call logs, expired
 database vacuum). Uploads are checked by their bytes, SVGs are sanitised, and user files are
 served with a sandboxing content-security policy.
 
+## What it looks like
+
+| The project page decides the next step | The Studio checks every citation |
+|---|---|
+| ![Project page with the Next-up card and the step list](docs/screenshots/project-home.png) | ![Studio with the Citations tab open on a verdict](docs/screenshots/studio-citations.png) |
+
+| Sources: scan, exemplars, background reading | Fix issues shows a redline you accept |
+|---|---|
+| ![Sources page](docs/screenshots/sources.png) | ![Fix issues dialog](docs/screenshots/fix-issues.png) |
+
 ## Run with Docker
 
 ```bash
@@ -88,8 +98,9 @@ group of up to a few dozen people. What to do before you hand the URL to colleag
    admin resets are emailed and members get "Forgot your password?" on the sign-in page (one-hour
    links). Without it, you share temporary passwords yourself. The SMTP password is stored
    encrypted with `APP_SECRET_KEY`; "Send a test to me" confirms the connection.
-5. **Set `SEMANTIC_SCHOLAR_API_KEY`.** Without it, reference search and the literature scan
-   share the public quota and are throttled within seconds. The key is free.
+5. **Optional: set `SEMANTIC_SCHOLAR_API_KEY`.** Everything works without it. With it, reference
+   search and the literature scan stop sharing Semantic Scholar's public quota, which is throttled
+   within seconds from a busy network; OpenAlex and arXiv are used either way. The key is free.
 6. **Back up the volume.** Settings → Storage → Download backup produces one zip with a
    consistent database snapshot and every file. For unattended backups, call
    `GET /api/admin/storage/backup` with an admin session from a cron job, or snapshot the
@@ -169,3 +180,15 @@ run is shown on the Playbook page and under Settings → Usage.
 Bootstrap settings come from the environment (see `.env.example`). Everything else is
 configured in the admin UI and stored in SQLite: providers and keys (encrypted at rest),
 model per purpose, paper kinds, house style, users.
+
+## Contributing
+
+Bug reports from real writing sessions, new paper kinds, venue templates and prompt improvements
+are all welcome, and most need no code. Read [CONTRIBUTING.md](CONTRIBUTING.md) for the layout,
+the local setup and the one rule every change must respect: the model never states anything the
+author did not provide or verify. Security problems go through [SECURITY.md](SECURITY.md).
+
+## Licence
+
+MIT, see [LICENSE](LICENSE). Springer's LNCS class files are not included because their licence
+does not allow redistribution; the admin uploads them once under Export → Template.
