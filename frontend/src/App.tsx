@@ -2,6 +2,7 @@ import { lazy } from "react";
 import { Navigate, Outlet, RouterProvider, createBrowserRouter, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { AppShell } from "@/components/layout/app-shell";
+import { StageProgress } from "@/components/stage-progress";
 // Eager: everything needed for the first paint (sign-in, the library, the public pages).
 import { LoginPage } from "@/pages/login";
 import { ResetPasswordPage } from "@/pages/reset-password";
@@ -45,6 +46,16 @@ function Splash() {
     <div className="flex min-h-screen items-center justify-center">
       <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
     </div>
+  );
+}
+
+/** Wraps every project stage page with the guided "Step N of M" progress strip. */
+function ProjectLayout() {
+  return (
+    <>
+      <StageProgress />
+      <Outlet />
+    </>
   );
 }
 
@@ -97,18 +108,24 @@ const router = createBrowserRouter([
       { path: "/library", element: <LibraryPage /> },
       { path: "/profiles", element: <ProfilesPage /> },
       { path: "/profiles/:slug", element: <ProfilePage /> },
-      { path: "/projects/:slug", element: <ProjectHomePage /> },
-      { path: "/projects/:slug/sources", element: <SourcesPage /> },
-      { path: "/projects/:slug/playbook", element: <PlaybookPage /> },
-      { path: "/projects/:slug/design", element: <DesignPage /> },
-      { path: "/projects/:slug/interview", element: <InterviewPage /> },
-      { path: "/projects/:slug/outline", element: <OutlinePage /> },
-      { path: "/projects/:slug/spec", element: <SpecPage /> },
-      { path: "/projects/:slug/studio", element: <StudioPage /> },
-      { path: "/projects/:slug/references", element: <ReferencesPage /> },
-      { path: "/projects/:slug/figures", element: <FiguresPage /> },
-      { path: "/projects/:slug/export", element: <ExportPage /> },
-      { path: "/projects/:slug/review", element: <ReviewPage /> },
+      {
+        path: "/projects/:slug",
+        element: <ProjectLayout />,
+        children: [
+          { index: true, element: <ProjectHomePage /> },
+          { path: "sources", element: <SourcesPage /> },
+          { path: "playbook", element: <PlaybookPage /> },
+          { path: "design", element: <DesignPage /> },
+          { path: "interview", element: <InterviewPage /> },
+          { path: "outline", element: <OutlinePage /> },
+          { path: "spec", element: <SpecPage /> },
+          { path: "studio", element: <StudioPage /> },
+          { path: "references", element: <ReferencesPage /> },
+          { path: "figures", element: <FiguresPage /> },
+          { path: "export", element: <ExportPage /> },
+          { path: "review", element: <ReviewPage /> },
+        ],
+      },
       { path: "/account", element: <AccountPage /> },
       {
         element: <RequireAdmin />,
