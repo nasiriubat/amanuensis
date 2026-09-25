@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import re
 from pathlib import Path
 
 from .. import storage
@@ -13,6 +12,7 @@ from ..ingest import extract
 from ..jobs import JobContext
 from ..kinds import kind_exists, kind_name, read_kind
 from ..llm.base import LLMError, Message
+from ..llm.jsonio import complete_json
 from ..llm.registry import complete
 from ..models import AuthorProfile, Project
 from . import stats as stats_mod
@@ -25,14 +25,6 @@ PLAYBOOK_KEYS = {
     "related_work": "related-work.md",
     "venue": "venue.md",
 }
-
-
-def _parse_json(text: str) -> dict:
-    text = text.strip()
-    m = re.search(r"\{.*\}", text, re.DOTALL)
-    if m:
-        text = m.group(0)
-    return json.loads(text)
 
 
 def _ready_papers(root: Path) -> list[tuple[Path, dict, str]]:
@@ -52,7 +44,7 @@ async def _map_call(
     async with sem:
         with SessionLocal() as db:
             proj = db.get(Project, project.id) if project else None
-            result = await complete(
+            data, result = await complete_json(
                 db,
                 purpose,
                 [Message("user", prompt)],
@@ -60,10 +52,9 @@ async def _map_call(
                 user_id=user_id,
                 max_tokens=max_tokens,
                 temperature=0.2,
-                json_mode=True,
             )
     usage = result.usage
-    return {"data": _parse_json(result.text), "tokens_in": usage.input_tokens, "tokens_out": usage.output_tokens}
+    return {"data": data, "tokens_in": usage.input_tokens, "tokens_out": usage.output_tokens}
 
 
 # ------------------------------------------------------------------ playbook
@@ -122,7 +113,7 @@ async def learn_playbook(project_id: str, ctx: JobContext, *, max_chars_per_pape
     prompt = render("playbook.j2", kind_name=kname, kind_notes=kind_notes, summaries=summaries)
     with SessionLocal() as db:
         proj = db.get(Project, project_id)
-        result = await complete(
+        data, result = await complete_json(
             db,
             "learn",
             [Message("user", prompt)],
@@ -130,11 +121,9 @@ async def learn_playbook(project_id: str, ctx: JobContext, *, max_chars_per_pape
             user_id=ctx.user_id,
             max_tokens=7000,
             temperature=0.3,
-            json_mode=True,
         )
     tokens_in += result.usage.input_tokens
     tokens_out += result.usage.output_tokens
-    data = _parse_json(result.text)
 
     written = []
     for key, filename in PLAYBOOK_KEYS.items():

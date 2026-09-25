@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import re
 import secrets
 from datetime import UTC, datetime
 from pathlib import Path
@@ -15,6 +14,7 @@ from ..jobs import JobContext
 from ..kinds import kind_exists, kind_name, read_kind
 from ..learn.context import budget_markdown, render
 from ..llm.base import Message
+from ..llm.jsonio import extract_json
 from ..llm.registry import complete
 from ..models import Project
 from . import service as studio
@@ -22,11 +22,6 @@ from . import service as studio
 
 def _now() -> str:
     return datetime.now(UTC).isoformat()
-
-
-def _parse_json(text: str) -> dict:
-    m = re.search(r"\{.*\}", text.strip(), re.DOTALL)
-    return json.loads(m.group(0) if m else text)
 
 
 def _project(project_id: str) -> tuple[Project, Path]:
@@ -106,7 +101,7 @@ async def run_critique(project_id: str, ctx: JobContext) -> dict:
             temperature=0.2,
             json_mode=True,
         )
-    data = _parse_json(result.text)
+    data = extract_json(result.text)
     findings = data.get("findings") or []
     review = {
         "verdict": data.get("verdict", "major revision"),
@@ -198,7 +193,7 @@ async def suggest_venues(project_id: str, user_id: str) -> dict:
             temperature=0.4,
             json_mode=True,
         )
-    data = _parse_json(result.text)
+    data = extract_json(result.text)
     data["created_at"] = _now()
     data["tokens_in"] = result.usage.input_tokens
     data["tokens_out"] = result.usage.output_tokens

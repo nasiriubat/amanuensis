@@ -22,12 +22,13 @@ from ..db import SessionLocal
 from ..ingest import extract as ingest_extract
 from ..learn.context import render
 from ..llm.base import Message
+from ..llm.jsonio import extract_json
 from ..llm.registry import complete
 from ..models import Project
 from . import readings
 from . import service as refs
 from .providers import search
-from .scan import _identity, _parse_json
+from .scan import _identity
 
 _WORD = re.compile(r"[A-Za-z][A-Za-z\-]{2,}")
 _STOP = set(
@@ -192,7 +193,7 @@ async def check(project_id: str, key: str, sentence: str, passage: str, user_id:
             temperature=0.0,
             json_mode=True,
         )
-    data = _parse_json(result.text)
+    data = extract_json(result.text)
     verdict = str(data.get("verdict", "")).lower().replace(" ", "_")
     if verdict not in ("supported", "partly_supported", "not_supported"):
         verdict = "partly_supported"
@@ -248,7 +249,7 @@ async def find_sources(project_id: str, sentence: str, user_id: str | None) -> d
             temperature=0.2,
             json_mode=True,
         )
-    data = _parse_json(result.text)
+    data = extract_json(result.text)
     query = str(data.get("query", "")).strip()[:200] or " ".join(_tokens(sentence)[:8])
     claim = str(data.get("claim", "")).strip()[:200]
     cands, errors = await search(query, 8)
@@ -291,7 +292,7 @@ async def rewrite(project_id: str, sentence: str, user_id: str | None) -> dict:
             temperature=0.2,
             json_mode=True,
         )
-    data = _parse_json(result.text)
+    data = extract_json(result.text)
     new = str(data.get("sentence", "")).strip()
     known = refs.keys(root)
     used = re.findall(r"\[@([^\]\s;]+)", new)

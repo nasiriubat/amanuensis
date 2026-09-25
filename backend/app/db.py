@@ -25,6 +25,9 @@ def _make_engine():
         cur = dbapi_conn.cursor()
         cur.execute("PRAGMA journal_mode=WAL")
         cur.execute("PRAGMA foreign_keys=ON")
+        # Background jobs write progress rows constantly while a request may be reading;
+        # wait up to 15s for a lock to clear instead of raising "database is locked".
+        cur.execute("PRAGMA busy_timeout=15000")
         cur.close()
 
     return engine

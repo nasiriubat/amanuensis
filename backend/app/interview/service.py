@@ -25,6 +25,7 @@ from ..jobs import JobContext
 from ..kinds import kind_exists, kind_name, read_kind
 from ..learn.context import budget_markdown, render
 from ..llm.base import Message
+from ..llm.jsonio import extract_json
 from ..llm.registry import complete
 from ..models import Project
 from ..refs.scan import load_scan
@@ -41,11 +42,6 @@ def _strip_fences(text: str) -> str:
     t = text.strip()
     m = re.fullmatch(r"```[a-zA-Z]*\n(.*?)\n```", t, re.DOTALL)
     return (m.group(1) if m else t).strip()
-
-
-def _parse_json(text: str) -> dict:
-    m = re.search(r"\{.*\}", text.strip(), re.DOTALL)
-    return json.loads(m.group(0) if m else text)
 
 
 def _proj(project_id: str) -> tuple[Project, Path]:
@@ -202,7 +198,7 @@ async def generate_round(project_id: str, ctx: JobContext) -> dict:
             temperature=0.4,
             json_mode=True,
         )
-    data = _parse_json(result.text)
+    data = extract_json(result.text)
     if data.get("done") or not data.get("questions"):
         state["done"] = True
         save_interview(root, state, "Interview: complete")
