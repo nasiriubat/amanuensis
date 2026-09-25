@@ -39,6 +39,7 @@ page, CSV and JSON export, and the four study documents.
 | 8 | Buffer and paper | Slack for what days 1–7 surface; Paper Writer paper gets the study design |
 | 9 | Background reading | Reading list role: papers read in full get a card and become citable; Related Work drafts from the cards |
 | 10 | Citation evidence | Citations tab: what the paper says, the matching passage, a verdict on demand; Find a source for a sentence |
+| 11 | Results and efficiency | CSV/XLSX results tables; Sources collapses adopted candidates; one Studio banner; card budget and stemmed matching |
 | +2 weeks | User study | Five colleagues, one paper each; then one day of analysis |
 
 ## Items
@@ -154,6 +155,23 @@ page, CSV and JSON export, and the four study documents.
 - Live check on the newcomer's Related Work: the verdict caught a claim attributed to a
   working-group report whose abstract does not state it, and Find a source surfaced a
   399-student survey (Chan and Hu 2023) that was added and cited in two clicks.
+
+### 13. Results tables, efficiency, two usability fixes (25 September, done)
+- Figures page gains "Results tables": CSV, TSV or XLSX (first sheet), one header row. Stored
+  as normalised CSV under `results/` with a per-column summary (min, max, mean, or distinct
+  values). Facts extraction receives every table with the rule to report numbers exactly with
+  the table as source; evaluation, discussion and abstract drafts receive the tables as
+  Markdown; the Studio's Figure menu inserts a table with a pandoc caption `{#tbl:name}`.
+- Decision after the RAG question: no retrieval layer. Efficiency instead: with more than
+  fifteen reading cards, only the cards closest to the section's title and outline lines are
+  expanded in the prompt, the rest stay one line; evidence matching stems tokens so
+  "students accepted" meets "student accepts". Three signals would reopen the decision: over
+  a hundred readings in a project, paraphrase misses in the passage finder, or cross-paper
+  questions in the chat.
+- Usability pass (five screens, desktop and phone): Sources was three screens long, so the
+  scan collapses to one line once any candidate is adopted; the Studio shows one banner at a
+  time (missing sections first); the voice hint no longer collapses on phones; a combined kind
+  title such as "Background and related work" is satisfied by either section.
 
 ## Needed from the workspace owner
 - VPS or server with a domain, and who administers it.

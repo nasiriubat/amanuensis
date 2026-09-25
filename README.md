@@ -32,7 +32,9 @@ card says, and Related Work is written from the cards. Twenty to forty readings 
 normal; they never touch the playbook. In the Studio, a Citations tab shows, for every citation,
 what the paper says, the passage that matches the sentence, and on request a verdict on whether it
 supports the claim; "Find a source" takes a sentence through your own references, then the
-indexes, then a rewrite to what your sources support. Author profiles stay optional: without one, drafts
+indexes, then a rewrite to what your sources support. Experiment results go in as CSV or XLSX on
+the Figures page: the numbers become facts the draft may state, and any table can be inserted
+with its caption from the Studio. Author profiles stay optional: without one, drafts
 follow the house style.
 
 Around the pipeline: a public landing page whose copy the admin edits (steps and entry points
