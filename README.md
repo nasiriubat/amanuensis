@@ -3,7 +3,8 @@
 [![CI](https://github.com/nasiriubat/coscribe/actions/workflows/ci.yml/badge.svg)](https://github.com/nasiriubat/coscribe/actions/workflows/ci.yml)
 
 *A scribe writes down what you say and nothing else.* Coscribe drafts your research paper from your own material, marks every gap instead of filling it, and cites only what it can show you.
-An AI co-author that learns how good papers in a genre are structured, learns how a
+
+A co-author that learns how good papers in a genre are structured, learns how a
 specific author writes, interviews you until your work fits a publishable shape, then
 drafts the paper section by section with verified references and exports it in a venue
 template.
