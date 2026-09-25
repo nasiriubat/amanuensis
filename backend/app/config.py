@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     frontend_dist: Path = Path("../frontend/dist")
 
     @property
+    def cookies_secure(self) -> bool:
+        # Secure cookies whenever explicitly enabled, or automatically when APP_URL is https,
+        # so a self-hoster behind TLS who forgot SECURE_COOKIES=true still gets the Secure flag.
+        return self.secure_cookies or self.app_url.lower().startswith("https://")
+
+    @property
     def db_path(self) -> Path:
         return self.data_dir / "app.db"
 

@@ -79,6 +79,21 @@ async def complete(
 ) -> Completion:
     """Run one completion for a purpose and record it in llm_calls."""
     resolved = resolve(db, purpose, project, section)
+    # Pre-flight size guard: if the resolved model's context window is known (providers that
+    # expose it, e.g. OpenRouter), refuse a prompt that cannot fit rather than firing it and
+    # getting a truncated or confusing provider error. ~4 chars per token is a rough estimate.
+    window = next(
+        (m.get("context_window") for m in (resolved.provider.models_cache or []) if m.get("id") == resolved.model),
+        None,
+    )
+    if window:
+        est_input = sum(len(m.content) for m in messages) // 4
+        if est_input + max_tokens > window:
+            raise LLMError(
+                f"The prompt (~{est_input:,} tokens) plus the reply ({max_tokens:,}) exceed "
+                f"{resolved.model}'s context window ({window:,}). Assign a larger-context model "
+                f"for '{purpose}' in Settings, or use fewer example papers."
+            )
     adapter = build_adapter(resolved.provider)
     started = time.perf_counter()
     call = LlmCall(

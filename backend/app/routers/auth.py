@@ -38,7 +38,7 @@ def _set_cookies(response: Response, token: str, csrf: str) -> None:
         max_age=max_age,
         httponly=True,
         samesite="lax",
-        secure=settings.secure_cookies,
+        secure=settings.cookies_secure,
         path="/",
     )
     # Readable by JS on purpose: double-submit CSRF pattern.
@@ -48,7 +48,7 @@ def _set_cookies(response: Response, token: str, csrf: str) -> None:
         max_age=max_age,
         httponly=False,
         samesite="lax",
-        secure=settings.secure_cookies,
+        secure=settings.cookies_secure,
         path="/",
     )
 

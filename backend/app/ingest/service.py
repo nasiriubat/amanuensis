@@ -140,9 +140,21 @@ async def ingest_pdf_url(root: Path, url: str, ctx: JobContext, title: str = "")
     finds a paper that is not on arXiv but has a public PDF."""
     import httpx
 
+    from ..net import assert_public_url
+
     ctx.progress(3, f"Downloading {url[:80]}")
-    async with httpx.AsyncClient(follow_redirects=True, timeout=60, headers={"User-Agent": "coscribe/0.1"}) as client:
+    # SSRF guard: validate the target and every redirect hop is a public address before
+    # connecting, so an index-supplied pdf_url cannot point the server at an internal host.
+    assert_public_url(url)
+    async with httpx.AsyncClient(follow_redirects=False, timeout=60, headers={"User-Agent": "coscribe/0.1"}) as client:
         r = await client.get(url)
+        hops = 0
+        while r.is_redirect and r.next_request is not None:
+            if hops >= 5:
+                raise ValueError("Too many redirects while downloading the PDF.")
+            assert_public_url(str(r.next_request.url))
+            r = await client.send(r.next_request)
+            hops += 1
     r.raise_for_status()
     data = r.content
     if len(data) > 40 * 1024 * 1024:
