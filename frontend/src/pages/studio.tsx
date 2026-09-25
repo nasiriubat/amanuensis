@@ -243,7 +243,7 @@ const KIND_LABEL: Record<string, string> = {
   opener: "repeated openers",
   exclamation: "exclamation marks",
   question: "rhetorical questions",
-  overlap: "overlap with an exemplar",
+  overlap: "overlap with an example paper",
 };
 
 function claimOf(f: LintFinding): string | null {
@@ -702,7 +702,7 @@ export function StudioPage() {
               <Badge variant="primary">
                 {drafted} of {sections.length} sections drafted
               </Badge>
-              {missing.length ? <Badge variant="warning">{missing.length} the kind expects {missing.length === 1 ? "is" : "are"} missing</Badge> : null}
+              {missing.length ? <Badge variant="warning">{missing.length} the type expects {missing.length === 1 ? "is" : "are"} missing</Badge> : null}
             </span>
           ) : (
             <Badge>Not started</Badge>

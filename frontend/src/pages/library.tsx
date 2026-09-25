@@ -39,7 +39,7 @@ export function ProjectCard({ p }: { p: Project }) {
         <ProgressRing value={projectProgress(p)} />
       </div>
       <div className="mt-4 flex items-center gap-4 text-[12.5px] text-muted-foreground">
-        <span>{p.counts.exemplars} exemplar{p.counts.exemplars === 1 ? "" : "s"}</span>
+        <span>{p.counts.exemplars} example paper{p.counts.exemplars === 1 ? "" : "s"}</span>
         <span>{p.counts.sections} section{p.counts.sections === 1 ? "" : "s"}</span>
         <span>{p.counts.references} ref{p.counts.references === 1 ? "" : "s"}</span>
       </div>

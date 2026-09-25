@@ -46,22 +46,22 @@ export const STEPS: Step[] = [
   },
   {
     key: "sources",
-    title: "Add exemplar papers",
+    title: "Add example papers",
     to: (s) => `/projects/${s}/sources`,
     state: (p) => (p.counts.exemplars > 0 ? "done" : p.entry === "draft" ? "optional" : "todo"),
     summary: (p) =>
       p.counts.exemplars
-        ? `${p.counts.exemplars} exemplar${p.counts.exemplars === 1 ? "" : "s"} ingested${p.counts.readings ? `, ${p.counts.readings} paper${p.counts.readings === 1 ? "" : "s"} read in full` : ""}.`
+        ? `${p.counts.exemplars} example paper${p.counts.exemplars === 1 ? "" : "s"} ingested${p.counts.readings ? `, ${p.counts.readings} paper${p.counts.readings === 1 ? "" : "s"} read in full` : ""}.`
         : p.entry === "draft"
-          ? "Optional for a draft you already wrote; exemplars still sharpen the reviewer pass."
-          : "Paste five to ten papers of this kind, or let the literature scan suggest them.",
+          ? "Optional for a draft you already wrote; example papers still sharpen the reviewer pass."
+          : "Paste five to ten papers of this type, or let the literature scan suggest them.",
   },
   {
     key: "playbook",
-    title: "Learn the playbook",
+    title: "Learn the pattern",
     to: (s) => `/projects/${s}/playbook`,
     state: (p) => (p.counts.playbook_files > 0 ? "done" : p.counts.exemplars > 0 ? "todo" : "locked"),
-    summary: (p) => (p.counts.playbook_files ? `${p.counts.playbook_files} of 5 playbook files learned.` : p.counts.exemplars ? "Learn how these papers are built." : "Needs exemplars first."),
+    summary: (p) => (p.counts.playbook_files ? `${p.counts.playbook_files} of 5 pattern files learned.` : p.counts.exemplars ? "Learn how these papers are built." : "Needs example papers first."),
   },
   {
     key: "interview",

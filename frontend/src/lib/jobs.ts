@@ -9,7 +9,7 @@ export const JOB_LABELS: Record<string, string> = {
   ingest_pdf: "Extracting PDF",
   ingest_reading: "Reading a paper",
   reading_card: "Writing the reading card",
-  learn_playbook: "Learning the playbook",
+  learn_playbook: "Learning the pattern",
   learn_profile: "Learning the voice",
   research_plan: "Designing the study",
   interview_round: "Preparing interview questions",

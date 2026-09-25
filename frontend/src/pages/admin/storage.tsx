@@ -177,7 +177,7 @@ export function StoragePage() {
         <CardHeader>
           <CardTitle>Clean up</CardTitle>
           <CardDescription>
-            Nothing here touches drafts, playbooks, references or figures. Pick what to remove, then run it. The same actions can be scripted against the API for a cron job.
+            Nothing here touches drafts, patterns, references or figures. Pick what to remove, then run it. The same actions can be scripted against the API for a cron job.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -224,7 +224,7 @@ export function StoragePage() {
                   <Bar
                     total={p.total}
                     parts={[
-                      { label: "Exemplars", value: p.exemplars, className: "bg-primary" },
+                      { label: "Example papers", value: p.exemplars, className: "bg-primary" },
                       { label: "Exports", value: p.exports, className: "bg-warning" },
                       { label: "Figures", value: p.figures, className: "bg-success" },
                       { label: "History", value: p.history, className: "bg-border-strong" },
@@ -234,7 +234,7 @@ export function StoragePage() {
                 </div>
               </div>
               <div className="text-[11.5px] text-subtle sm:text-right">
-                <span className="text-primary">■</span> exemplars {formatBytes(p.exemplars)} · <span className="text-warning">■</span> {p.exports_count} export{p.exports_count === 1 ? "" : "s"} {formatBytes(p.exports)}
+                <span className="text-primary">■</span> example papers {formatBytes(p.exemplars)} · <span className="text-warning">■</span> {p.exports_count} export{p.exports_count === 1 ? "" : "s"} {formatBytes(p.exports)}
               </div>
             </div>
           ))}
@@ -264,7 +264,7 @@ export function StoragePage() {
         description={
           risky
             ? "Some selected actions cannot be undone: raw sources cannot be re-extracted without the original file, and deleted call logs vanish from the Usage page."
-            : "Selected actions only remove data that can be regenerated. Drafts, playbooks, references and figures are never touched."
+            : "Selected actions only remove data that can be regenerated. Drafts, patterns, references and figures are never touched."
         }
         confirmLabel="Run cleanup"
         onConfirm={() => run.mutate()}

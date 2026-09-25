@@ -272,7 +272,7 @@ export interface Section {
 export interface StudioState {
   initialized: boolean;
   sections: Section[];
-  /** Sections the paper kind expects that this project does not have yet. */
+  /** Sections the paper type expects that this project does not have yet. */
   missing: string[];
 }
 

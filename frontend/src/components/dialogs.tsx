@@ -75,10 +75,10 @@ export function NewProjectDialog({ open, onOpenChange, onCreated }: { open: bool
           <Field label="Working title">
             <Input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder={entry === "idea" ? "A working title for the idea; you can change it" : "Tender Scout: matching public tenders to SMEs"} required />
           </Field>
-          <Field label="Paper kind" hint={selectedKind?.summary}>
+          <Field label="Paper type" hint={selectedKind?.summary}>
             <Select value={kind} onValueChange={setKind}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose a kind" />
+                <SelectValue placeholder="Choose a type" />
               </SelectTrigger>
               <SelectContent>
                 {(kinds.data ?? []).map((k) => (

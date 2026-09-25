@@ -16,9 +16,9 @@ import { ConfirmDialog } from "@/components/dialogs";
 
 const FILES: Array<{ name: string; label: string; hint: string }> = [
   { name: "kind.md", label: "About", hint: "What the genre is, what reviewers expect, why papers get rejected." },
-  { name: "sections.md", label: "Sections", hint: "Default outline when there are no exemplars. Exemplars win on conflict." },
+  { name: "sections.md", label: "Sections", hint: "Default outline when there are no example papers. Example papers win on conflict." },
   { name: "interview.md", label: "Interview", hint: "Question rounds the interview generates concrete questions from." },
-  { name: "checklist.md", label: "Checklist", hint: "Evidence a paper of this kind must have before export." },
+  { name: "checklist.md", label: "Checklist", hint: "Evidence a paper of this type must have before export." },
 ];
 
 function NewKindDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpenChange: (o: boolean) => void; onCreated: (slug: string) => void }) {
@@ -38,7 +38,7 @@ function NewKindDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpe
   });
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title="New paper kind" description="Starts with empty templates you fill in. Members see it in the new project dialog immediately.">
+      <DialogContent title="New paper type" description="Starts with empty templates you fill in. Members see it in the new project dialog immediately.">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -97,7 +97,7 @@ export function KindsPage() {
       void qc.invalidateQueries({ queryKey: ["kinds"] });
       setSelected(null);
       setConfirmDelete(false);
-      toast.success("Kind deleted");
+      toast.success("Type deleted");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -107,11 +107,11 @@ export function KindsPage() {
       <SectionTitle
         right={
           <Button size="sm" onClick={() => setAdd(true)}>
-            <Plus className="h-3.5 w-3.5" /> New kind
+            <Plus className="h-3.5 w-3.5" /> New type
           </Button>
         }
       >
-        Paper kinds
+        Paper types
       </SectionTitle>
       <div className="grid gap-5 md:grid-cols-[220px_1fr]">
         <div className="flex flex-col gap-1">
@@ -183,7 +183,7 @@ export function KindsPage() {
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        title="Delete this kind?"
+        title="Delete this type?"
         description="Fails if any project still uses it."
         onConfirm={() => del.mutate()}
         busy={del.isPending}

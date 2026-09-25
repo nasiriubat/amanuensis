@@ -84,8 +84,8 @@ export function PlaybookPage() {
       </Link>
       <PageHeader
         eyebrow={learned ? <Badge variant="success">{p.counts.playbook_files} of 5 files learned</Badge> : <Badge>Not learned yet</Badge>}
-        title="Playbook"
-        description="How papers like your exemplars are built: structure, argument, evidence, related work and venue. Learned once, then yours to edit."
+        title="Pattern"
+        description="How papers like your example papers are built: structure, argument, evidence, related work and venue. Learned once, then yours to edit."
       />
 
       <Card className="mb-6 p-5">
@@ -94,17 +94,17 @@ export function PlaybookPage() {
             <Sparkles className="h-4 w-4" />
           </span>
           <div className="min-w-0 flex-1">
-            <h3 className="text-[14.5px] font-semibold">{learned ? "Learn again" : "Learn from exemplars"}</h3>
+            <h3 className="text-[14.5px] font-semibold">{learned ? "Learn again" : "Learn from example papers"}</h3>
             <p className="mt-0.5 text-[12.5px] text-muted-foreground">
               One summary call per paper, then one synthesis call. The budget caps how much of each paper the model reads; every section is still represented.
-              {p.counts.exemplars ? ` ${p.counts.exemplars} exemplar${p.counts.exemplars === 1 ? "" : "s"} ready.` : " Add exemplars on the Sources page first."}
+              {p.counts.exemplars ? ` ${p.counts.exemplars} example paper${p.counts.exemplars === 1 ? "" : "s"} ready.` : " Add example papers on the Sources page first."}
             </p>
             <div className="mt-4">
               <BudgetPicker value={budget} onChange={setBudget} disabled={active} />
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <Button onClick={() => learn.mutate()} loading={learn.isPending} disabled={active || !p.counts.exemplars}>
-                <Sparkles className="h-4 w-4" /> {learned ? "Relearn playbook" : "Learn playbook"}
+                <Sparkles className="h-4 w-4" /> {learned ? "Relearn pattern" : "Learn pattern"}
               </Button>
               {!p.counts.exemplars ? (
                 <Link to={`/projects/${slug}/sources`} className="text-[13px] font-medium text-primary hover:underline">

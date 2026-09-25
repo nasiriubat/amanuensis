@@ -235,7 +235,7 @@ export function InterviewPage() {
           st.done ? <Badge variant="success">Interview complete</Badge> : st.rounds.length ? <Badge variant="primary">Round {st.rounds.length}</Badge> : <Badge>Not started</Badge>
         }
         title="Interview"
-        description="The model reads your spec and the playbook, then asks only what the paper still lacks. Answers become the facts the draft may use. Nothing else does."
+        description="The model reads your spec and the pattern, then asks only what the paper still lacks. Answers become the facts the draft may use. Nothing else does."
         actions={
           <>
             {all.length ? (

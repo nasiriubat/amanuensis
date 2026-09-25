@@ -25,7 +25,7 @@ import { PublicFrame } from "@/pages/public-page";
 const STEP_BLURB: Record<StepKey, string> = {
   spec: "Paste a spec, a README or a summary from your coding agent. Everything else reads it.",
   design: "Only have an idea? Refine it or explore the space and get a study plan you can edit.",
-  sources: "Five to ten papers of this kind from arXiv or PDF. Sections are detected and measured.",
+  sources: "Five to ten papers of this type from arXiv or PDF. Sections are detected and measured.",
   playbook: "How this genre argues, evaluates, positions itself and where it publishes.",
   interview: "Pointed questions with suggested answers, until the paper has what the venue expects.",
   outline: "Facts are separated into done and planned. You approve the outline before any drafting.",
@@ -69,8 +69,8 @@ function Stat({ value, label }: { value: string; label: string }) {
 
 function FlowStrip() {
   const cols = [
-    { label: "You bring", items: ["A working system or an idea", "Exemplar papers from arXiv or PDF", "A colleague's papers for their voice", "Answers to interview questions"] },
-    { label: "It builds", items: ["A playbook for the genre", "A voice profile with measured statistics", "Facts, outline and section drafts", "Verified reference records"] },
+    { label: "You bring", items: ["A working system or an idea", "Example papers from arXiv or PDF", "A colleague's papers for their voice", "Answers to interview questions"] },
+    { label: "It builds", items: ["A pattern for the genre", "A voice profile with measured statistics", "Facts, outline and section drafts", "Verified reference records"] },
     { label: "You get", items: ["LNCS or ACM PDF", "DOCX and a LaTeX archive", "A reviewer verdict with fixes", "Three venue suggestions"] },
   ];
   return (
@@ -126,7 +126,7 @@ export function LandingPage() {
             </div>
             <div className="mt-9 grid grid-cols-2 gap-5 sm:grid-cols-4">
               <Stat value="11" label="guided steps, two optional" />
-              <Stat value="6" label="paper kinds, plus your own" />
+              <Stat value="6" label="paper types, plus your own" />
               <Stat value="5" label="model purposes, any provider" />
               <Stat value="3" label="export formats" />
             </div>
