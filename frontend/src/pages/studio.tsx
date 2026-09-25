@@ -677,27 +677,31 @@ export function StudioPage() {
       <JobProgress jobs={jobs} onDismiss={dismiss} />
 
       {studio.data.initialized && !p.profile_id && !voiceHintHidden && (profiles.data ?? []).some((pr) => pr.status === "ready") ? (
-        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-[var(--radius-sm)] border border-border bg-muted/40 px-4 py-2.5 text-[13px]">
-          <Feather className="h-4 w-4 shrink-0 text-primary" />
-          <span className="min-w-0 flex-1">
-            <span className="font-medium">Draft in a learned voice?</span>{" "}
-            <span className="text-muted-foreground">
-              {(profiles.data ?? []).filter((pr) => pr.status === "ready").map((pr) => pr.name).join(", ")} {(profiles.data ?? []).filter((pr) => pr.status === "ready").length === 1 ? "is" : "are"} ready. Drafts currently follow the house style only.
+        <div className="mb-4 flex flex-col gap-2 rounded-[var(--radius-sm)] border border-border bg-muted/40 px-4 py-2.5 text-[13px] sm:flex-row sm:items-center">
+          <div className="flex min-w-0 flex-1 items-start gap-2">
+            <Feather className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <span className="min-w-0">
+              <span className="font-medium">Draft in a learned voice?</span>{" "}
+              <span className="text-muted-foreground">
+                {(profiles.data ?? []).filter((pr) => pr.status === "ready").map((pr) => pr.name).join(", ")} {(profiles.data ?? []).filter((pr) => pr.status === "ready").length === 1 ? "is" : "are"} ready. Drafts currently follow the house style only.
+              </span>
             </span>
-          </span>
-          <Link to={`/projects/${slug}`} className="text-[12.5px] font-medium text-primary hover:underline">
-            Choose in Project settings
-          </Link>
-          <button onClick={hideVoiceHint} className="text-[12.5px] text-subtle hover:text-foreground">
-            Keep house style
-          </button>
+          </div>
+          <div className="flex shrink-0 gap-3 pl-6 sm:pl-0">
+            <Link to={`/projects/${slug}`} className="text-[12.5px] font-medium text-primary hover:underline">
+              Choose in Project settings
+            </Link>
+            <button onClick={hideVoiceHint} className="text-[12.5px] text-subtle hover:text-foreground">
+              Keep house style
+            </button>
+          </div>
         </div>
       ) : null}
 
       {studio.data.initialized && missing.length ? (
         <Card className="mb-4 flex flex-wrap items-center gap-2 border-warning/40 bg-warning-soft/30 px-4 py-3">
           <div className="mr-auto min-w-0 text-[13px]">
-            <span className="font-medium">A {p.kind.replace(/-/g, " ")} usually also has:</span>{" "}
+            <span className="font-medium">{/^[aeiou]/i.test(p.kind) ? "An" : "A"} {p.kind.replace(/-/g, " ")} usually also has:</span>{" "}
             <span className="text-muted-foreground">{missing.join(", ")}.</span>
             <span className="block text-[12px] text-subtle">Add the ones your paper needs. Each starts empty, with an outline line you can edit in the Plan tab.</span>
           </div>

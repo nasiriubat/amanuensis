@@ -273,9 +273,9 @@ def missing_sections(root: Path, kind: str) -> list[str]:
         low = title.lower()
         if low.startswith(_SKIP_MISSING):
             continue
-        b = _bucket(title)
-        if b:
-            if b in have_buckets:
+        buckets = {bk for bk, words in SECTION_HINTS.items() if any(w in low for w in words)}
+        if buckets:
+            if buckets & have_buckets:
                 continue
         elif any(w in have_words for w in re.findall(r"[a-z]{4,}", low) if w not in ("statement",)):
             continue
