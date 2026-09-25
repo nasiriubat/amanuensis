@@ -29,7 +29,10 @@ can be made citable with one click as well. Papers you read for the work go in a
 reading*: read in full once, summarised into a reading card (question, method, result,
 limitation, relation to your work), and citable at once; drafts may attribute to them what the
 card says, and Related Work is written from the cards. Twenty to forty readings per project is
-normal; they never touch the playbook. Author profiles stay optional: without one, drafts
+normal; they never touch the playbook. In the Studio, a Citations tab shows, for every citation,
+what the paper says, the passage that matches the sentence, and on request a verdict on whether it
+supports the claim; "Find a source" takes a sentence through your own references, then the
+indexes, then a rewrite to what your sources support. Author profiles stay optional: without one, drafts
 follow the house style.
 
 Around the pipeline: a public landing page whose copy the admin edits (steps and entry points

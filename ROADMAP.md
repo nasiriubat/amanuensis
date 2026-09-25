@@ -38,6 +38,7 @@ page, CSV and JSON export, and the four study documents.
 | 7 | Study kit | Consent, questionnaire, participant guide page, step-timing instrumentation |
 | 8 | Buffer and paper | Slack for what days 1–7 surface; Paper Writer paper gets the study design |
 | 9 | Background reading | Reading list role: papers read in full get a card and become citable; Related Work drafts from the cards |
+| 10 | Citation evidence | Citations tab: what the paper says, the matching passage, a verdict on demand; Find a source for a sentence |
 | +2 weeks | User study | Five colleagues, one paper each; then one day of analysis |
 
 ## Items
@@ -137,6 +138,22 @@ page, CSV and JSON export, and the four study documents.
 - Deleting a reading removes its text; the reference and card stay.
 - Acceptance: one arXiv paper read on the newcomer project produced a card whose result
   carried the paper's own numbers and was citable as a verified key within one job.
+
+### 12. Citation evidence and Find a source (added 25 September, done the same day)
+- Studio gets a Citations tab listing every `[@key]` with the sentence that carries it. Opening
+  one shows three steps: what the paper says (abstract or reading card), the paragraph of the
+  full text that best matches the sentence (word overlap, no model; only for readings and
+  exemplars, otherwise a hint to add the paper under Background reading), and a Check button
+  that asks the utility model for supported / partly supported / not supported with one reason
+  (about 1k tokens, on demand). Clicking a citation chip in the Preview opens its row.
+- Find a source: put the cursor in a sentence (or select text) and press one button. Step 1
+  ranks the project's own references against the sentence; step 2 searches the indexes with a
+  model-written query and filters out papers already in the project; step 3 offers a rewrite
+  to what the references support (redline, accept or discard, unknown keys are refused) or a
+  `[CITE]` placeholder. Citing inserts the key before the sentence's full stop.
+- Live check on the newcomer's Related Work: the verdict caught a claim attributed to a
+  working-group report whose abstract does not state it, and Find a source surfaced a
+  399-student survey (Chan and Hu 2023) that was added and cited in two clicks.
 
 ## Needed from the workspace owner
 - VPS or server with a domain, and who administers it.
