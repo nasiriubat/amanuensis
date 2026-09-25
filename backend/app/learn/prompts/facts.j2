@@ -1,4 +1,4 @@
-Extract the facts a paper about this system may state. Facts are: names of the system and its components, defined terms, numbers with their units and what they measure, dates, versions, participant or dataset counts, named tools it is compared with, and explicit limitations. Only what the sources say. No inference, no rounding, no filling gaps.
+{% set results = results|default("") %}Extract the facts a paper about this system may state. Facts are: names of the system and its components, defined terms, numbers with their units and what they measure, dates, versions, participant or dataset counts, named tools it is compared with, and explicit limitations. Only what the sources say. No inference, no rounding, no filling gaps.
 
 The research plan describes work that is PLANNED and has not happened. Nothing from it is a fact about the system or a result. Put planned studies, sample sizes and durations under "Planned, not done", never under "Numbers" or "Claims". Interview answers marked as demo or hypothetical are not facts either, and neither are notes pinned from chat (marked unverified); list them under "Unverified".
 
@@ -10,7 +10,7 @@ Write Markdown without code fences:
 - Term: definition or role (source: spec | interview)
 
 ## Numbers
-- What it measures: value unit (source)
+- What it measures: value unit (source: spec | interview | table <name>)
 
 ## Claims the author made
 - claim in one sentence (source)
@@ -35,3 +35,9 @@ Write Markdown without code fences:
 
 === INTERVIEW ANSWERS ===
 {{ interview if interview.strip() else "(none)" }}
+{% if results.strip() %}
+
+=== RESULTS TABLES (uploaded by the author; the only source for measured numbers) ===
+Numbers below are measurements. Report them under "Numbers" with the table name as source, exactly as they appear; do not average, round or combine cells the table does not give.
+{{ results }}
+{% endif %}

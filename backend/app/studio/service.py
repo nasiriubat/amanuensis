@@ -16,6 +16,7 @@ from pathlib import Path
 
 from .. import storage
 from ..db import SessionLocal
+from ..figures import tables as tables_mod
 from ..ingest import extract as ingest_extract
 from ..jobs import JobContext
 from ..kinds import kind_exists, kind_name, read_kind
@@ -473,19 +474,36 @@ def add_checklist_item(root: Path, section: str, text: str) -> dict:
 # ------------------------------------------------------------------ context helpers
 
 
-def _ref_key_lines(root: Path, full_cards: bool = False) -> str:
+CARD_FULL_LIMIT = 15
+
+
+def _ref_key_lines(root: Path, full_cards: bool = False, focus: str = "") -> str:
     """One entry per verified reference. A reading card, when the author read the paper,
-    replaces the abstract as "what it says"; `full_cards` expands cards for related-work sections."""
+    replaces the abstract as "what it says"; `full_cards` expands cards for related-work sections.
+
+    With more cards than CARD_FULL_LIMIT, only the cards closest to `focus` (the section's title
+    and outline lines) are expanded, the rest stay one line, so the prompt does not grow with the
+    reading list."""
     from ..refs import readings
     from ..refs import service as refs
+    from ..refs.evidence import _tokens
 
+    records = sorted(refs.list_records(root), key=lambda x: x["key"])
+    expand: set[str] = {r["key"] for r in records if r.get("card")}
+    if full_cards and len(expand) > CARD_FULL_LIMIT:
+        q = set(_tokens(focus))
+        ranked = sorted(
+            (r for r in records if r.get("card")),
+            key=lambda r: -len(q & set(_tokens(f"{r.get('title', '')} {readings.card_lines(r, full=True)}"))),
+        )
+        expand = {r["key"] for r in ranked[:CARD_FULL_LIMIT]}
     lines = []
-    for r in sorted(refs.list_records(root), key=lambda x: x["key"]):
+    for r in records:
         who = (r.get("authors") or ["?"])[0].split(",")[0]
         tag = " (read in full; card below)" if r.get("card") else ""
         lines.append(f"[@{r['key']}] {who} {r.get('year') or ''}: {r.get('title', '')[:120]}{tag}")
         if r.get("card"):
-            lines.append(f"    what it says: {readings.card_lines(r, full=full_cards)}")
+            lines.append(f"    what it says: {readings.card_lines(r, full=full_cards and r['key'] in expand)}")
             continue
         abstract = re.sub(r"\s+", " ", (r.get("abstract") or "").strip())
         if abstract:
@@ -604,7 +622,11 @@ async def draft_section(
         house_style=storage.read_text(storage.house_style_path()),
         playbook=playbook,
         facts=storage.read_text(inputs / "facts.md")[:6000],
-        ref_keys=_ref_key_lines(root, full_cards=_bucket(sec["title"]) in ("related", "background", "introduction")),
+        ref_keys=_ref_key_lines(
+            root,
+            full_cards=_bucket(sec["title"]) in ("related", "background", "introduction"),
+            focus=" ".join([sec["title"], *sec.get("lines", [])]),
+        ),
     )
     user = render(
         "draft_section.j2",
@@ -620,6 +642,9 @@ async def draft_section(
         previous=budget_markdown(read_section(root, prev), 5000) if prev else "",
         others=_others_openings(root, index, sec["id"])[:3000],
         exemplars="" if "exemplars" in ablate else _exemplar_excerpts(root, sec["title"]),
+        results=tables_mod.prompt_block(root)
+        if _bucket(sec["title"]) in ("evaluation", "discussion", "abstract")
+        else "",
     )
     ctx.progress(35, "Drafting")
     with SessionLocal() as db:

@@ -45,8 +45,22 @@ NO_TEXT_HINT = (
 )
 
 
+def _stem(w: str) -> str:
+    """Cheap suffix stripping so "students" meets "student" and "accepted" meets "accept"."""
+    for suf in ("ities", "ations", "ation", "ings", "ing", "ies", "ers", "ed", "es", "ly", "s"):
+        if len(w) > len(suf) + 3 and w.endswith(suf):
+            if suf == "ies":
+                return w[: -len(suf)] + "y"
+            if suf in ("ities",):
+                return w[: -len(suf)] + "ity"
+            if suf in ("ations", "ation"):
+                return w[: -len(suf)] + "ate"
+            return w[: -len(suf)]
+    return w
+
+
 def _tokens(text: str) -> list[str]:
-    return [w.lower() for w in _WORD.findall(text) if w.lower() not in _STOP]
+    return [_stem(w.lower()) for w in _WORD.findall(text) if w.lower() not in _STOP]
 
 
 def _paragraphs(md: str, meta: dict) -> list[dict]:

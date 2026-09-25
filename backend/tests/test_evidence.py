@@ -78,7 +78,7 @@ def test_evidence_finds_passage_and_falls_back_to_abstract(client, admin):
     ev = res.json()
     assert ev["full_text"] is True and ev["source"] == "full_text" and ev["hint"] is None
     assert ev["passages"][0]["section"] == "Results" and "71 percent" in ev["passages"][0]["text"]
-    assert "suggestions" in ev["passages"][0]["matched"]
+    assert "suggestion" in ev["passages"][0]["matched"]  # tokens are stemmed
 
     res = client.post(
         f"/api/projects/{slug}/references/doe2020abstract/evidence", json={"sentence": sentence}, headers=admin

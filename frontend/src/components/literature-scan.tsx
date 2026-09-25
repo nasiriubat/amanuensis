@@ -88,6 +88,9 @@ export function LiteratureScan({ slug, projectId, compact }: { slug: string; pro
   });
 
   const data = scan.data?.scan ?? null;
+  const adoptedCount = useMemo(() => (data ? data.candidates.filter((c) => c.adopted_reference || c.adopted_exemplar || c.adopted_reading).length : 0), [data]);
+  const [showAll, setShowAll] = useState(false);
+  const collapsed = !!data && adoptedCount > 0 && !showAll;
   const counts = useMemo(() => {
     const cite = Object.values(picks).filter((v) => v.cite).length;
     const ex = Object.values(picks).filter((v) => v.exemplar).length;
@@ -151,8 +154,24 @@ export function LiteratureScan({ slug, projectId, compact }: { slug: string; pro
 
       {data && data.candidates.length === 0 ? <p className="text-[13px] text-muted-foreground">The scan found nothing new. Add more detail to the specification and scan again.</p> : null}
 
-      {data && data.candidates.length ? (
+      {collapsed ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-sm)] border border-border bg-muted/40 px-3 py-2 text-[13px]">
+          <span className="text-muted-foreground">
+            {data!.candidates.length} candidates found, {adoptedCount} already in the project.
+          </span>
+          <Button size="sm" variant="ghost" onClick={() => setShowAll(true)}>
+            Show the candidates
+          </Button>
+        </div>
+      ) : null}
+
+      {data && data.candidates.length && !collapsed ? (
         <div className={cn("flex flex-col gap-5", compact && "max-h-[60vh] overflow-y-auto pr-1")}>
+          {adoptedCount > 0 ? (
+            <button onClick={() => setShowAll(false)} className="self-start text-[12px] text-subtle hover:text-foreground">
+              Hide the candidates
+            </button>
+          ) : null}
           {GROUPS.map((g) => {
             const rows = data.candidates.map((c, i) => [c, i] as const).filter(([c]) => c.relevance === g.level);
             if (!rows.length) return null;

@@ -20,6 +20,7 @@ from pathlib import Path
 
 from .. import storage
 from ..db import SessionLocal
+from ..figures import tables
 from ..jobs import JobContext
 from ..kinds import kind_exists, kind_name, read_kind
 from ..learn.context import budget_markdown, render
@@ -286,6 +287,7 @@ async def extract_facts(project_id: str, ctx: JobContext | None = None) -> dict:
         spec=budget_markdown(storage.read_text(inputs / "system-spec.md"), 14_000),
         plan=budget_markdown(storage.read_text(inputs / "research-plan.md"), 5_000),
         interview=storage.read_text(inputs / "interview.md")[:14_000],
+        results=tables.prompt_block(root),
     )
     with SessionLocal() as db:
         p = db.get(Project, project_id)

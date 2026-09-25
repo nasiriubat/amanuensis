@@ -27,6 +27,7 @@ from .routers import (
     providers,
     readings,
     references,
+    results,
     review,
     site,
     studio,
@@ -139,6 +140,7 @@ for r in (
     maintenance,
     study,
     readings,
+    results,
 ):
     app.include_router(r.router)
 app.include_router(site.robots_router)

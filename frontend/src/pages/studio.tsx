@@ -26,7 +26,7 @@ import {
   Wand2,
 } from "lucide-react";
 import { api } from "@/lib/api";
-import type { ChecklistItem, Figure, FixProposal, JobInfo, LintFinding, Profile, Project, RefRecord, Section, SectionDetail, StudioState } from "@/lib/types";
+import type { ChecklistItem, Figure, FixProposal, JobInfo, LintFinding, Profile, Project, RefRecord, ResultTable, Section, SectionDetail, StudioState } from "@/lib/types";
 import { useJobs } from "@/lib/jobs";
 import { useTheme } from "@/lib/theme";
 import { diffLines, diffWords } from "@/lib/diff";
@@ -377,6 +377,7 @@ export function StudioPage() {
   const checklist = useQuery({ queryKey: ["checklist", slug], queryFn: () => api.get<ChecklistItem[]>(`/api/projects/${slug}/checklist`) });
   const refs = useQuery({ queryKey: ["references", slug], queryFn: () => api.get<RefRecord[]>(`/api/projects/${slug}/references`) });
   const figs = useQuery({ queryKey: ["figures", slug], queryFn: () => api.get<Figure[]>(`/api/projects/${slug}/figures`) });
+  const tables = useQuery({ queryKey: ["results", slug], queryFn: () => api.get<ResultTable[]>(`/api/projects/${slug}/results`) });
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: () => api.get<Profile[]>("/api/profiles") });
   const voiceKey = `pw.voiceHint.${slug}`;
   const [voiceHintHidden, setVoiceHintHidden] = useState(() => {
@@ -573,6 +574,16 @@ export function StudioPage() {
     onChange(view.state.doc.toString());
   };
 
+  const insertTable = async (t: ResultTable) => {
+    const view = viewRef.current;
+    if (!view) return;
+    const r = await api.get<{ markdown: string }>(`/api/projects/${slug}/results/${t.name}/snippet`);
+    const { from, to } = view.state.selection.main;
+    view.dispatch({ changes: { from, to, insert: r.markdown }, selection: { anchor: from + r.markdown.length } });
+    view.focus();
+    onChange(view.state.doc.toString());
+  };
+
   const insertFigure = (f: Figure) => {
     const view = viewRef.current;
     if (!view) return;
@@ -676,7 +687,7 @@ export function StudioPage() {
 
       <JobProgress jobs={jobs} onDismiss={dismiss} />
 
-      {studio.data.initialized && !p.profile_id && !voiceHintHidden && (profiles.data ?? []).some((pr) => pr.status === "ready") ? (
+      {studio.data.initialized && missing.length === 0 && !p.profile_id && !voiceHintHidden && (profiles.data ?? []).some((pr) => pr.status === "ready") ? (
         <div className="mb-4 flex flex-col gap-2 rounded-[var(--radius-sm)] border border-border bg-muted/40 px-4 py-2.5 text-[13px] sm:flex-row sm:items-center">
           <div className="flex min-w-0 flex-1 items-start gap-2">
             <Feather className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -822,17 +833,28 @@ export function StudioPage() {
                   </DropdownMenu>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button size="sm" variant="secondary" disabled={!figs.data?.length} title={figs.data?.length ? "Insert a figure" : "Add figures first"}>
+                      <Button size="sm" variant="secondary" disabled={!figs.data?.length && !tables.data?.length} title={figs.data?.length || tables.data?.length ? "Insert a figure or a results table" : "Add figures or results first"}>
                         <ImageIcon className="h-3.5 w-3.5" /> Figure
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="max-h-80 w-[320px] overflow-y-auto">
-                      <DropdownMenuLabel>Insert at cursor</DropdownMenuLabel>
+                      {figs.data?.length ? <DropdownMenuLabel>Figures</DropdownMenuLabel> : null}
                       {(figs.data ?? []).map((f) => (
                         <DropdownMenuItem key={f.name} onSelect={() => insertFigure(f)}>
                           <span className="min-w-0">
                             <span className="block truncate text-[12.5px]">{f.caption || f.name}</span>
                             <span className="block font-mono text-[11px] text-subtle">figures/{f.name}</span>
+                          </span>
+                        </DropdownMenuItem>
+                      ))}
+                      {tables.data?.length ? <DropdownMenuLabel>Results tables</DropdownMenuLabel> : null}
+                      {(tables.data ?? []).map((t) => (
+                        <DropdownMenuItem key={t.name} onSelect={() => void insertTable(t)}>
+                          <span className="min-w-0">
+                            <span className="block truncate text-[12.5px]">{t.caption || t.title}</span>
+                            <span className="block font-mono text-[11px] text-subtle">
+                              {t.rows} rows · {t.columns.slice(0, 4).join(", ")}
+                            </span>
                           </span>
                         </DropdownMenuItem>
                       ))}

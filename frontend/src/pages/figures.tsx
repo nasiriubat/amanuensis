@@ -17,6 +17,7 @@ import { EmptyState, PageHeader, SectionTitle, Skeleton } from "@/components/ui/
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/dialogs";
 import { NextStepBar } from "@/components/flow";
+import { ResultsTables } from "@/components/results-tables";
 
 function ensureMermaid(dark: boolean) {
   // htmlLabels off: plain SVG text rasterises to PNG; foreignObject labels taint the canvas.
@@ -312,7 +313,7 @@ export function FiguresPage() {
       <PageHeader
         eyebrow={list.length ? <Badge variant="success">{list.length} figure{list.length === 1 ? "" : "s"}</Badge> : <Badge>None yet</Badge>}
         title="Figures"
-        description="Diagrams from Mermaid text, rendered here and stored as SVG and PNG for export. Result charts and screenshots are uploaded, never generated: the tool does not invent data."
+        description="Diagrams from Mermaid text, rendered here and stored as SVG and PNG for export. Result charts, screenshots and diagrams drawn elsewhere are uploaded, never generated. Measurements go in below as tables."
         actions={
           <>
             <input
@@ -382,6 +383,7 @@ export function FiguresPage() {
         </div>
       )}
 
+      <ResultsTables slug={slug} />
       <NextStepBar p={p} current="figures" />
       <NewMermaidDialog slug={slug} open={newDiagram} onOpenChange={setNewDiagram} onCreated={(f) => setEditing(f.name)} />
       <ConfirmDialog

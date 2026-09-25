@@ -345,6 +345,17 @@ export interface RefRequest {
   query: string;
 }
 
+export interface ResultTable {
+  name: string;
+  title: string;
+  caption: string;
+  columns: string[];
+  rows: number;
+  source_file: string;
+  created_at: string;
+  summary: Array<{ column: string; kind: "number" | "text"; count: number; min?: number; max?: number; mean?: number; distinct?: number; top?: string[] }>;
+}
+
 export interface Figure {
   name: string;
   kind: "mermaid" | "image";

@@ -1,4 +1,4 @@
-Draft the section "{{ section.title }}" ({{ section.order }} of {{ total }}) of the paper "{{ title }}". Target about {{ section.target_words }} words.
+{% set results = results|default("") %}Draft the section "{{ section.title }}" ({{ section.order }} of {{ total }}) of the paper "{{ title }}". Target about {{ section.target_words }} words.
 
 === OUTLINE FOR THIS SECTION (one paragraph per line) ===
 {% for line in section.lines %}
@@ -37,6 +37,11 @@ Draft the section "{{ section.title }}" ({{ section.order }} of {{ total }}) of 
 {% if others.strip() %}
 === OTHER DRAFTED SECTIONS, OPENING LINES (for consistency of names and claims) ===
 {{ others }}
+{% endif %}
+
+{% if results.strip() %}
+=== RESULTS TABLES (the author's measurements; quote numbers exactly, insert a table with its name when the outline reports results) ===
+{{ results }}
 {% endif %}
 
 {% if exemplars.strip() %}
