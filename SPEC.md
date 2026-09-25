@@ -1,4 +1,4 @@
-# Paper Writer — System Specification (v0.1, 2026-09-21)
+# Amanuensis — System Specification (v0.1, 2026-09-21)
 
 An AI co-author that learns how good papers in a genre are structured, learns how a
 specific author writes, interviews the user until their work fits a publishable
@@ -501,4 +501,4 @@ Each phase leaves a usable product.
   forgot-password links) and an opt-in usage-event log with a study kit (consent,
   questionnaire, interview guide, participant guide) exist for the planned five-person study.
 - Still open: deploy behind HTTPS with the Semantic Scholar key and re-run the newcomer
-  persona there; run the user study and put its results into the Paper Writer paper.
+  persona there; run the user study and put its results into the Amanuensis paper.

@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 from .db import SessionLocal
 from .models import Job, now
 
-log = logging.getLogger("paper-writer.jobs")
+log = logging.getLogger("amanuensis.jobs")
 
 _tasks: dict[str, asyncio.Task] = {}
 

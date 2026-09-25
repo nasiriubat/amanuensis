@@ -6,7 +6,7 @@ LANDING_DEFAULTS = {
     "eyebrow": "Self-hosted · your own API keys · every step is a file",
     "headline": "Write the paper your work deserves.",
     "subheadline": (
-        "Paper Writer learns how papers in your field are built, learns how you write, "
+        "Amanuensis learns how papers in your field are built, learns how you write, "
         "interviews you until the work fits a publishable shape, then drafts one section at a time "
         "with verified references and exports a venue-ready PDF."
     ),

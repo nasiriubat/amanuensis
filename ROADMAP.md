@@ -12,7 +12,7 @@ for the user, no silent changes to their text, nothing invented.
 
 Days 1 to 5 and 7 are implemented, tested (77 backend tests) and pushed. Day 6 (deploy and
 re-test on a server) and the user study itself wait on the items listed under "Needed from the
-workspace owner". Day 8's paper change is done: the Evaluation section of the Paper Writer
+workspace owner". Day 8's paper change is done: the Evaluation section of the Amanuensis
 paper now describes the study design and carries one placeholder for its results.
 
 Delivered: Fix issues (redline, accept or discard, ≈2.8k tokens on a 680-word section, ten
@@ -36,7 +36,7 @@ page, CSV and JSON export, and the four study documents.
 | 5 | Team features | SMTP settings; invitation mail; password reset |
 | 6 | Deploy and re-test | VPS with Semantic Scholar key; Docker rebuild; newcomer persona re-run; regression |
 | 7 | Study kit | Consent, questionnaire, participant guide page, step-timing instrumentation |
-| 8 | Buffer and paper | Slack for what days 1–7 surface; Paper Writer paper gets the study design |
+| 8 | Buffer and paper | Slack for what days 1–7 surface; Amanuensis paper gets the study design |
 | 9 | Background reading | Reading list role: papers read in full get a card and become citable; Related Work drafts from the cards |
 | 10 | Citation evidence | Citations tab: what the paper says, the matching passage, a verdict on demand; Find a source for a sentence |
 | 11 | Results and efficiency | CSV/XLSX results tables; Sources collapses adopted candidates; one Studio banner; card budget and stemmed matching |
@@ -122,7 +122,7 @@ page, CSV and JSON export, and the four study documents.
   (SUS plus five questions on trust, control and where they got stuck), a 20-minute interview.
 - Data out: tokens per paper and step, time per step, reviewer verdicts over time, number of
   sections edited by hand, exports produced, questionnaire scores, interview themes.
-- Use: the Evaluation section of the Paper Writer paper, which currently holds a placeholder.
+- Use: the Evaluation section of the Amanuensis paper, which currently holds a placeholder.
 
 ### 11. Background reading (added 24 September, done the same day)
 - A third paper role beside exemplar and reference. Papers the author read for the study are

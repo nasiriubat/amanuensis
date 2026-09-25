@@ -20,7 +20,7 @@ def test_landing_defaults_and_seeded_pages(client):
     slugs = {p["slug"] for p in s["nav_pages"]}
     assert {"about", "contact"} <= slugs
     about = client.get("/api/pages/about").json()
-    assert "Paper Writer" in about["content"]
+    assert "Amanuensis" in about["content"]
     contact = client.get("/api/pages/contact").json()
     assert "admin@test.local" in contact["content"]
 

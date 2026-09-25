@@ -24,7 +24,7 @@ ARXIV_ID = re.compile(
     r"(?:arxiv\.org/(?:abs|pdf|e-print)/)?(\d{4}\.\d{4,5}(?:v\d+)?|[a-z\-]+(?:\.[A-Z]{2})?/\d{7}(?:v\d+)?)", re.I
 )
 _NS = {"a": "http://www.w3.org/2005/Atom", "arxiv": "http://arxiv.org/schemas/atom"}
-_UA = "paper-writer/0.1 (self-hosted research tool; contact: admin)"
+_UA = "amanuensis/0.1 (self-hosted research tool; contact: admin)"
 
 _MIN_INTERVAL = 3.1  # seconds between requests to arXiv, per their usage policy
 _pace_lock = asyncio.Lock()

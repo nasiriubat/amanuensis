@@ -296,7 +296,7 @@ def _backup_zip(include_exports: bool, include_raw: bool) -> Path:
     data = settings.data_dir.resolve()
     tmpdir = Path(tempfile.mkdtemp(prefix="pw-backup-"))
     stamp = now().strftime("%Y%m%d-%H%M%S")
-    out = tmpdir / f"paper-writer-backup-{stamp}.zip"
+    out = tmpdir / f"amanuensis-backup-{stamp}.zip"
     with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
         db_snapshot = tmpdir / "app.db"
         src = sqlite3.connect(str(settings.db_path))

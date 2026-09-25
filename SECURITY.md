@@ -8,7 +8,7 @@ a week and a fix or a plan within a month for anything that affects a default in
 
 ## What the application protects
 
-Paper Writer is a self-hosted web application meant to run for one research group behind HTTPS.
+Amanuensis is a self-hosted web application meant to run for one research group behind HTTPS.
 
 - Passwords are hashed with argon2. Sessions are HttpOnly cookies stored by hash; CSRF uses a
   double-submit token.

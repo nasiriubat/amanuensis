@@ -241,7 +241,7 @@ def events_csv(_: User = Depends(require_admin), db: Session = Depends(get_db)):
     return Response(
         buf.getvalue(),
         media_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="paper-writer-events.csv"'},
+        headers={"Content-Disposition": 'attachment; filename="amanuensis-events.csv"'},
     )
 
 
@@ -250,7 +250,7 @@ def summary_json(_: User = Depends(require_admin), db: Session = Depends(get_db)
     return Response(
         json.dumps(summary(db), indent=2, ensure_ascii=False),
         media_type="application/json",
-        headers={"Content-Disposition": 'attachment; filename="paper-writer-study-summary.json"'},
+        headers={"Content-Disposition": 'attachment; filename="amanuensis-study-summary.json"'},
     )
 
 

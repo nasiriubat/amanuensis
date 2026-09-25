@@ -1,6 +1,6 @@
 # End-of-study questionnaire
 
-Answer for the paper you wrote with Paper Writer. Ten minutes. There are no right answers.
+Answer for the paper you wrote with Amanuensis. Ten minutes. There are no right answers.
 
 ## Part A: System Usability Scale
 

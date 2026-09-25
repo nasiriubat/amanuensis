@@ -1,5 +1,5 @@
 [project]
-name = "paper-writer"
+name = "amanuensis"
 version = "0.1.0"
 description = "An AI co-author that learns how good papers are written and helps you write yours."
 requires-python = ">=3.12"

@@ -1,6 +1,6 @@
-# Consent to take part in a usability study of Paper Writer
+# Consent to take part in a usability study of Amanuensis
 
-**Study.** We are evaluating Paper Writer, a self-hosted tool that helps researchers write a
+**Study.** We are evaluating Amanuensis, a self-hosted tool that helps researchers write a
 paper from what they built or plan to study. Five participants each write one paper with it
 over two weeks. The study is run by [study lead, affiliation]. Contact: [email].
 

@@ -42,7 +42,7 @@ export const EMPTY_LANDING: LandingContent = {
 };
 
 const FALLBACK: SiteInfo = {
-  name: "Paper Writer",
+  name: "Amanuensis",
   tagline: "",
   footer: "",
   seo: { title: "", description: "", keywords: "", og_image: "", index: true },

@@ -13,7 +13,7 @@ MAIL_CFG = {
     "username": "bot",
     "password": "s3cret-pass",
     "from_addr": "pw@test.local",
-    "from_name": "Paper Writer",
+    "from_name": "Amanuensis",
 }
 KEEP = ("enabled", "host", "port", "security", "username", "from_addr", "from_name")
 
@@ -64,7 +64,7 @@ def _configure(client, admin, monkeypatch):
             "username": "bot",
             "password": "s3cret-pass",
             "from_addr": "pw@test.local",
-            "from_name": "Paper Writer",
+            "from_name": "Amanuensis",
         },
         headers=admin,
     )

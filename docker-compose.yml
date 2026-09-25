@@ -1,8 +1,8 @@
 services:
-  paper-writer:
+  amanuensis:
     build: .
-    image: paper-writer:local
-    container_name: paper-writer
+    image: amanuensis:local
+    container_name: amanuensis
     restart: unless-stopped
     env_file: .env
     environment:
@@ -10,10 +10,10 @@ services:
     ports:
       - "${PORT:-8000}:8000"
     volumes:
-      - paper_data:/data
+      - amanuensis_data:/data
     # Ollama on the host is reachable as http://host.docker.internal:11434/v1
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
 volumes:
-  paper_data:
+  amanuensis_data:
