@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Feather, KeyRound, Library, Settings2, UserRound } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -89,7 +90,9 @@ export function AppShell() {
         <TopBar />
         <div className="mx-auto w-full max-w-[1480px] px-0 pb-24 md:px-6 md:py-6 md:pb-8 xl:px-10">
           <div key={location.pathname} className="min-h-[calc(100vh-4rem)] bg-card px-4 py-6 md:min-h-0 md:rounded-[var(--radius-lg)] md:border md:border-border md:px-8 md:py-8 md:shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <Outlet />
+            <Suspense fallback={<div className="flex min-h-[40vh] items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" /></div>}>
+              <Outlet />
+            </Suspense>
           </div>
         </div>
 
