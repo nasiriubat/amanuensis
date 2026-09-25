@@ -45,6 +45,7 @@ import { JobProgress } from "@/components/papers";
 import { ConfirmDialog } from "@/components/dialogs";
 import { RichMarkdown } from "@/components/rich-markdown";
 import { NextStepBar } from "@/components/flow";
+import { CitationsPanel, citationRows } from "@/components/citations-panel";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const STATUS: Record<Section["status"], { label: string; variant: "neutral" | "primary" | "success" | "warning" }> = {
@@ -403,6 +404,7 @@ export function StudioPage() {
   const [confirmForce, setConfirmForce] = useState<null | { instructions: string }>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [tab, setTab] = useState("preview");
+  const [citeFocus, setCiteFocus] = useState<string | null>(null);
   const viewRef = useRef<EditorView | null>(null);
   const lintTimer = useRef<number | null>(null);
 
@@ -582,6 +584,46 @@ export function StudioPage() {
     onChange(view.state.doc.toString());
   };
 
+  /** The selection, or the sentence around the caret, with document offsets. */
+  const getSentence = () => {
+    const view = viewRef.current;
+    if (!view) return null;
+    const { from, to } = view.state.selection.main;
+    if (to > from) return { text: view.state.doc.sliceString(from, to).trim(), from, to };
+    const line = view.state.doc.lineAt(from);
+    const rel = from - line.from;
+    const re = /[^.!?]+[.!?]+(?=\s|$)|[^.!?]+$/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(line.text))) {
+      const s = m.index;
+      const e = m.index + m[0].length;
+      if (rel >= s && rel <= e) {
+        const lead = m[0].length - m[0].trimStart().length;
+        return { text: m[0].trim(), from: line.from + s + lead, to: line.from + e };
+      }
+    }
+    return { text: line.text.trim(), from: line.from, to: line.to };
+  };
+  const citeAt = (key: string, at: number) => {
+    const view = viewRef.current;
+    if (!view) return;
+    // put the key before the sentence's closing punctuation
+    const prev = view.state.doc.sliceString(Math.max(0, at - 1), at);
+    const pos = /[.!?]/.test(prev) ? at - 1 : at;
+    const before = view.state.doc.sliceString(Math.max(0, pos - 1), pos);
+    const insert = `${before && !/\s/.test(before) ? " " : ""}[@${key}]`;
+    view.dispatch({ changes: { from: pos, to: pos, insert }, selection: { anchor: pos + insert.length } });
+    view.focus();
+    onChange(view.state.doc.toString());
+  };
+  const replaceRange = (from: number, to: number, replacement: string) => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({ changes: { from, to, insert: replacement }, selection: { anchor: from + replacement.length } });
+    view.focus();
+    onChange(view.state.doc.toString());
+  };
+
   const jumpTo = (line: number) => {
     const view = viewRef.current;
     if (!view || line < 1 || line > view.state.doc.lines) return;
@@ -590,6 +632,7 @@ export function StudioPage() {
     view.focus();
   };
 
+  const citeCount = useMemo(() => citationRows(text).length, [text]);
   const badKeys = useMemo(() => new Set(findings.filter((f) => f.kind === "citation" && f.severity === "error").flatMap((f) => (f.excerpt.match(/@([^\]\s;]+)/g) ?? []).map((k) => k.slice(1)))), [findings]);
   const extensions = useMemo(() => [markdown(), EditorView.lineWrapping, lintGutter()], []);
 
@@ -847,9 +890,27 @@ export function StudioPage() {
                   <TabsTrigger value="issues" className="flex-1">
                     Issues{findings.length ? <span className="ml-1 rounded-full bg-muted-foreground/30 px-1.5 text-[10px]">{findings.length}</span> : null}
                   </TabsTrigger>
+                  <TabsTrigger value="citations" className="flex-1">
+                    Citations{citeCount ? <span className="ml-1 rounded-full bg-muted-foreground/30 px-1.5 text-[10px]">{citeCount}</span> : null}
+                  </TabsTrigger>
                 </TabsList>
                 <TabsContent value="preview" className="max-h-[60vh] overflow-y-auto lg:max-h-[calc(100vh-320px)]">
-                  {text.trim() ? <RichMarkdown source={`## ${section?.title ?? ""}\n\n${text}`} badKeys={badKeys} figureBase={`/api/projects/${slug}/figures`} /> : <p className="text-[13px] text-subtle">Nothing to preview yet.</p>}
+                  {text.trim() ? (
+                    <div
+                      onClick={(e) => {
+                        const cite = (e.target as HTMLElement).closest?.("cite");
+                        if (!cite) return;
+                        setCiteFocus(cite.textContent?.replace(/^@/, "") ?? null);
+                        setTab("citations");
+                      }}
+                      title="Click a citation to see what the paper says"
+                      className="[&_cite]:cursor-pointer"
+                    >
+                      <RichMarkdown source={`## ${section?.title ?? ""}\n\n${text}`} badKeys={badKeys} figureBase={`/api/projects/${slug}/figures`} />
+                    </div>
+                  ) : (
+                    <p className="text-[13px] text-subtle">Nothing to preview yet.</p>
+                  )}
                 </TabsContent>
                 <TabsContent value="outline" className="max-h-[60vh] overflow-y-auto lg:max-h-[calc(100vh-320px)]">
                   <p className="mb-2 text-[12px] text-muted-foreground">One paragraph per line. The draft follows these in order.</p>
@@ -864,6 +925,9 @@ export function StudioPage() {
                 </TabsContent>
                 <TabsContent value="checklist" className="max-h-[60vh] overflow-y-auto lg:max-h-[calc(100vh-320px)]">
                   <ChecklistPanel slug={slug} items={checklist.data ?? []} sectionTitle={section?.title ?? null} />
+                </TabsContent>
+                <TabsContent value="citations" className="max-h-[60vh] overflow-y-auto lg:max-h-[calc(100vh-320px)]">
+                  <CitationsPanel slug={slug} text={text} focusKey={citeFocus} getSentence={getSentence} onCite={citeAt} onReplace={replaceRange} />
                 </TabsContent>
                 <TabsContent value="issues" className="max-h-[60vh] overflow-y-auto lg:max-h-[calc(100vh-320px)]">
                   <IssuesPanel slug={slug} findings={findings} onJump={jumpTo} onFix={() => fix.mutate()} fixing={fix.isPending} disabled={!text.trim() || active || draftingIds.has(section?.id ?? "")} />

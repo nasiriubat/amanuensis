@@ -1,0 +1,16 @@
+A sentence in a research paper makes a claim that no source in the project supports as written. Restate it so that it says only what the references below support, citing them with their keys as [@key], or, if none of them supports any part of it, hedge it as the authors' own observation and end it with the placeholder [CITE: what claim needs a source]. Keep the author's meaning as far as the sources allow. Do not invent numbers or findings. One or two sentences, plain, no dashes, no semicolons.
+
+Sentence:
+"{{ sentence }}"
+
+References in the project and what each says:
+{% for r in references %}
+- [@{{ r.key }}] {{ r.title }} ({{ r.year or "n.d." }}): {{ r.what_it_says }}
+{% else %}
+(none related)
+{% endfor %}
+
+House style, for tone:
+{{ house_style }}
+
+Answer as JSON: {"sentence": "the rewritten sentence(s)", "note": "one clause on what changed and why"}

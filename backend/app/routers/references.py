@@ -186,3 +186,68 @@ def delete(slug: str, key: str, user: User = Depends(current_user), db: Session 
     _, root = _root(db, user, slug)
     if not svc.delete(root, key):
         raise HTTPException(404, "Reference not found")
+
+
+# ------------------------------------------------------------------ evidence and finding sources
+
+
+class SentenceIn(BaseModel):
+    sentence: str = Field(min_length=3, max_length=2000)
+
+
+class CheckIn(SentenceIn):
+    passage: str = Field(default="", max_length=4000)
+
+
+@router.post("/{key}/evidence")
+def cite_evidence(
+    slug: str, key: str, body: SentenceIn, user: User = Depends(current_user), db: Session = Depends(get_db)
+):
+    """What stands behind a citation: the record's own words and, with full text on disk, the best passage."""
+    from ..refs import evidence as ev
+
+    _, root = _root(db, user, slug)
+    try:
+        return ev.evidence(root, key, body.sentence)
+    except ValueError as e:
+        raise HTTPException(404, str(e)) from e
+
+
+@router.post("/{key}/check")
+async def cite_check(
+    slug: str, key: str, body: CheckIn, user: User = Depends(current_user), db: Session = Depends(get_db)
+):
+    """Ask the utility model whether the cited paper supports the sentence. On demand only."""
+    from ..refs import evidence as ev
+
+    p, _ = _root(db, user, slug)
+    if not llm_limiter.allow(user.id):
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Slow down")
+    try:
+        return await ev.check(p.id, key, body.sentence, body.passage, user.id)
+    except ValueError as e:
+        raise HTTPException(404, str(e)) from e
+
+
+@router.post("/find")
+async def find_source(slug: str, body: SentenceIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Sources for one sentence: the project's own references first, then the indexes."""
+    from ..refs import evidence as ev
+
+    p, _ = _root(db, user, slug)
+    if not llm_limiter.allow(user.id):
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Slow down")
+    return await ev.find_sources(p.id, body.sentence, user.id)
+
+
+@router.post("/rewrite")
+async def rewrite_sentence(
+    slug: str, body: SentenceIn, user: User = Depends(current_user), db: Session = Depends(get_db)
+):
+    """Restate a sentence to what the project's references support. Returns a proposal; saves nothing."""
+    from ..refs import evidence as ev
+
+    p, _ = _root(db, user, slug)
+    if not llm_limiter.allow(user.id):
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Slow down")
+    return await ev.rewrite(p.id, body.sentence, user.id)

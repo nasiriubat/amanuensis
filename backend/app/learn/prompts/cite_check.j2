@@ -1,0 +1,15 @@
+You check one citation in a research paper. Decide whether the cited paper supports the sentence that cites it. Judge only from the material below; do not use outside knowledge of the paper.
+
+Sentence in the draft:
+"{{ sentence }}"
+
+Cited paper: {{ title }}
+What the paper says (abstract or reading card):
+{{ what_it_says if what_it_says.strip() else "(nothing on record)" }}
+{% if passage.strip() %}
+Passage from the paper that best matches the sentence:
+"{{ passage }}"
+{% endif %}
+
+Answer as JSON: {"verdict": "supported" | "partly_supported" | "not_supported", "reason": "one or two plain sentences naming what the paper does or does not say"}
+"supported" means the paper states the claim the sentence attributes to it. "partly_supported" means the paper is about this but the sentence goes beyond it (stronger claim, different population, a number the paper does not give). "not_supported" means the material does not back the claim.
