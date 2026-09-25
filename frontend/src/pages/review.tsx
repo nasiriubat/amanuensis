@@ -72,7 +72,7 @@ export function ReviewPage() {
       <PageHeader
         eyebrow={verdict ? <Badge variant={verdict.variant}>{verdict.label}</Badge> : <Badge>Not reviewed</Badge>}
         title="Review"
-        description="A reviewer pass over everything drafted: overclaims, missing evidence, contradictions between sections, structure against the playbook. Major findings land on the checklist. Nothing is changed for you."
+        description="A reviewer pass over everything drafted: overclaims, missing evidence, contradictions between sections, structure against the pattern. Major findings land on the checklist. Nothing is changed for you."
         actions={
           <Button onClick={() => run.mutate()} loading={run.isPending} disabled={active || !p.counts.sections_drafted}>
             <ShieldCheck className="h-4 w-4" /> {review ? "Review again" : "Run review"}
@@ -87,7 +87,7 @@ export function ReviewPage() {
             <EmptyState
               icon={<ShieldCheck />}
               title={p.counts.sections_drafted ? "No review yet" : "Draft something first"}
-              description={p.counts.sections_drafted ? "The reviewer reads the drafted sections, the facts and the playbook, then writes a verdict with specific findings." : "The review works on drafted sections. Draft at least one in the Studio."}
+              description={p.counts.sections_drafted ? "The reviewer reads the drafted sections, the facts and the pattern, then writes a verdict with specific findings." : "The review works on drafted sections. Draft at least one in the Studio."}
               action={p.counts.sections_drafted ? <Button onClick={() => run.mutate()} loading={run.isPending} disabled={active}>Run review</Button> : undefined}
             />
           ) : (
@@ -171,7 +171,7 @@ export function ReviewPage() {
               </span>
               <div className="min-w-0 flex-1 text-[13px]">
                 <div className="font-semibold">{p.venue ? `Target: ${p.venue}` : "No target venue yet"}</div>
-                <p className="mt-0.5 text-muted-foreground">Three suggestions from your spec and the exemplars' venues. You decide; the model can be wrong about details, so verify calls and deadlines.</p>
+                <p className="mt-0.5 text-muted-foreground">Three suggestions from your spec and the example papers' venues. You decide; the model can be wrong about details, so verify calls and deadlines.</p>
                 <Button size="sm" variant="secondary" className="mt-3" onClick={() => suggest.mutate()} loading={suggest.isPending}>
                   <Sparkles className="h-3.5 w-3.5" /> {venues ? "Suggest again" : "Suggest venues"}
                 </Button>

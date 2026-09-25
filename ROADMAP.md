@@ -173,6 +173,44 @@ page, CSV and JSON export, and the four study documents.
   time (missing sections first); the voice hint no longer collapses on phones; a combined kind
   title such as "Background and related work" is satisfied by either section.
 
+## 14. Critique round and decongestion plan (25 September)
+
+A full four-angle review (performance, features, UX, security) with the deployment target
+set to self-hosted, trusted small teams and the product leaning newcomer-first. Verdict:
+the system is well-built and calm overall; congestion is real but localized to the Studio.
+
+**Done this round (branch `fix/p0-correctness-and-studio`):**
+- P0 correctness: `run_export` ran Pandoc, Tectonic (600 s timeout) and the zip build with
+  blocking `subprocess.run` on the single asyncio event loop, so one export froze every
+  user's request, SSE stream and job for minutes. Now offloaded with `asyncio.to_thread`
+  (matches how ingest already offloads Docling).
+- LLM robustness: added `app/llm/jsonio.py` (`extract_json`, fence/prose tolerant; and
+  `complete_json`, which re-asks once on a malformed reply). Replaced five duplicated
+  `_parse_json` copies; retry wired into the costly learn map+reduce so one bad reply no
+  longer fails an already-paid-for job.
+- SQLite: `PRAGMA busy_timeout=15000` so concurrent job progress writes wait for a lock
+  instead of raising "database is locked". ruff clean, 84 tests pass.
+
+**Next (design-sensitive — do with the app running, verify in-browser):**
+1. Studio decongestion: split the 1029-line `studio.tsx`; default to sections + editor
+   with citations/issues/checklist in one on-demand drawer instead of a 5-tab cluster;
+   collapse the stacked banners into one dismissible line. Re-verify the phone layout
+   (the earlier "broken" impression was from a stale screenshot; current code is tuned).
+2. Guided newcomer flow (the "wizard"): reuse `lib/flow.ts`; project home leads with one
+   focused next action, stepper as an expandable map. Open question: guided-by-default with
+   free navigation (recommended) vs hard-locked linear steps.
+3. Newcomer language: gloss or rename the jargon (exemplars -> example papers, playbook ->
+   what good papers here do, kind -> paper type) without losing the precise terms in docs.
+4. Frontend performance: main bundle is 2.2 MB (679 KB gz); route-level `React.lazy` plus
+   lazy-loading KaTeX/Mermaid/cytoscape would cut first load sharply.
+5. Robustness follow-ups: per-project job lock (no silent JSON metadata loss under
+   concurrent jobs); context-window-aware prompt budgets; cost shown in currency in Usage.
+
+**Before any public HTTPS deployment (e.g. the study), revisit these two only-then-important
+security items:** block private/loopback/link-local ranges in `ingest_pdf_url` (SSRF), and
+derive/​warn on `SECURE_COOKIES` from an https `APP_URL`. No IDOR was found; the auth,
+CSRF and key-encryption baseline is solid.
+
 ## Needed from the workspace owner
 - VPS or server with a domain, and who administers it.
 - Semantic Scholar API key (free) and an SMTP account for the app's mail.

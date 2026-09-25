@@ -6,6 +6,7 @@ and paper-latex.zip. Missing tools degrade gracefully: the LaTeX zip is always p
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import shutil
@@ -358,6 +359,14 @@ def render_wrapper(tpl_dir: Path, ctx: dict) -> str:
 # ------------------------------------------------------------------ export job
 
 
+def _pack_latex_zip(out: Path, zip_path: Path) -> None:
+    """Zip the export folder for Overleaf, minus the derived DOCX and its scratch Markdown."""
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+        for f in out.rglob("*"):
+            if f.is_file() and f.suffix not in (".zip", ".docx") and f.name != "paper-docx.md":
+                z.write(f, f.relative_to(out))
+
+
 async def run_export(project_id: str, ctx: JobContext, *, template_slug: str, formats: list[str]) -> dict:
     from ..db import SessionLocal
     from ..models import Project
@@ -408,12 +417,14 @@ async def run_export(project_id: str, ctx: JobContext, *, template_slug: str, fo
     ctx.progress(25, "Converting Markdown to LaTeX")
     # The wrapper sets \title; strip the H1 so ## headings become \section (not 0.1 subsections).
     body_no_title = re.sub(r"^# .*\n+", "", body_md, count=1)
-    body_tex, method = markdown_to_latex(body_no_title, out)
+    # Pandoc shells out (and Tectonic below runs for minutes); jobs share the one event loop,
+    # so every blocking subprocess is offloaded to a thread to keep the app responsive (SPEC 3.3).
+    body_tex, method = await asyncio.to_thread(markdown_to_latex, body_no_title, out)
     if method == "fallback":
         result["warnings"].append(
             "Pandoc is not installed here; a simpler converter was used for LaTeX (tables and math may need attention)."
         )
-    abstract_tex, _ = markdown_to_latex(abstract, out) if abstract else ("", method)
+    abstract_tex, _ = await asyncio.to_thread(markdown_to_latex, abstract, out) if abstract else ("", method)
     # A bibliography with no \cite prints an empty "References" heading; include it only when used.
     has_bib = has_records and has_citations(body_tex, abstract_tex)
     if has_records and not has_bib:
@@ -463,7 +474,8 @@ async def run_export(project_id: str, ctx: JobContext, *, template_slug: str, fo
             )
         else:
             ctx.progress(50, "Compiling PDF with Tectonic")
-            r = subprocess.run(
+            r = await asyncio.to_thread(
+                subprocess.run,
                 [tectonic, "-X", "compile", "--keep-logs", "--untrusted", "main.tex"],
                 capture_output=True,
                 text=True,
@@ -492,7 +504,9 @@ async def run_export(project_id: str, ctx: JobContext, *, template_slug: str, fo
             cmd = [pandoc, "paper-docx.md", "-o", "paper.docx", "--from", "markdown"]
             if has_bib:
                 cmd += ["--citeproc", "--bibliography", "refs.bib"]
-            r = subprocess.run(cmd, capture_output=True, text=True, timeout=300, check=False, cwd=out)
+            r = await asyncio.to_thread(
+                subprocess.run, cmd, capture_output=True, text=True, timeout=300, check=False, cwd=out
+            )
             if r.returncode == 0 and (out / "paper.docx").exists():
                 result["files"].append("paper.docx")
             else:
@@ -500,10 +514,7 @@ async def run_export(project_id: str, ctx: JobContext, *, template_slug: str, fo
 
     ctx.progress(90, "Packing the LaTeX zip")
     zip_path = out / "paper-latex.zip"
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
-        for f in out.rglob("*"):
-            if f.is_file() and f.suffix not in (".zip", ".docx") and f.name != "paper-docx.md":
-                z.write(f, f.relative_to(out))
+    await asyncio.to_thread(_pack_latex_zip, out, zip_path)
     result["files"].append("paper-latex.zip")
     storage.write_text(out / "result.json", json.dumps(result, indent=2))
     ctx.progress(100, f"Export ready: {', '.join(result['files'])}")

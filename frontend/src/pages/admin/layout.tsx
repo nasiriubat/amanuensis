@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/ui/misc";
 const items = [
   { to: "providers", label: "Providers", icon: Plug, hint: "API keys and endpoints" },
   { to: "models", label: "Models", icon: Cpu, hint: "Which model does what" },
-  { to: "kinds", label: "Paper kinds", icon: BookType, hint: "Genres and their rules" },
+  { to: "kinds", label: "Paper types", icon: BookType, hint: "Genres and their rules" },
   { to: "house-style", label: "House style", icon: Palette, hint: "Prose hygiene rules" },
   { to: "users", label: "Users", icon: Users, hint: "Members and roles" },
   { to: "site", label: "Site", icon: Globe, hint: "Name, logo, SEO" },

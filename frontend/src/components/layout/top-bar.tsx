@@ -23,7 +23,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 const ADMIN_LABELS: Record<string, string> = {
   providers: "Providers",
   models: "Models",
-  kinds: "Paper kinds",
+  kinds: "Paper types",
   "house-style": "House style",
   users: "Users",
   site: "Site",

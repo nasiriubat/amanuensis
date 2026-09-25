@@ -52,7 +52,7 @@ export function DesignPage() {
       <PageHeader
         eyebrow={p.counts.has_plan ? <Badge variant="success">Plan written</Badge> : p.entry === "idea" ? <Badge variant="primary">Start here</Badge> : <Badge>Optional stage</Badge>}
         title="Research design"
-        description="From an idea to a study that reviewers of this kind of paper would accept. The plan works backwards from the evidence checklist and never contains results."
+        description="From an idea to a study that reviewers of this type of paper would accept. The plan works backwards from the evidence checklist and never contains results."
       />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">

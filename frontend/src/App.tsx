@@ -1,42 +1,61 @@
+import { lazy } from "react";
 import { Navigate, Outlet, RouterProvider, createBrowserRouter, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { AppShell } from "@/components/layout/app-shell";
+import { StageProgress } from "@/components/stage-progress";
+// Eager: everything needed for the first paint (sign-in, the library, the public pages).
 import { LoginPage } from "@/pages/login";
 import { ResetPasswordPage } from "@/pages/reset-password";
 import { LibraryPage, ProfilesPage } from "@/pages/library";
-import { ProjectHomePage } from "@/pages/project-home";
-import { SourcesPage } from "@/pages/sources";
-import { PlaybookPage } from "@/pages/playbook";
-import { DesignPage } from "@/pages/design";
-import { InterviewPage } from "@/pages/interview";
-import { OutlinePage } from "@/pages/outline";
-import { SpecPage } from "@/pages/spec";
-import { StudioPage } from "@/pages/studio";
-import { ReferencesPage } from "@/pages/references";
-import { FiguresPage } from "@/pages/figures";
-import { ExportPage } from "@/pages/export";
-import { ReviewPage } from "@/pages/review";
-import { ProfilePage } from "@/pages/profile-page";
-import { AccountPage } from "@/pages/account";
-import { AdminLayout } from "@/pages/admin/layout";
-import { ProvidersPage } from "@/pages/admin/providers";
-import { ModelsPage } from "@/pages/admin/models";
-import { KindsPage } from "@/pages/admin/kinds";
-import { HouseStylePage } from "@/pages/admin/house-style";
-import { UsersPage } from "@/pages/admin/users";
-import { UsagePage } from "@/pages/admin/usage";
-import { PagesPage, SiteTab } from "@/pages/admin/site";
-import { StoragePage } from "@/pages/admin/storage";
-import { StudyPage } from "@/pages/admin/study";
 import { PublicPageView } from "@/pages/public-page";
 import { LandingPage } from "@/pages/landing";
 import { useSite } from "@/lib/site";
+
+// Lazy: the workspace and admin screens. This keeps the editor (CodeMirror), the diagram
+// renderer (Mermaid) and the Markdown/KaTeX preview out of the initial bundle; each loads
+// only when its screen is first opened, behind the Suspense boundary in AppShell.
+const named = <T,>(p: Promise<Record<string, T>>, key: string) => p.then((m) => ({ default: m[key] as T }));
+const ProjectHomePage = lazy(() => named(import("@/pages/project-home"), "ProjectHomePage"));
+const SourcesPage = lazy(() => named(import("@/pages/sources"), "SourcesPage"));
+const PlaybookPage = lazy(() => named(import("@/pages/playbook"), "PlaybookPage"));
+const DesignPage = lazy(() => named(import("@/pages/design"), "DesignPage"));
+const InterviewPage = lazy(() => named(import("@/pages/interview"), "InterviewPage"));
+const OutlinePage = lazy(() => named(import("@/pages/outline"), "OutlinePage"));
+const SpecPage = lazy(() => named(import("@/pages/spec"), "SpecPage"));
+const StudioPage = lazy(() => named(import("@/pages/studio"), "StudioPage"));
+const ReferencesPage = lazy(() => named(import("@/pages/references"), "ReferencesPage"));
+const FiguresPage = lazy(() => named(import("@/pages/figures"), "FiguresPage"));
+const ExportPage = lazy(() => named(import("@/pages/export"), "ExportPage"));
+const ReviewPage = lazy(() => named(import("@/pages/review"), "ReviewPage"));
+const ProfilePage = lazy(() => named(import("@/pages/profile-page"), "ProfilePage"));
+const AccountPage = lazy(() => named(import("@/pages/account"), "AccountPage"));
+const AdminLayout = lazy(() => named(import("@/pages/admin/layout"), "AdminLayout"));
+const ProvidersPage = lazy(() => named(import("@/pages/admin/providers"), "ProvidersPage"));
+const ModelsPage = lazy(() => named(import("@/pages/admin/models"), "ModelsPage"));
+const KindsPage = lazy(() => named(import("@/pages/admin/kinds"), "KindsPage"));
+const HouseStylePage = lazy(() => named(import("@/pages/admin/house-style"), "HouseStylePage"));
+const UsersPage = lazy(() => named(import("@/pages/admin/users"), "UsersPage"));
+const UsagePage = lazy(() => named(import("@/pages/admin/usage"), "UsagePage"));
+const PagesPage = lazy(() => named(import("@/pages/admin/site"), "PagesPage"));
+const SiteTab = lazy(() => named(import("@/pages/admin/site"), "SiteTab"));
+const StoragePage = lazy(() => named(import("@/pages/admin/storage"), "StoragePage"));
+const StudyPage = lazy(() => named(import("@/pages/admin/study"), "StudyPage"));
 
 function Splash() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
     </div>
+  );
+}
+
+/** Wraps every project stage page with the guided "Step N of M" progress strip. */
+function ProjectLayout() {
+  return (
+    <>
+      <StageProgress />
+      <Outlet />
+    </>
   );
 }
 
@@ -89,18 +108,24 @@ const router = createBrowserRouter([
       { path: "/library", element: <LibraryPage /> },
       { path: "/profiles", element: <ProfilesPage /> },
       { path: "/profiles/:slug", element: <ProfilePage /> },
-      { path: "/projects/:slug", element: <ProjectHomePage /> },
-      { path: "/projects/:slug/sources", element: <SourcesPage /> },
-      { path: "/projects/:slug/playbook", element: <PlaybookPage /> },
-      { path: "/projects/:slug/design", element: <DesignPage /> },
-      { path: "/projects/:slug/interview", element: <InterviewPage /> },
-      { path: "/projects/:slug/outline", element: <OutlinePage /> },
-      { path: "/projects/:slug/spec", element: <SpecPage /> },
-      { path: "/projects/:slug/studio", element: <StudioPage /> },
-      { path: "/projects/:slug/references", element: <ReferencesPage /> },
-      { path: "/projects/:slug/figures", element: <FiguresPage /> },
-      { path: "/projects/:slug/export", element: <ExportPage /> },
-      { path: "/projects/:slug/review", element: <ReviewPage /> },
+      {
+        path: "/projects/:slug",
+        element: <ProjectLayout />,
+        children: [
+          { index: true, element: <ProjectHomePage /> },
+          { path: "sources", element: <SourcesPage /> },
+          { path: "playbook", element: <PlaybookPage /> },
+          { path: "design", element: <DesignPage /> },
+          { path: "interview", element: <InterviewPage /> },
+          { path: "outline", element: <OutlinePage /> },
+          { path: "spec", element: <SpecPage /> },
+          { path: "studio", element: <StudioPage /> },
+          { path: "references", element: <ReferencesPage /> },
+          { path: "figures", element: <FiguresPage /> },
+          { path: "export", element: <ExportPage /> },
+          { path: "review", element: <ReviewPage /> },
+        ],
+      },
       { path: "/account", element: <AccountPage /> },
       {
         element: <RequireAdmin />,

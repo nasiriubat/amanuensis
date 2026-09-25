@@ -18,6 +18,7 @@ from ..jobs import JobContext
 from ..kinds import kind_exists, kind_name
 from ..learn.context import budget_markdown, render
 from ..llm.base import Message
+from ..llm.jsonio import extract_json
 from ..llm.registry import complete
 from ..models import Project
 from . import service as refs
@@ -31,11 +32,6 @@ SCAN_FILE = ("inputs", "scan.json")  # not under references/, whose *.json files
 
 def _now() -> str:
     return datetime.now(UTC).isoformat()
-
-
-def _parse_json(text: str) -> dict:
-    m = re.search(r"\{.*\}", text.strip(), re.DOTALL)
-    return json.loads(m.group(0) if m else text)
 
 
 def scan_path(root: Path) -> Path:
@@ -126,7 +122,7 @@ async def run_scan(project_id: str, ctx: JobContext) -> dict:
             temperature=0.3,
             json_mode=True,
         )
-    q_data = _parse_json(q_res.text)
+    q_data = extract_json(q_res.text)
     queries = [str(q).strip() for q in (q_data.get("queries") or []) if str(q).strip()][:6]
     themes = [str(t) for t in (q_data.get("themes") or [])][: len(queries)]
     if not queries:
@@ -183,7 +179,7 @@ async def run_scan(project_id: str, ctx: JobContext) -> dict:
             json_mode=True,
         )
     ranked = {}
-    for item in _parse_json(r_res.text).get("ranked") or []:
+    for item in extract_json(r_res.text).get("ranked") or []:
         try:
             ranked[int(item["idx"])] = (max(0, min(3, int(item.get("relevance", 1)))), str(item.get("why", ""))[:240])
         except (KeyError, TypeError, ValueError):

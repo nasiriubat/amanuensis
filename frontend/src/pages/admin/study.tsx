@@ -52,7 +52,7 @@ const STEP_LABEL: Record<string, string> = {
   spec: "Describe",
   design: "Research design",
   sources: "Sources",
-  playbook: "Playbook",
+  playbook: "Pattern",
   interview: "Interview",
   outline: "Outline",
   studio: "Studio",

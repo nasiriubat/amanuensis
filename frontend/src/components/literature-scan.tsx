@@ -79,7 +79,7 @@ export function LiteratureScan({ slug, projectId, compact }: { slug: string; pro
       const parts = [];
       if (r.references.length) parts.push(`${r.references.length} reference${r.references.length === 1 ? "" : "s"} added`);
       const exJobs = r.jobs.length - r.readJobs;
-      if (exJobs) parts.push(`${exJobs} exemplar${exJobs === 1 ? "" : "s"} queued`);
+      if (exJobs) parts.push(`${exJobs} example paper${exJobs === 1 ? "" : "s"} queued`);
       if (r.readJobs) parts.push(`${r.readJobs} reading${r.readJobs === 1 ? "" : "s"} queued`);
       if (r.skipped.length) parts.push(`${r.skipped.length} without arXiv source skipped`);
       toast.success(parts.join(" · ") || "Nothing to add");
@@ -190,7 +190,7 @@ export function LiteratureScan({ slug, projectId, compact }: { slug: string; pro
                       Read all
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => selectAll(g.level, "exemplar")}>
-                      Exemplar all
+                      Example paper all
                     </Button>
                   </div>
                 </div>
@@ -208,8 +208,8 @@ export function LiteratureScan({ slug, projectId, compact }: { slug: string; pro
       {counts.cite || counts.ex || counts.rd ? (
         <div className="sticky bottom-[76px] z-30 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius)] border border-primary/40 bg-card px-4 py-3 shadow-[0_8px_24px_-12px_rgba(16,24,40,0.25)] md:bottom-4">
           <div className="text-[13px]">
-            <span className="font-semibold">{counts.cite}</span> to cite · <span className="font-semibold">{counts.rd}</span> to read in full · <span className="font-semibold">{counts.ex}</span> as exemplar{counts.ex === 1 ? "" : "s"}
-            <span className="text-muted-foreground"> · citing is instant; reading and exemplars fetch the paper and take a minute each, in the background.</span>
+            <span className="font-semibold">{counts.cite}</span> to cite · <span className="font-semibold">{counts.rd}</span> to read in full · <span className="font-semibold">{counts.ex}</span> as example paper{counts.ex === 1 ? "" : "s"}
+            <span className="text-muted-foreground"> · citing is instant; reading and example papers fetch the paper and take a minute each, in the background.</span>
           </div>
           <div className="flex gap-2">
             <Button variant="ghost" size="sm" onClick={() => setPicks({})}>
@@ -273,7 +273,7 @@ function CandidateRow({ c, pick, onToggle }: { c: ScanCandidate; pick?: Pick; on
           <PickToggle
             checked={exDone || !!pick?.exemplar}
             done={exDone}
-            label={exDone ? "Exemplar added" : c.arxiv_id ? "Use as exemplar" : "Use as exemplar (open PDF)"}
+            label={exDone ? "Example paper added" : c.arxiv_id ? "Use as example paper" : "Use as example paper (open PDF)"}
             icon={BookOpenCheck}
             onClick={() => onToggle("exemplar")}
           />

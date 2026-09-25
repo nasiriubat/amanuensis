@@ -59,7 +59,7 @@ function ProjectSettingsDialog({ p, open, onOpenChange, onDelete }: { p: Project
           <Field label="Title">
             <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
           </Field>
-          <Field label="Paper kind" hint="Changing the kind re-seeds unanswered interview rounds. Written sections are never touched.">
+          <Field label="Paper type" hint="Changing the type re-seeds unanswered interview rounds. Written sections are never touched.">
             <Select value={kind} onValueChange={setKind}>
               <SelectTrigger>
                 <SelectValue />

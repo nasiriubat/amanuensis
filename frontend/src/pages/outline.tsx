@@ -63,7 +63,7 @@ export function OutlinePage() {
       <PageHeader
         eyebrow={approved ? <Badge variant="success">Approved</Badge> : p.counts.has_outline ? <Badge variant="warning">Draft outline, not approved</Badge> : <Badge>Not started</Badge>}
         title="Outline"
-        description="One line per paragraph, built from the playbook structure and only the facts you gave. Missing pieces are marked [NEEDS: …] so they become checklist items. Approve it before drafting."
+        description="One line per paragraph, built from the pattern structure and only the facts you gave. Missing pieces are marked [NEEDS: …] so they become checklist items. Approve it before drafting."
         actions={
           <>
             <Button variant="secondary" onClick={() => generate.mutate()} loading={generate.isPending} disabled={active || !p.counts.has_spec}>

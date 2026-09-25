@@ -394,7 +394,7 @@ export function ReferencesPage() {
                         {r.venue ? ` · ${r.venue}` : ""}
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-subtle">
-                        <span>{r.source === "semanticscholar" ? "Semantic Scholar" : r.source === "openalex" ? "OpenAlex" : r.source === "arxiv" ? "arXiv" : r.source === "bib" ? ".bib" : r.source === "reading" ? "read in full" : r.source === "exemplar" ? "exemplar" : "manual"}</span>
+                        <span>{r.source === "semanticscholar" ? "Semantic Scholar" : r.source === "openalex" ? "OpenAlex" : r.source === "arxiv" ? "arXiv" : r.source === "bib" ? ".bib" : r.source === "reading" ? "read in full" : r.source === "exemplar" ? "example paper" : "manual"}</span>
                         <span>· cited {r.uses} time{r.uses === 1 ? "" : "s"}</span>
                         {r.card ? (
                           <Badge variant="success" className="cursor-pointer" onClick={() => setOpenCard(openCard === r.key ? null : r.key)}>

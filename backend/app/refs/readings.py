@@ -20,6 +20,7 @@ from ..jobs import JobContext
 from ..kinds import kind_exists, kind_name
 from ..learn.context import budget_markdown, render
 from ..llm.base import Message
+from ..llm.jsonio import extract_json
 from ..llm.registry import complete
 from ..models import Project
 from . import scan
@@ -119,7 +120,7 @@ async def summarise_reading(project_id: str, paper_id: str, ctx: JobContext | No
             temperature=0.1,
             json_mode=True,
         )
-    card = _clean(scan._parse_json(result.text))
+    card = _clean(extract_json(result.text))
     card["tokens_in"] = result.usage.input_tokens
     card["tokens_out"] = result.usage.output_tokens
     key = attach_card(root, meta, card, paper_id)

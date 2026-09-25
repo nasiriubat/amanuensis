@@ -391,7 +391,7 @@ export function CitationsPanel({
         </div>
       )}
       <p className="flex items-start gap-1.5 text-[11.5px] text-subtle">
-        <BookOpen className="mt-0.5 h-3 w-3 shrink-0" /> Passages come from papers you added under Background reading or as exemplars. Abstract-only references show the abstract.
+        <BookOpen className="mt-0.5 h-3 w-3 shrink-0" /> Passages come from papers you added under Background reading or as example papers. Abstract-only references show the abstract.
       </p>
     </div>
   );
