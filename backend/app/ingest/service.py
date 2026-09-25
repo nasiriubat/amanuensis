@@ -141,7 +141,7 @@ async def ingest_pdf_url(root: Path, url: str, ctx: JobContext, title: str = "")
     import httpx
 
     ctx.progress(3, f"Downloading {url[:80]}")
-    async with httpx.AsyncClient(follow_redirects=True, timeout=60, headers={"User-Agent": "amanuensis/0.1"}) as client:
+    async with httpx.AsyncClient(follow_redirects=True, timeout=60, headers={"User-Agent": "coscribe/0.1"}) as client:
         r = await client.get(url)
     r.raise_for_status()
     data = r.content

@@ -17,7 +17,7 @@ import httpx
 from ..config import get_settings
 from ..ingest.arxiv import _paced_get
 
-_UA = "amanuensis/0.1 (self-hosted research tool; contact: admin)"
+_UA = "coscribe/0.1 (self-hosted research tool; contact: admin)"
 _NS = {"a": "http://www.w3.org/2005/Atom"}
 
 
@@ -112,7 +112,7 @@ def _openalex_abstract(inv: dict | None) -> str | None:
 
 
 async def openalex(client: httpx.AsyncClient, q: str, limit: int) -> list[Candidate]:
-    params = {"search": q, "per-page": limit, "mailto": "amanuensis@example.org"}
+    params = {"search": q, "per-page": limit, "mailto": "coscribe@example.org"}
     r = await client.get("https://api.openalex.org/works", params=params, timeout=12)
     if r.status_code == 429:
         # OpenAlex's polite pool allows ~10 requests/s; a burst from the scan can trip it.

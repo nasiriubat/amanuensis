@@ -78,7 +78,7 @@ def test_user_crud_and_isolation(client):
 def test_site_settings_and_pages(client):
     client.cookies.clear()
     s = client.get("/api/site").json()
-    assert s["name"] == "Amanuensis" and s["logo_url"] is None
+    assert s["name"] == "Coscribe" and s["logo_url"] is None
     assert [p["slug"] for p in s["nav_pages"]] == ["about", "contact"]  # seeded on first boot
     assert "Disallow: /api/" in client.get("/robots.txt").text
     h = login(client)
@@ -100,4 +100,4 @@ def test_site_settings_and_pages(client):
     assert client.put("/api/admin/site", headers=h, json={"name": "X", "homepage": "about-us"}).status_code == 200
     client.delete(f"/api/admin/pages/{pid}", headers=h)
     assert client.get("/api/admin/site", headers=h).json()["homepage"] == "landing"
-    client.put("/api/admin/site", headers=h, json={"name": "Amanuensis", "seo": {"index": True}})
+    client.put("/api/admin/site", headers=h, json={"name": "Coscribe", "seo": {"index": True}})

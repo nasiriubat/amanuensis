@@ -24,7 +24,7 @@ from ..uploads import FILE_HEADERS, sanitize_svg, sniff
 router = APIRouter(prefix="/api", tags=["site"])
 
 DEFAULTS = {
-    "name": "Amanuensis",
+    "name": "Coscribe",
     "tagline": "An AI co-author for people who build things and want to publish them.",
     "footer": "",
     "seo": {"title": "", "description": "", "keywords": "", "og_image": "", "index": True},

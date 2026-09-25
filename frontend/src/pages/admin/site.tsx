@@ -360,10 +360,10 @@ function MailCard() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Sender address" hint="Many providers require this to match the account.">
-              <Input type="email" value={form.from_addr} onChange={(e) => set({ from_addr: e.target.value })} placeholder="amanuensis@example.org" className="font-mono text-[12.5px]" />
+              <Input type="email" value={form.from_addr} onChange={(e) => set({ from_addr: e.target.value })} placeholder="coscribe@example.org" className="font-mono text-[12.5px]" />
             </Field>
             <Field label="Sender name">
-              <Input value={form.from_name} onChange={(e) => set({ from_name: e.target.value })} placeholder="Amanuensis" />
+              <Input value={form.from_name} onChange={(e) => set({ from_name: e.target.value })} placeholder="Coscribe" />
             </Field>
           </div>
           <div className="flex flex-wrap items-center gap-3">

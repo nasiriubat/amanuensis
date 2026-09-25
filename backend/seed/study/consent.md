@@ -1,6 +1,6 @@
-# Consent to take part in a usability study of Amanuensis
+# Consent to take part in a usability study of Coscribe
 
-**Study.** We are evaluating Amanuensis, a self-hosted tool that helps researchers write a
+**Study.** We are evaluating Coscribe, a self-hosted tool that helps researchers write a
 paper from what they built or plan to study. Five participants each write one paper with it
 over two weeks. The study is run by [study lead, affiliation]. Contact: [email].
 

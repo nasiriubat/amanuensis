@@ -1,8 +1,8 @@
 services:
-  amanuensis:
+  coscribe:
     build: .
-    image: amanuensis:local
-    container_name: amanuensis
+    image: coscribe:local
+    container_name: coscribe
     restart: unless-stopped
     env_file: .env
     environment:
@@ -10,10 +10,10 @@ services:
     ports:
       - "${PORT:-8000}:8000"
     volumes:
-      - amanuensis_data:/data
+      - coscribe_data:/data
     # Ollama on the host is reachable as http://host.docker.internal:11434/v1
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
 volumes:
-  amanuensis_data:
+  coscribe_data:

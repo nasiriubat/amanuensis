@@ -42,7 +42,7 @@ export const EMPTY_LANDING: LandingContent = {
 };
 
 const FALLBACK: SiteInfo = {
-  name: "Amanuensis",
+  name: "Coscribe",
   tagline: "",
   footer: "",
   seo: { title: "", description: "", keywords: "", og_image: "", index: true },

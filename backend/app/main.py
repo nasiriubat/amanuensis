@@ -37,7 +37,7 @@ from .routers import (
 )
 from .security import hash_password
 
-log = logging.getLogger("amanuensis")
+log = logging.getLogger("coscribe")
 
 # Largest single upload the API accepts (exemplar PDFs are capped at 40 MB by their route).
 MAX_REQUEST_BYTES = 45 * 1024 * 1024
@@ -103,7 +103,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(
-    title="Amanuensis", version="0.1.0", lifespan=lifespan, docs_url="/api/docs", openapi_url="/api/openapi.json"
+    title="Coscribe", version="0.1.0", lifespan=lifespan, docs_url="/api/docs", openapi_url="/api/openapi.json"
 )
 
 

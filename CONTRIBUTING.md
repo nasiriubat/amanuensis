@@ -1,4 +1,4 @@
-# Contributing to Amanuensis
+# Contributing to Coscribe
 
 Thank you for considering a contribution. This file tells you how the project is laid out, how to
 run it, and what a good change looks like. Questions go in a GitHub issue.

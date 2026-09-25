@@ -119,7 +119,7 @@ def send(db: Session, to: str, subject: str, body: str) -> None:
 
 def _site_name(db: Session) -> str:
     row = db.get(SiteSetting, "site")
-    return (row.value or {}).get("name", "Amanuensis") if row else "Amanuensis"
+    return (row.value or {}).get("name", "Coscribe") if row else "Coscribe"
 
 
 def invitation(db: Session, *, display_name: str, email: str, password: str, invited_by: str) -> tuple[str, str]:

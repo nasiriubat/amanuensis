@@ -1,9 +1,8 @@
-# Amanuensis
+# Coscribe
 
-[![CI](https://github.com/nasiriubat/amanuensis/actions/workflows/ci.yml/badge.svg)](https://github.com/nasiriubat/amanuensis/actions/workflows/ci.yml)
+[![CI](https://github.com/nasiriubat/coscribe/actions/workflows/ci.yml/badge.svg)](https://github.com/nasiriubat/coscribe/actions/workflows/ci.yml)
 
-*An amanuensis writes down what the author dictates and nothing else. So does this one.* Formerly "Paper Writer".
-
+*An coscribe writes down what the author dictates and nothing else. So does this one.
 An AI co-author that learns how good papers in a genre are structured, learns how a
 specific author writes, interviews you until your work fits a publishable shape, then
 drafts the paper section by section with verified references and exports it in a venue
@@ -71,7 +70,7 @@ Open http://localhost:8000, sign in with the admin credentials from `.env`, chan
 password, then go to **Settings → Providers** to add an API key and **Settings → Models**
 to assign a model to each purpose.
 
-All data lives in the `amanuensis_data` volume: SQLite database, projects, profiles,
+All data lives in the `coscribe_data` volume: SQLite database, projects, profiles,
 templates. Back it up by copying that volume.
 
 The image is large (about 8 GB) because it bakes in CPU PyTorch and the Docling layout
@@ -80,7 +79,7 @@ with a long timeout and retries so a slow connection does not fail the build.
 
 ## Deploying for a team
 
-Amanuensis is one container with one data volume. That is the right shape for a research
+Coscribe is one container with one data volume. That is the right shape for a research
 group of up to a few dozen people. What to do before you hand the URL to colleagues:
 
 1. **Put it behind HTTPS.** Run the container on a private port and terminate TLS in a reverse
@@ -108,7 +107,7 @@ group of up to a few dozen people. What to do before you hand the URL to colleag
 6. **Back up the volume.** Settings → Storage → Download backup produces one zip with a
    consistent database snapshot and every file. For unattended backups, call
    `GET /api/admin/storage/backup` with an admin session from a cron job, or snapshot the
-   `amanuensis_data` volume. Restore by unzipping into an empty volume.
+   `coscribe_data` volume. Restore by unzipping into an empty volume.
 7. **Watch disk and tokens.** Settings → Storage shows disk use per project and runs cleanups;
    Settings → Usage shows tokens per user, purpose and model. Every model call is logged.
 8. **Size the host.** Two vCPUs and 4 GB of RAM are enough for a group. PDF extraction with
